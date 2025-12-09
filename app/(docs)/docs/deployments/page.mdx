@@ -1,0 +1,57 @@
+# Deployments Overview
+
+Deploy your Eniem application to production. Choose between managed hosting (Vercel) or self-hosted solutions (Coolify).
+
+## Prerequisites
+
+Before deploying, ensure you have:
+
+- A PostgreSQL database
+- Environment variables configured for production
+- Your OAuth providers set up with production URLs
+
+## Production Environment Variables
+
+Configure these environment variables in your hosting provider:
+
+```bash
+NODE_ENV=production
+DATABASE_URL=postgresql://username:password@hostname:5432/database_name
+BETTER_AUTH_SECRET=your-super-secure-production-secret
+BETTER_AUTH_URL=https://yourdomain.com
+PROJECT_URL=https://yourdomain.com
+NEXT_PUBLIC_SITE_URL=https://yourdomain.com
+NEXT_PUBLIC_APP_NAME=eniem
+
+# OAuth (if using)
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+TWITTER_CLIENT_ID=your_twitter_client_id
+TWITTER_CLIENT_SECRET=your_twitter_client_secret
+
+# Payments (required for subscriptions)
+POLAR_ACCESS_TOKEN=your_polar_access_token
+POLAR_SERVER=production
+POLAR_WEBHOOK_SECRET=your_webhook_secret
+
+# Email (required for auth emails)
+RESEND_API_KEY=your_resend_api_key
+EMAIL_FROM_ADDRESS=no-reply@yourdomain.com
+```
+
+## Deployment Options
+
+| Option                    | Best For                                          | Guide                                              |
+| ------------------------- | ------------------------------------------------- | -------------------------------------------------- |
+| **Managed (Vercel)**      | Quick setup, automatic scaling, zero DevOps       | [Managed Guide](/docs/deployments/managed)         |
+| **Self-Hosted (Coolify)** | Full control, cost optimization, data sovereignty | [Self-Hosted Guide](/docs/deployments/self-hosted) |
+
+## Security Checklist
+
+Before going live:
+
+- [ ] Generate a strong `BETTER_AUTH_SECRET` (32+ characters)
+- [ ] Use HTTPS for all URLs
+- [ ] Configure OAuth providers with production URLs
+- [ ] Set up database backups
+- [ ] Enable rate limiting

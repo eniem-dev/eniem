@@ -1,0 +1,260 @@
+# SIWE (Sign In With Ethereum)
+
+Web3 wallet-based authentication using the SIWE protocol. Users can authenticate using their Ethereum wallet without needing an email or password.
+
+[Check the official documentation for more detail about implementation](https://www.better-auth.com/docs/plugins/siwe).
+
+## Tech Stack
+
+| Library | Purpose |
+|---------|---------|
+| [RainbowKit](https://www.rainbowkit.com/) | Wallet connection UI |
+| [Wagmi](https://wagmi.sh/) | React hooks for Ethereum |
+| [SIWE](https://login.xyz/) | Sign-In With Ethereum protocol |
+| [viem](https://viem.sh/) | Ethereum utilities |
+
+## Architecture
+
+SIWE authentication involves multiple layers working together: the wallet connection UI (RainbowKit), Ethereum interactions (Wagmi), and the authentication backend (BetterAuth). Here's how the files are organized:
+
+```
+config/
+└── wagmi.ts                    # Wagmi + RainbowKit config
+
+lib/
+├── auth.ts                     # SIWE plugin (server)
+├── auth-client.ts              # siweClient plugin
+└── rainbowkit-theme.ts         # Custom theme
+
+components/providers/
+└── providers.tsx               # WagmiProvider + RainbowKitProvider
+
+features/authentication/
+├── hooks/
+│   └── use-ethereum-auth.ts    # SIWE authentication logic
+└── components/
+    └── siwe-button.tsx         # Wallet connect button
+```
+
+## Configuration
+
+### Server Plugin
+
+The server-side SIWE plugin handles nonce generation and signature verification. It uses `viem` for cryptographic operations to verify that the signature was created by the wallet owner. The `domain` option ensures the signature is only valid for your application.
+
+```typescript
+import { siwe } from "better-auth/plugins";
+import { verifyMessage } from "viem";
+import { generateSiweNonce } from "viem/siwe";
+
+export const auth = betterAuth({
+  plugins: [
+    siwe({
+      domain: new URL(env.projectUrl).hostname,
+      emailDomainName: new URL(env.projectUrl).hostname,
+      anonymous: true,
+      getNonce: async () => {
+        return generateSiweNonce();
+      },
+      verifyMessage: async ({ message, signature, address }) => {
+        const isValid = await verifyMessage({
+          address: address as `0x${string}`,
+          message,
+          signature: signature as `0x${string}`,
+        });
+        return isValid;
+      },
+    }),
+  ],
+});
+```
+
+### Client Plugin
+
+The client-side plugin provides methods to interact with the SIWE endpoints. It exposes `authClient.siwe.nonce()` to request a nonce and `authClient.siwe.verify()` to submit the signed message for verification.
+
+```typescript
+import { siweClient } from "better-auth/client/plugins";
+
+export const authClient = createAuthClient({
+  plugins: [siweClient()],
+});
+```
+
+### Wagmi Configuration
+
+Wagmi provides React hooks for Ethereum interactions like connecting wallets and signing messages. We use RainbowKit's `getDefaultConfig` helper which sets up both Wagmi and RainbowKit with sensible defaults. The `projectId` is required for WalletConnect v2 support.
+
+```typescript
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { mainnet, polygon, optimism, arbitrum, base } from "wagmi/chains";
+
+export const wagmiConfig = getDefaultConfig({
+  appName: "eniem",
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
+  chains: [mainnet, polygon, optimism, arbitrum, base],
+  ssr: false,
+});
+```
+
+### Providers Setup
+
+The providers wrap your application to make wallet state available throughout the component tree. `WagmiProvider` manages the Ethereum connection state, `QueryClientProvider` handles caching for RPC calls, and `RainbowKitProvider` provides the wallet connection UI components.
+
+```typescript
+import { WagmiProvider } from "wagmi";
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
+import { wagmiConfig } from "@/config/wagmi";
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <WagmiProvider config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider>
+          {children}
+        </RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}
+```
+
+## Key Options
+
+### `anonymous`
+
+When set to `true`, users can sign in without requiring an email:
+
+- Users authenticate purely with their wallet
+- No email verification or account linking needed
+- Account is created automatically on first sign-in
+- Essential for Web3-native users who prefer wallet-only authentication
+
+### `emailDomainName`
+
+Creates a synthetic email for wallet users:
+
+- Format: `{walletAddress}@{domain}`
+- Example: `0x1234...abcd@example.com`
+- Used internally by BetterAuth for user identification
+- Users never see or interact with this email
+
+## Authentication Flow
+
+The authentication process follows the SIWE standard: the server generates a unique nonce, the client creates a message containing this nonce and has the user sign it with their wallet, then the server verifies the signature matches the claimed address.
+
+**Implementation:** `features/authentication/hooks/use-ethereum-auth.ts`
+
+```typescript
+export function useEthereumAuth() {
+  const { address, chain } = useAccount();
+  const { signMessageAsync } = useSignMessage();
+
+  const handleEthereumAuth = async () => {
+    // 1. Get nonce from server
+    const nonceResult = await authClient.siwe.nonce({
+      walletAddress: address,
+      chainId: chain.id,
+    });
+
+    // 2. Create SIWE message
+    const siweMessage = new SiweMessage({
+      domain: window.location.host,
+      address,
+      statement: "Sign in with Ethereum to Eniem",
+      uri: window.location.origin,
+      version: "1",
+      chainId: chain.id,
+      nonce: nonceResult.data.nonce,
+      issuedAt: new Date().toISOString(),
+    });
+
+    // 3. Sign message with wallet
+    const messageString = siweMessage.prepareMessage();
+    const signature = await signMessageAsync({ message: messageString });
+
+    // 4. Verify signature on server
+    await authClient.siwe.verify({
+      message: messageString,
+      signature,
+      walletAddress: address,
+      chainId: chain.id,
+    });
+  };
+
+  return { handleEthereumAuth };
+}
+```
+
+**Flow:**
+
+1. User clicks "Connect Wallet" → RainbowKit modal opens
+2. User selects wallet and connects
+3. App requests nonce from server
+4. App creates SIWE message with nonce
+5. User signs message in their wallet
+6. App sends signature to server for verification
+7. Server verifies signature → user authenticated (or created if new)
+8. Redirect to dashboard
+
+## UI Component
+
+**Implementation:** `features/authentication/components/siwe-button.tsx`
+
+The `SiweButton` uses RainbowKit's `ConnectButton.Custom` for full control:
+
+```typescript
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+
+export function SiweButton({ mode, disabled }: SiweButtonProps) {
+  const { handleEthereumAuth, loading } = useEthereumAuth();
+
+  return (
+    <ConnectButton.Custom>
+      {({ account, chain, openConnectModal, mounted }) => {
+        const connected = mounted && account && chain;
+
+        if (!connected) {
+          return (
+            <Button onClick={openConnectModal}>
+              Connect Wallet
+            </Button>
+          );
+        }
+
+        return (
+          <Button onClick={() => handleEthereumAuth(mode)}>
+            Sign in with Ethereum
+          </Button>
+        );
+      }}
+    </ConnectButton.Custom>
+  );
+}
+```
+
+## Environment Variables
+
+WalletConnect requires a project ID to enable wallet connections via QR code and mobile deep linking. This is essential for users who want to connect mobile wallets like MetaMask Mobile or Rainbow.
+
+```bash
+NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your-walletconnect-project-id
+```
+
+Get your WalletConnect Project ID for free at [cloud.walletconnect.com](https://cloud.walletconnect.com/).
+
+## Supported Chains
+
+The application supports multiple EVM-compatible chains. Users can connect their wallet on any of these networks and authenticate. The chain configuration is defined in `config/wagmi.ts`:
+
+- Ethereum Mainnet
+- Polygon
+- Optimism
+- Arbitrum
+- Base
+
+## Related
+
+- [OAuth](/docs/authentication/oauth) - Social login providers
+- [Rate Limits](/docs/authentication/rate-limits) - Auth endpoints are rate limited
+- [Add Web3 Authentication](/docs/guides/add-web3-auth) - Setup guide

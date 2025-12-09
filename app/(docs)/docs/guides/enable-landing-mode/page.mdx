@@ -1,0 +1,87 @@
+# Enable Landing Mode
+
+> By the end of this guide, you'll have a pre-launch landing page with email collection.
+
+## Prerequisites
+
+- Completed the [Installation](/docs/getting-started/installation) guide
+- Database running (SQLite for dev, PostgreSQL for production)
+
+## Steps
+
+### 1. Enable Landing Mode
+
+Add or update the environment variable in your `.env` file:
+
+```bash
+LANDING_MODE=true
+```
+
+### 2. Start Your Application
+
+```bash
+pnpm dev
+```
+
+Visit any route - you'll be automatically redirected to `/landing`.
+
+### 3. Customize the Landing Page (Optional)
+
+Edit the landing page content in `app/(landing)/landing/page.tsx`:
+
+```tsx
+import { NewsletterForm } from "@/features/landing-mode";
+import { locales } from "@/app/locales";
+
+export default function LandingPage() {
+  return (
+    <section className="py-24 px-6 text-center">
+      <h1 className="text-7xl font-black">
+        {locales.LandingPage.hero.title}
+      </h1>
+      <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+        {locales.LandingPage.hero.subtitle}
+      </p>
+      <NewsletterForm />
+    </section>
+  );
+}
+```
+
+Update the text in `locales/index.ts`:
+
+```typescript
+LandingPage: {
+  hero: {
+    title: "Something amazing is coming",
+    subtitle: "Join the waitlist to get early access.",
+  },
+  newsletter: {
+    placeholder: "Enter your email",
+    submitButton: "Get Early Access",
+    success: "You're on the list!",
+  },
+}
+```
+
+## Test It
+
+1. Visit `http://localhost:3000` - you should see the landing page
+2. Try visiting `/dashboard` or any other route - you'll be redirected to `/landing`
+3. Submit an email through the form
+4. Check your database for the collected email
+
+## Disable Landing Mode
+
+When you're ready to launch, simply set:
+
+```bash
+LANDING_MODE=false
+```
+
+Or remove the variable entirely. Your application will immediately return to normal operation.
+
+## Next Steps
+
+- [Landing Mode Reference](/docs/landing-mode) - Full documentation with export options
+- [Add OAuth Provider](/docs/guides/add-oauth) - Set up authentication for launch

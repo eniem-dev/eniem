@@ -1,0 +1,94 @@
+# Legal Pages
+
+This boilerplate includes generic **Terms of Service** and **Privacy Policy** pages with placeholder values. These pages are located at:
+
+- `/terms-of-service` - Terms of Service
+- `/privacy` - Privacy Policy
+
+## Placeholder Values
+
+The legal pages use placeholder values that you must replace with your actual company and service information before launching:
+
+| Placeholder | Description | Example |
+|------------|-------------|---------|
+| `[COMPANY_NAME]` | Your legal entity name | Acme Inc. |
+| `[APP_NAME]` | Your application/service name | MyApp |
+| `[CONTACT_EMAIL]` | Support or legal contact email | legal@example.com |
+| `[EFFECTIVE_DATE]` | Date the policy becomes effective | January 1, 2025 |
+| `[JURISDICTION]` | Legal jurisdiction for disputes | State of Delaware, USA |
+| `[WEBSITE_URL]` | Your main website URL | https://example.com |
+| `[BRIEF_SERVICE_DESCRIPTION]` | Short description of your service | a platform for managing projects |
+
+## Customizing the Pages
+
+The legal pages are located in:
+
+```
+app/(marketing)/terms-of-service/page.tsx
+app/(marketing)/privacy/page.tsx
+```
+
+### Option 1: Find and Replace
+
+1. Open each file in your editor
+2. Use Find and Replace (Cmd/Ctrl + H) to replace each placeholder
+3. Review the content to ensure it matches your service
+
+### Option 2: AI-Assisted Customization
+
+You can use an AI assistant to help customize these pages:
+
+```
+Please update the Terms of Service and Privacy Policy pages with the following information:
+- Company Name: [Your Company]
+- App Name: [Your App]
+- Contact Email: [Your Email]
+- Jurisdiction: [Your Jurisdiction]
+- Service Description: [Brief description of what your app does]
+```
+
+## Important Notice
+
+These are **generic templates** and should be reviewed and customized before production use:
+
+1. **Review all content** - Ensure the terms accurately reflect your service and business practices
+2. **Consult a lawyer** - Have a legal professional review your policies, especially if you:
+   - Handle sensitive user data
+   - Process payments
+   - Operate in multiple jurisdictions
+   - Target specific industries with regulations (healthcare, finance, etc.)
+3. **Keep policies updated** - Review and update your legal pages when you:
+   - Add new features
+   - Change data collection practices
+   - Expand to new regions
+   - Update third-party integrations
+
+## File Structure
+
+```
+app/(marketing)/
+├── terms-of-service/
+│   └── page.tsx          # Terms of Service page
+└── privacy/
+    └── page.tsx          # Privacy Policy page
+
+locales/index.ts          # Page metadata and titles
+components/footer.tsx     # Footer with legal links
+config/routes.ts          # Route definitions
+```
+
+## Routes Configuration
+
+The legal routes are already configured in `config/routes.ts`:
+
+```typescript
+export const routes = {
+  // ... other routes
+  legal: {
+    termsOfService: "/terms-of-service",
+    privacy: "/privacy",
+  },
+};
+```
+
+These routes are whitelisted in the middleware, so they are accessible without authentication and even in landing mode.

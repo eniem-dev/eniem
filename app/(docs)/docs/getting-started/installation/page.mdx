@@ -1,0 +1,78 @@
+# Installation
+
+Here's a quick overview to get your app up and running.
+
+## Start a local server
+
+**1. In your terminal, run the following commands one-by-one:**
+
+```bash
+git clone https://github.com/eniem-dev/eniem-boilerplate [YOUR_APP_NAME]
+cd [YOUR_APP_NAME]
+git remote remove origin && rm -rf .git && git init
+pnpm install
+pnpm dev
+```
+
+> Eniem requires Node 18.17 or greater. Type `node -v` in your terminal to check version.
+
+**2. Rename `.env.example` to `.env`:**
+
+```bash
+mv .env.example .env
+```
+
+**3. Start the database:**
+
+```bash
+pnpm db:start
+```
+
+**4. Run migrations:**
+
+```bash
+pnpm db:migrate
+```
+
+**5. Open [http://localhost:3000](http://localhost:3000) to see your site. And voila!**
+
+## .env file
+
+Change `BETTER_AUTH_SECRET` to a random string (use `openssl rand -base64 32`). The file content should look like this:
+
+```bash
+# Project Configuration
+PROJECT_URL=http://localhost:3000
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+NEXT_PUBLIC_APP_NAME=eniem
+
+# Better Auth Configuration
+BETTER_AUTH_SECRET=your-random-secret-here
+BETTER_AUTH_URL=http://localhost:3000
+
+# Database Configuration (PostgreSQL)
+DATABASE_URL=postgresql://eniem:eniem-dev-password@localhost:5432/eniem
+
+# OAuth (optional)
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+TWITTER_CLIENT_ID=
+TWITTER_CLIENT_SECRET=
+
+# Polar (for payments)
+POLAR_ACCESS_TOKEN=
+POLAR_SERVER=sandbox
+POLAR_WEBHOOK_SECRET=
+
+# Resend (for emails)
+RESEND_API_KEY=
+EMAIL_FROM_ADDRESS=no-reply@yourdomain.com
+```
+
+## Useful commands
+
+- `pnpm dev` — Start development server
+- `pnpm build` — Build for production
+- `pnpm db:start` — Start PostgreSQL container
+- `pnpm db:stop` — Stop PostgreSQL container
+- `pnpm db:studio` — Open Prisma Studio

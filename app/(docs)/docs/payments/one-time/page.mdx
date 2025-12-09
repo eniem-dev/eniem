@@ -1,0 +1,222 @@
+# One-Time Payment & Benefits
+
+Single purchases that grant customers access to file downloads or GitHub repository access.
+
+## Checkout Flow
+
+```
+User clicks BuyButton → Polar checkout → Payment → /success → Benefits available
+```
+
+## Configuration
+
+Add products in `lib/auth.ts`:
+
+```typescript
+checkout({
+  products: [
+    { productId: "xxx", slug: "starter-pack" },
+    { productId: "yyy", slug: "pro-pack-github" },
+  ],
+  successUrl: "/success?checkout_id={CHECKOUT_ID}",
+  authenticatedUsersOnly: true,
+})
+```
+
+## BuyButton
+
+**File:** `components/buy-button.tsx`
+
+```tsx
+<BuyButton slug="starter-pack" label="Get Starter Pack" />
+```
+
+Redirects unauthenticated users to signup, then initiates Polar checkout.
+
+---
+
+## Benefits
+
+Benefits are fetched in real-time from Polar API (not stored locally).
+
+### Architecture
+
+```
+features/benefits/
+├── index.ts
+├── models/
+│   ├── downloadable.model.ts
+│   └── github-benefit.model.ts
+├── services/
+│   ├── downloadables.service.ts
+│   └── github-benefits.service.ts
+├── queries/
+│   ├── downloadables.query.ts
+│   └── github-benefits.query.ts
+└── components/
+    ├── downloadables-list.tsx
+    └── github-benefits-list.tsx
+```
+
+---
+
+### File Downloads
+
+**Model** (`models/downloadable.model.ts`):
+
+```typescript
+export interface Downloadable {
+  id: string;
+  name: string;
+  size: number;
+  sizeReadable: string;
+  downloadUrl: string;
+  expiresAt: Date;
+}
+```
+
+**Query** (`queries/downloadables.query.ts`):
+
+```typescript
+import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { getDownloadables } from "../services/downloadables.service";
+
+export async function getDownloadablesQuery() {
+  return createAuthenticatedQuery(async ({ user }) => {
+    const files = await getDownloadables(user.id);
+    return { files };
+  });
+}
+```
+
+**Component** (`components/downloadables-list.tsx`):
+
+```tsx
+import { getDownloadablesQuery } from "../queries/downloadables.query";
+
+export async function DownloadablesList() {
+  const { data, error } = await getDownloadablesQuery();
+
+  if (error || !data) {
+    return <ErrorCard message={locales.DownloadablesList.unableToLoadDownloadables} />;
+  }
+
+  const { files } = data;
+
+  if (files.length === 0) {
+    return <Card>/* No files message */</Card>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{locales.DownloadablesList.title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {files.map((file) => (
+          <div key={file.id} className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">{file.name}</p>
+              <p className="text-sm text-muted-foreground">{file.sizeReadable}</p>
+            </div>
+            <a href={file.downloadUrl} download className={buttonVariants()}>
+              {locales.DownloadablesList.download}
+            </a>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+---
+
+### GitHub Repository Access
+
+**Model** (`models/github-benefit.model.ts`):
+
+```typescript
+export interface GitHubBenefit {
+  id: string;
+  repositoryOwner: string;
+  repositoryName: string;
+  repositoryUrl: string;
+  permission: string;
+  isGranted: boolean;
+  grantedAt: Date | null;
+  description: string;
+}
+```
+
+**Grant flow:**
+1. Customer purchases → Polar creates grant (`isGranted: false`)
+2. Customer connects GitHub in customer portal
+3. Polar grants access → `isGranted: true`
+
+**Component** (`components/github-benefits-list.tsx`):
+
+```tsx
+import { getGitHubBenefitsQuery } from "../queries/github-benefits.query";
+
+export async function GitHubBenefitsList() {
+  const { data, error } = await getGitHubBenefitsQuery();
+
+  if (error || !data) {
+    return <ErrorCard message={locales.GitHubBenefitsList.unableToLoadBenefits} />;
+  }
+
+  const { benefits } = data;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{locales.GitHubBenefitsList.title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {benefits.map((benefit) => (
+          <div key={benefit.id} className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">{benefit.repositoryName}</p>
+              {benefit.isGranted ? (
+                <span className="text-green-700">Granted</span>
+              ) : (
+                <span className="text-yellow-800">Pending</span>
+              )}
+            </div>
+            {benefit.isGranted ? (
+              <a href={benefit.repositoryUrl} className={buttonVariants()}>
+                View Repository
+              </a>
+            ) : (
+              <CustomerPortalButton label="Connect GitHub" />
+            )}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+```
+
+---
+
+## Usage
+
+```tsx
+import { DownloadablesList, GitHubBenefitsList } from "@/features/benefits";
+
+export default async function DashboardPage() {
+  return (
+    <div className="space-y-6">
+      <DownloadablesList />
+      <GitHubBenefitsList />
+    </div>
+  );
+}
+```
+
+## Related
+
+- [Payments Overview](/docs/payments) - System architecture
+- [Subscription](/docs/payments/subscription) - Recurring billing

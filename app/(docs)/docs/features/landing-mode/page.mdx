@@ -1,0 +1,80 @@
+# Landing Mode
+
+Landing mode is a feature that allow you to create a basic landing page to collect emails while your are building your application.
+
+The purpose is while this mode is enabled to redirect all requests to the landing page.
+
+All the code related to the landing mode is located in the folder `features/landing-mode`.
+
+## Setup
+
+First to enable landing mode you should set the environment variable `LANDING_MODE` to `true`.
+
+```bash
+LANDING_MODE=true
+```
+
+## Middleware
+
+When the landing mode is enabled the next js middleware will redirect all requests to the landing page except the page list that are whitelisted.
+
+**middleware.ts**
+
+```ts
+const LANDING_MODE_ALLOWED_ROUTES = [
+  routes.landing,
+  routes.legal.termsOfService,
+  routes.legal.privacy,
+];
+```
+
+```ts
+function handleLandingMode(request: NextRequest): NextResponse | null {
+  if (!env.landingMode) return null;
+
+  const { pathname } = request.nextUrl;
+
+  const isAllowedRoute = LANDING_MODE_ALLOWED_ROUTES.includes(pathname);
+  return isAllowedRoute
+    ? NextResponse.next()
+    : NextResponse.redirect(new URL(routes.landing, request.url));
+}
+```
+
+This way when a user try to access any page of the application it will be redirected to the landing page.
+
+## Collecting emails
+
+By default the landing mode only save the collected emails in the database.
+
+The emails are stored in the `CollectedEmail` model:
+
+```prisma
+model CollectedEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("collected_emails")
+}
+```
+
+If you want to send this emails to a third party service you can edit the `subscribeAction` function in `features/landing-mode/actions/subscribe.action.ts`
+
+```ts
+export const subscribeAction = actionClient
+  .inputSchema(newsletterSchema)
+  .action(async ({ parsedInput: { email } }) => {
+    try {
+      logger.info("Collecting email for landing page", { email });
+
+      // Replace this with your preferred email marketing service
+      await prisma.collectedEmail.create({ data: { email } });
+
+      logger.info("Email collected successfully", { email });
+      return { success: true, message: locales.LandingPage.newsletter.success };
+    } catch (error: unknown) {
+      //... error handling code
+    }
+  });
+```

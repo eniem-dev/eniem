@@ -1,0 +1,391 @@
+# Subscription
+
+Recurring subscription management with automatic sync from Polar webhooks.
+
+## Architecture
+
+```
+features/subscription/
+├── index.ts                        # Public API exports
+├── models/
+│   └── subscription.model.ts       # TypeScript interfaces
+├── queries/
+│   └── subscription.query.ts       # Authenticated server queries
+└── services/
+    └── subscription.service.ts     # Core business logic
+```
+
+## Database Model
+
+Subscriptions are stored locally for fast access in middleware and server components.
+
+**File:** `prisma/schema.prisma`
+
+```prisma
+model Subscription {
+  id                  String    @id @default(cuid())
+
+  // Polar identifiers
+  polarSubscriptionId String    @unique
+  polarProductId      String
+
+  // Status
+  status              String    // "active", "canceled", "past_due", "trialing"
+  recurringInterval   String    // "year" or "month"
+
+  // Billing cycle
+  currentPeriodStart  DateTime
+  currentPeriodEnd    DateTime
+  cancelAtPeriodEnd   Boolean   @default(false)
+  canceledAt          DateTime?
+  startedAt           DateTime
+
+  // Amounts (stored in cents)
+  amount              Int
+  currency            String    @default("usd")
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // Relation: One user has one subscription
+  userId              String    @unique
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+```
+
+### Status Values
+
+| Status | Description |
+|--------|-------------|
+| `active` | Subscription is current and paid |
+| `canceled` | User canceled, no longer active |
+| `past_due` | Payment failed, awaiting retry |
+| `trialing` | In trial period (if configured) |
+
+## Configuration
+
+### Product Setup
+
+Define your subscription products in `lib/auth.ts`:
+
+```typescript
+polar({
+  client: polarClient,
+  createCustomerOnSignUp: true,
+  use: [
+    checkout({
+      products: [
+        {
+          productId: "d221378e-c19a-4f5e-9efb-52d06dcda288",  // From Polar
+          slug: "pro-monthly",
+        },
+        {
+          productId: "3c3e4211-ef96-4861-a939-7bbd8d3c629b",
+          slug: "pro-yearly",
+        },
+      ],
+      successUrl: "/success?checkout_id={CHECKOUT_ID}",
+      authenticatedUsersOnly: true,
+    }),
+    portal(),
+    webhooks({
+      secret: env.payment.polarWebhookSecret,
+      // ... handlers
+    }),
+  ],
+})
+```
+
+Get the `productId` from your Polar dashboard under Products.
+
+## Webhook Configuration
+
+### Setup
+
+1. Go to **Polar Dashboard > Organization Settings > Webhooks**
+2. Add webhook URL: `https://yourdomain.com/api/auth/polar/webhooks`
+3. Copy the webhook secret to your `.env`:
+
+```bash
+POLAR_WEBHOOK_SECRET=whsec_your_secret_here
+```
+
+### Local Development
+
+Use [ngrok](https://ngrok.com/) to expose your local server:
+
+```bash
+ngrok http 3000
+```
+
+Then use the ngrok URL for your webhook endpoint in Polar sandbox.
+
+### Webhook Handlers
+
+**File:** `lib/auth.ts`
+
+```typescript
+webhooks({
+  secret: env.payment.polarWebhookSecret,
+
+  onCustomerStateChanged: async (payload) => {
+    const { externalId, activeSubscriptions } = payload.data;
+
+    logger.info("Polar: Customer state changed", { externalId, payload });
+
+    if (externalId) {
+      await syncSubscription(externalId, activeSubscriptions || []);
+    }
+  },
+
+  onOrderPaid: async (payload) => {
+    logger.info("Polar: Order paid", {
+      orderId: payload.data.id,
+      userId: payload.data.customer?.externalId,
+      product: payload.data.product.name,
+    });
+  },
+
+  onPayload: async (payload) => {
+    logger.info("Polar: Webhook received", { payload });
+  },
+})
+```
+
+**Events:**
+- `onCustomerStateChanged` - Triggered when subscription status changes (created, renewed, canceled)
+- `onOrderPaid` - Triggered when any payment succeeds
+- `onPayload` - Catch-all for all webhook events (useful for debugging)
+
+## Sync Mechanism
+
+### Primary: Webhook Sync
+
+The `syncSubscription` function handles all subscription state changes:
+
+**File:** `features/subscription/services/subscription.service.ts`
+
+```typescript
+export async function syncSubscription(
+  userId: string,
+  activeSubscriptions: PolarSubscription[]
+) {
+  if (activeSubscriptions.length > 0) {
+    const sub = activeSubscriptions[0];
+
+    // Guard against missing required dates
+    if (!sub.currentPeriodStart || !sub.currentPeriodEnd || !sub.startedAt) {
+      logger.error("Subscription missing required dates", { userId, sub });
+      return;
+    }
+
+    // Upsert: create if new, update if exists
+    await prisma.subscription.upsert({
+      where: { userId },
+      create: {
+        userId,
+        polarSubscriptionId: sub.id,
+        polarProductId: sub.productId,
+        status: sub.status,
+        recurringInterval: sub.recurringInterval,
+        currentPeriodStart: sub.currentPeriodStart,
+        currentPeriodEnd: sub.currentPeriodEnd,
+        cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+        canceledAt: sub.canceledAt,
+        startedAt: sub.startedAt,
+        amount: sub.amount,
+        currency: sub.currency,
+      },
+      update: {
+        polarSubscriptionId: sub.id,
+        polarProductId: sub.productId,
+        status: sub.status,
+        recurringInterval: sub.recurringInterval,
+        currentPeriodStart: sub.currentPeriodStart,
+        currentPeriodEnd: sub.currentPeriodEnd,
+        cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+        canceledAt: sub.canceledAt,
+        startedAt: sub.startedAt,
+        amount: sub.amount,
+        currency: sub.currency,
+      },
+    });
+
+    logger.info("Subscription synced", { userId, status: sub.status });
+  } else {
+    // No active subscriptions - remove record
+    await deleteSubscription(userId);
+  }
+}
+```
+
+### Secondary: Post-Checkout Sync
+
+#### Why It's Needed
+
+Webhooks are the primary sync mechanism, but they have a limitation: **they're asynchronous**. After a user completes checkout, there's a delay (typically a few seconds) before Polar sends the webhook to your server. During this window, if the user is redirected to a protected page that checks for an active subscription, they might see an error or be redirected to the pricing page—even though they just paid.
+
+The post-checkout sync solves this race condition by **proactively fetching** the customer's subscription state directly from Polar's API, bypassing the webhook delay entirely.
+
+#### How It Works
+
+1. **User completes payment** on Polar's checkout page
+2. **Polar redirects** the user to your `successUrl` (e.g., `/success?checkout_id=xxx`)
+3. **Success page calls** `syncSubscriptionFromPolar(userId)` which:
+   - Fetches the customer's current state directly from Polar API
+   - Updates your local database with the subscription data
+4. **User is redirected** to the dashboard with their subscription already active
+
+This ensures the user sees their subscription immediately, without waiting for the webhook.
+
+#### Implementation
+
+**File:** `app/(protected)/success/page.tsx`
+
+```typescript
+export default async function SuccessPage({ searchParams }: SuccessPageProps) {
+  const { checkout_id } = await searchParams;
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  if (!session?.user) redirect(routes.auth.login);
+
+  // Sync directly from Polar API - don't wait for webhook
+  await syncSubscriptionFromPolar(session.user.id);
+
+  redirect(`${routes.dashboard}?success=true&checkout_id=${checkout_id}`);
+}
+```
+
+**Service function:**
+
+```typescript
+export async function syncSubscriptionFromPolar(userId: string) {
+  // Fetch current customer state directly from Polar
+  const customerState = await polarClient.customers.getStateExternal({
+    externalId: userId,  // Your user's ID
+  });
+
+  // Use the same sync function as webhooks
+  await syncSubscription(
+    userId,
+    (customerState.activeSubscriptions as PolarSubscription[]) || []
+  );
+
+  return customerState;
+}
+```
+
+#### When Each Method Runs
+
+| Scenario | Sync Method | Timing |
+|----------|-------------|--------|
+| User completes checkout | Post-checkout sync | Immediate (on success page load) |
+| Subscription renews | Webhook | When Polar processes renewal |
+| User cancels | Webhook | When cancellation is processed |
+| Payment fails | Webhook | When retry fails |
+
+Both methods use the same `syncSubscription()` function, ensuring consistent data handling regardless of the trigger source.
+
+## API Functions
+
+### Get User Subscription
+
+```typescript
+import { getUserSubscription } from "@/features/subscription";
+
+const subscription = await getUserSubscription(userId);
+
+if (subscription) {
+  console.log(subscription.status);           // "active"
+  console.log(subscription.recurringInterval); // "month" or "year"
+  console.log(subscription.currentPeriodEnd);  // Date
+}
+```
+
+### Check Active Status
+
+```typescript
+import { hasActiveSubscription } from "@/features/subscription";
+
+const isActive = await hasActiveSubscription(userId);
+// Returns true only if status === "active"
+```
+
+### Server Component Query
+
+For use in React Server Components with automatic session handling:
+
+```typescript
+import { getSubscriptionQuery } from "@/features/subscription";
+
+export default async function BillingPage() {
+  const subscription = await getSubscriptionQuery();
+
+  if (!subscription) {
+    return <p>No active subscription</p>;
+  }
+
+  return (
+    <div>
+      <p>Status: {subscription.status}</p>
+      <p>Renews: {subscription.currentPeriodEnd.toLocaleDateString()}</p>
+    </div>
+  );
+}
+```
+
+## Route Protection
+
+Protect routes that require an active subscription using middleware:
+
+**File:** `middleware.ts`
+
+```typescript
+import { hasActiveSubscription } from "@/features/subscription/services/subscription.service";
+
+const REQUIRE_SUBSCRIPTION_ROUTES: string[] = [routes.dashboard];
+
+async function handleSubscription(
+  request: NextRequest,
+  userId: string
+): Promise<NextResponse | null> {
+  const { pathname } = request.nextUrl;
+
+  const requiresSubscription = REQUIRE_SUBSCRIPTION_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  if (!requiresSubscription) return null;
+
+  const hasSubscription = await hasActiveSubscription(userId);
+
+  return hasSubscription
+    ? null
+    : NextResponse.redirect(new URL(routes.choosePlan, request.url));
+}
+```
+
+Users without an active subscription are redirected to the pricing/choose-plan page.
+
+## Customer Portal
+
+Let users manage their subscription (update payment method, cancel, view invoices):
+
+```typescript
+import { authClient } from "@/lib/auth-client";
+
+// In a client component
+const handleManageSubscription = async () => {
+  await authClient.customer.portal();
+  // Redirects to Polar's hosted customer portal
+};
+```
+
+The portal is configured via the `portal()` plugin in `lib/auth.ts`.
+
+## Related
+
+- [Payments Overview](/docs/payments) - System architecture
+- [One-Time & Benefits](/docs/payments/one-time) - Single purchases with benefits
+- [Set Up Subscriptions](/docs/guides/setup-subscriptions) - Step-by-step guide
