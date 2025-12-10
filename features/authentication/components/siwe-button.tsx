@@ -9,10 +9,11 @@ import { EthereumIcon } from "./icons";
 interface SiweButtonProps {
   mode: "signin" | "signup";
   disabled?: boolean;
+  callbackURL?: string;
 }
 
-export function SiweButton({ mode, disabled = false }: SiweButtonProps) {
-  const { handleEthereumAuth, loading: ethLoading } = useEthereumAuth();
+export function SiweButton({ mode, disabled = false, callbackURL }: SiweButtonProps) {
+  const { handleEthereumAuth, loading: ethLoading } = useEthereumAuth(callbackURL);
 
   const authLabels =
     mode === "signin"

@@ -6,6 +6,8 @@ import { locales } from "@/locales";
 import { routes } from "@/config";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { appendPlanSelectionToUrl } from "@/lib/plan-selection";
+import { logger } from "@/lib/logger";
 
 export interface BuyButtonProps {
   products?: string[];
@@ -20,7 +22,7 @@ export function BuyButton({ products, slug, label }: BuyButtonProps) {
 
   const handleCheckout = async () => {
     if (!session?.user) {
-      router.push(routes.auth.signup);
+      router.push(appendPlanSelectionToUrl(routes.auth.signup, { slug, products }));
       return;
     }
 
@@ -28,7 +30,7 @@ export function BuyButton({ products, slug, label }: BuyButtonProps) {
       setIsLoading(true);
       await authClient.checkout({ products, slug });
     } catch (error) {
-      console.error("Checkout failed:", error);
+      logger.error("Checkout failed", { error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsLoading(false);
     }

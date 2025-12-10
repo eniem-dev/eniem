@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,11 +17,27 @@ import { SocialAuthButtons } from "./social-auth-buttons";
 import { EmailVerificationError } from "./email-verification-error";
 import { EmailVerificationSuccess } from "./email-verification-success";
 import { useAuthForm } from "../hooks/use-auth-form";
+import {
+  getPlanSelectionFromSearchParams,
+  hasPlanSelection,
+  appendPlanSelectionToUrl,
+} from "@/lib/plan-selection";
 
 export default function Login() {
   const searchParams = useSearchParams();
   const isFromSignup = searchParams.get("verified") === "pending";
   const emailFromSignup = searchParams.get("email") || "";
+
+  const planSelection = useMemo(
+    () => getPlanSelectionFromSearchParams(new URLSearchParams(searchParams.toString())),
+    [searchParams]
+  );
+
+  const callbackURL = hasPlanSelection(planSelection)
+    ? appendPlanSelectionToUrl(routes.choosePlan, planSelection)
+    : routes.dashboard;
+
+  const signupLink = appendPlanSelectionToUrl(routes.auth.signup, planSelection);
 
   const {
     form: { register, handleSubmit, formState: { errors, isSubmitting }, watch, setValue },
@@ -35,7 +51,11 @@ export default function Login() {
     onOtpComplete,
     resendVerificationEmail,
     getValues,
-  } = useAuthForm({ schema: loginSchema, mode: "login" });
+  } = useAuthForm({
+    schema: loginSchema,
+    mode: "login",
+    callbackURL,
+  });
 
   // Pre-fill email from signup redirect
   useEffect(() => {
@@ -136,11 +156,11 @@ export default function Login() {
         )}
       </form>
 
-      <SocialAuthButtons mode="signin" disabled={loading} />
+      <SocialAuthButtons mode="signin" disabled={loading} callbackURL={callbackURL} />
 
       <p className="text-center text-sm mt-4">
         {locales.LoginForm.dontHaveAccount}{" "}
-        <Link className="underline underline-offset-4" href={routes.auth.signup}>
+        <Link className="underline underline-offset-4" href={signupLink}>
           {locales.LoginForm.signUpLink}
         </Link>
       </p>

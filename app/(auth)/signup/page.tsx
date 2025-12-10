@@ -1,7 +1,7 @@
 import Signup from "@/features/authentication/components/signup";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
-import React from "react";
+import { Suspense } from "react";
 
 export async function generateMetadata() {
   const defaultMeta = await getDefaultMetadata();
@@ -12,6 +12,10 @@ export async function generateMetadata() {
   });
 }
 
-export default function SignupPage(): React.ReactElement {
-  return <Signup />;
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <Signup />
+    </Suspense>
+  );
 }

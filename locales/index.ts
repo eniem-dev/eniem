@@ -258,6 +258,7 @@ export const locales = {
     title: "Choose your plan",
     subtitle:
       "A subscription is required to access this feature. Select the plan that works best for you.",
+    redirectingToCheckout: "Redirecting to checkout...",
   },
 
   TermsOfServicePage: {

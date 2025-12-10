@@ -1,10 +1,12 @@
 "use client";
 
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { routes } from "@/config";
 import { locales } from "@/locales";
 import { signupSchema } from "../schemas/auth.schema";
@@ -12,8 +14,26 @@ import { AuthFormLayout } from "./auth-form-layout";
 import { OtpVerification } from "./otp-verification";
 import { SocialAuthButtons } from "./social-auth-buttons";
 import { useAuthForm } from "../hooks/use-auth-form";
+import {
+  getPlanSelectionFromSearchParams,
+  hasPlanSelection,
+  appendPlanSelectionToUrl,
+} from "@/lib/plan-selection";
 
 export default function SignUp() {
+  const searchParams = useSearchParams();
+
+  const planSelection = useMemo(
+    () => getPlanSelectionFromSearchParams(new URLSearchParams(searchParams.toString())),
+    [searchParams]
+  );
+
+  const callbackURL = hasPlanSelection(planSelection)
+    ? appendPlanSelectionToUrl(routes.choosePlan, planSelection)
+    : routes.dashboard;
+
+  const loginLink = appendPlanSelectionToUrl(routes.auth.login, planSelection);
+
   const {
     form: { register, handleSubmit, formState: { errors, isSubmitting } },
     loading,
@@ -23,7 +43,12 @@ export default function SignUp() {
     handleAuthSubmit,
     onOtpComplete,
     getValues,
-  } = useAuthForm({ schema: signupSchema, mode: "signup" });
+  } = useAuthForm({
+    schema: signupSchema,
+    mode: "signup",
+    callbackURL,
+    loginRedirectURL: loginLink,
+  });
 
   return (
     <AuthFormLayout
@@ -103,11 +128,11 @@ export default function SignUp() {
         </Button>
       </form>
 
-      <SocialAuthButtons mode="signup" disabled={loading} />
+      <SocialAuthButtons mode="signup" disabled={loading} callbackURL={callbackURL} />
 
       <p className="text-center text-sm mt-4">
         {locales.SignUpForm.alreadyHaveAccount}{" "}
-        <Link className="underline underline-offset-4" href={routes.auth.login}>
+        <Link className="underline underline-offset-4" href={loginLink}>
           {locales.SignUpForm.loginLink}
         </Link>
       </p>

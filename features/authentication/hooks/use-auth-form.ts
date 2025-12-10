@@ -12,9 +12,12 @@ import type { LoginFormData, SignupFormData } from "../schemas/auth.schema";
 interface AuthFormOptions {
   schema: any;
   mode: "login" | "signup";
+  callbackURL?: string;
+  loginRedirectURL?: string;
 }
 
-export function useAuthForm({ schema, mode }: AuthFormOptions) {
+export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: AuthFormOptions) {
+  const redirectURL = callbackURL ?? routes.dashboard;
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
@@ -69,12 +72,13 @@ export function useAuthForm({ schema, mode }: AuthFormOptions) {
 
       if (password && password.length > 0) {
         if (mode === "signup") {
+          const loginURL = loginRedirectURL ?? routes.auth.login;
           await signUp.email(
             {
               email,
               password,
               name: email.split("@")[0],
-              callbackURL: routes.dashboard,
+              callbackURL: redirectURL,
             },
             {
               onRequest: () => setLoading(true),
@@ -84,7 +88,7 @@ export function useAuthForm({ schema, mode }: AuthFormOptions) {
               },
               onSuccess: () => {
                 toast.success(locales.SignUpForm.signupSuccess);
-                router.push(`${routes.auth.login}?verified=pending&email=${encodeURIComponent(email)}`);
+                router.push(`${loginURL}${loginURL.includes("?") ? "&" : "?"}verified=pending&email=${encodeURIComponent(email)}`);
               },
             }
           );
@@ -106,7 +110,7 @@ export function useAuthForm({ schema, mode }: AuthFormOptions) {
                   toast.error(ctx.error.message);
                 }
               },
-              onSuccess: () => router.push(routes.dashboard),
+              onSuccess: () => router.push(redirectURL),
             }
           );
         }
@@ -117,7 +121,7 @@ export function useAuthForm({ schema, mode }: AuthFormOptions) {
           toast.error(result.error.message || locales.OtpVerification.otpVerificationFailed);
         } else {
           toast.success(locales.OtpVerification.otpVerificationSuccess);
-          router.push(routes.dashboard);
+          router.push(redirectURL);
         }
       } else {
         await handleSendCode(email);
@@ -139,7 +143,7 @@ export function useAuthForm({ schema, mode }: AuthFormOptions) {
     try {
       const result = await authClient.sendVerificationEmail({
         email,
-        callbackURL: routes.dashboard,
+        callbackURL: redirectURL,
       });
 
       if (result.error) {

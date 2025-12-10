@@ -7,7 +7,7 @@ import { authClient, useSession } from "@/lib/auth-client";
 import { routes } from "@/config";
 import { locales } from "@/locales";
 
-export function useEthereumAuth() {
+export function useEthereumAuth(callbackURL?: string) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { address, chain } = useAccount();
@@ -67,7 +67,7 @@ export function useEthereumAuth() {
         toast.error(verifyResult.error.message || errorMessage);
       } else {
         refetch();
-        router.push(routes.dashboard);
+        router.push(callbackURL ?? routes.dashboard);
       }
     } catch (error) {
       const errorMessage =

@@ -10,9 +10,10 @@ import { SiweButton } from "./siwe-button";
 interface SocialAuthButtonsProps {
   mode: "signin" | "signup";
   disabled?: boolean;
+  callbackURL?: string;
 }
 
-export function SocialAuthButtons({ mode, disabled = false }: SocialAuthButtonsProps) {
+export function SocialAuthButtons({ mode, disabled = false, callbackURL }: SocialAuthButtonsProps) {
   const [loading, setLoading] = useState(false);
 
   const isLoading = loading || disabled;
@@ -23,7 +24,7 @@ export function SocialAuthButtons({ mode, disabled = false }: SocialAuthButtonsP
       await signIn.social(
         {
           provider,
-          callbackURL: routes.dashboard,
+          callbackURL: callbackURL ?? routes.dashboard,
         },
         {
           onRequest: () => setLoading(true),
@@ -74,7 +75,7 @@ export function SocialAuthButtons({ mode, disabled = false }: SocialAuthButtonsP
           {authLabels.twitter}
         </Button>
 
-        <SiweButton mode={mode} disabled={isLoading} />
+        <SiweButton mode={mode} disabled={isLoading} callbackURL={callbackURL} />
       </div>
     </>
   );
