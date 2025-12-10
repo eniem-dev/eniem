@@ -6,7 +6,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
-import { HomePageContent } from "@/components/home-page-contenxt";
+import { HomePageContent } from "@/components/home-page-content";
 
 export async function generateMetadata() {
   const defaultMeta = await getDefaultMetadata();
