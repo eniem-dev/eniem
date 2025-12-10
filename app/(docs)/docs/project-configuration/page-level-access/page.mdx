@@ -19,11 +19,11 @@ This approach means:
 
 ## Access Levels Overview
 
-| Level            | Requirement                     | Redirect       | Example Routes             |
-| ---------------- | ------------------------------- | -------------- | -------------------------- |
-| **Public**       | None                            | -              | `/`, `/pricing`, `/docs/*` |
-| **Protected**    | Logged in                       | `/login`       | `/account/*`               |
-| **Subscription** | Logged in + Active subscription | `/choose-plan` | `/dashboard/*`             |
+| Level         | Requirement                    | Redirect       | Example Routes             |
+| ------------- | ------------------------------ | -------------- | -------------------------- |
+| **Public**    | None                           | -              | `/`, `/pricing`, `/docs/*` |
+| **Protected** | Logged in                      | `/login`       | `/account/*`               |
+| **Access**    | Logged in + Subscription/Order | `/choose-plan` | `/dashboard/*`             |
 
 ## Public Pages
 
@@ -77,8 +77,8 @@ async function handleAuthentication(request: NextRequest): Promise<NextResponse>
       return NextResponse.redirect(new URL(routes.auth.login, request.url));
     }
 
-    const subscriptionResponse = await handleSubscription(request, session.user.id);
-    if (subscriptionResponse) return subscriptionResponse;
+    const accessResponse = await handleAccess(request, session.user.id);
+    if (accessResponse) return accessResponse;
 
     return NextResponse.next();
   } catch {
@@ -87,30 +87,38 @@ async function handleAuthentication(request: NextRequest): Promise<NextResponse>
 }
 ```
 
-## Subscription Required Pages
+## Access Required Pages
 
-Some pages require both authentication AND an active subscription. If the user is logged in but doesn't have an active subscription, they are redirected to `/choose-plan`.
+Some pages require both authentication AND either an active subscription or a one-time purchase. If the user is logged in but doesn't have access, they are redirected to `/choose-plan`.
 
 **middleware.ts**
 
 ```ts
-const REQUIRE_SUBSCRIPTION_ROUTES: string[] = [routes.dashboard];
+const REQUIRE_ACCESS_ROUTES: string[] = [routes.dashboard];
 
-async function handleSubscription(
+async function handleAccess(
   request: NextRequest,
   userId: string
 ): Promise<NextResponse | null> {
   const { pathname } = request.nextUrl;
 
-  const requiresSubscription = REQUIRE_SUBSCRIPTION_ROUTES.some(
+  const requiresAccess = REQUIRE_ACCESS_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  if (!requiresSubscription) return null;
+  if (!requiresAccess) return null;
 
-  const hasSubscription = await hasActiveSubscription(userId);
+  // Choose ONE based on your business model:
+  // 1. Subscription-only (recurring payments)
+  // const hasUserAccess = await hasActiveSubscription(userId);
 
-  return hasSubscription
+  // 2. One-time purchase (orders/benefits)
+  const hasUserAccess = await hasActiveOrder(userId);
+
+  // 3. Hybrid (subscription OR one-time)
+  // const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId);
+
+  return hasUserAccess
     ? null
     : NextResponse.redirect(new URL(routes.choosePlan, request.url));
 }
@@ -124,13 +132,15 @@ For handling authentication in queries and API handlers, use the server utilitie
 
 See [Server Utilities](/docs/features/server-utilities) for detailed documentation.
 
-### Subscription Functions
+### Access Functions
 
-These functions are located in `features/subscription/services/subscription.service.ts`:
+#### Subscription Check
+
+Located in `features/subscription/services/subscription.service.ts`:
 
 **`hasActiveSubscription(userId: string)`**
 
-Returns `Promise<boolean>`. Used by middleware to check if a user has an active subscription.
+Returns `Promise<boolean>`. Checks if a user has an active subscription (recurring payments).
 
 ```ts
 export async function hasActiveSubscription(userId: string): Promise<boolean> {
@@ -150,6 +160,36 @@ export async function getUserSubscription(userId: string) {
   });
 }
 ```
+
+#### One-Time Purchase Check
+
+Located in `features/benefits/services/benefits.service.ts`:
+
+**`hasActiveOrder(userId: string)`**
+
+Returns `Promise<boolean>`. Checks if a user has any benefit grants from Polar (works for both GitHub repository access and downloadable files).
+
+```ts
+export async function hasActiveOrder(userId: string): Promise<boolean> {
+  try {
+    const customerSession = await polarClient.customerSessions.create({
+      externalCustomerId: userId,
+    });
+
+    const response = await polarClient.customerPortal.benefitGrants.list(
+      { customerSession: customerSession.token },
+      {}
+    );
+
+    return (response.result.items?.length ?? 0) > 0;
+  } catch (error) {
+    logger.error("Failed to check benefit grants", { userId, error });
+    return false;
+  }
+}
+```
+
+This function queries Polar's API to check if the user has any active benefit grants, regardless of how they were acquired (subscription or one-time purchase).
 
 ## Usage Examples
 

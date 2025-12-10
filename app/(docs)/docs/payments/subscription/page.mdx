@@ -56,12 +56,12 @@ model Subscription {
 
 ### Status Values
 
-| Status | Description |
-|--------|-------------|
-| `active` | Subscription is current and paid |
-| `canceled` | User canceled, no longer active |
-| `past_due` | Payment failed, awaiting retry |
-| `trialing` | In trial period (if configured) |
+| Status     | Description                      |
+| ---------- | -------------------------------- |
+| `active`   | Subscription is current and paid |
+| `canceled` | User canceled, no longer active  |
+| `past_due` | Payment failed, awaiting retry   |
+| `trialing` | In trial period (if configured)  |
 
 ## Configuration
 
@@ -77,7 +77,7 @@ polar({
     checkout({
       products: [
         {
-          productId: "d221378e-c19a-4f5e-9efb-52d06dcda288",  // From Polar
+          productId: "d221378e-c19a-4f5e-9efb-52d06dcda288", // From Polar
           slug: "pro-monthly",
         },
         {
@@ -94,7 +94,7 @@ polar({
       // ... handlers
     }),
   ],
-})
+});
 ```
 
 Get the `productId` from your Polar dashboard under Products.
@@ -150,10 +150,11 @@ webhooks({
   onPayload: async (payload) => {
     logger.info("Polar: Webhook received", { payload });
   },
-})
+});
 ```
 
 **Events:**
+
 - `onCustomerStateChanged` - Triggered when subscription status changes (created, renewed, canceled)
 - `onOrderPaid` - Triggered when any payment succeeds
 - `onPayload` - Catch-all for all webhook events (useful for debugging)
@@ -263,7 +264,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
 export async function syncSubscriptionFromPolar(userId: string) {
   // Fetch current customer state directly from Polar
   const customerState = await polarClient.customers.getStateExternal({
-    externalId: userId,  // Your user's ID
+    externalId: userId, // Your user's ID
   });
 
   // Use the same sync function as webhooks
@@ -278,12 +279,12 @@ export async function syncSubscriptionFromPolar(userId: string) {
 
 #### When Each Method Runs
 
-| Scenario | Sync Method | Timing |
-|----------|-------------|--------|
+| Scenario                | Sync Method        | Timing                           |
+| ----------------------- | ------------------ | -------------------------------- |
 | User completes checkout | Post-checkout sync | Immediate (on success page load) |
-| Subscription renews | Webhook | When Polar processes renewal |
-| User cancels | Webhook | When cancellation is processed |
-| Payment fails | Webhook | When retry fails |
+| Subscription renews     | Webhook            | When Polar processes renewal     |
+| User cancels            | Webhook            | When cancellation is processed   |
+| Payment fails           | Webhook            | When retry fails                 |
 
 Both methods use the same `syncSubscription()` function, ensuring consistent data handling regardless of the trigger source.
 
@@ -297,9 +298,9 @@ import { getUserSubscription } from "@/features/subscription";
 const subscription = await getUserSubscription(userId);
 
 if (subscription) {
-  console.log(subscription.status);           // "active"
+  console.log(subscription.status); // "active"
   console.log(subscription.recurringInterval); // "month" or "year"
-  console.log(subscription.currentPeriodEnd);  // Date
+  console.log(subscription.currentPeriodEnd); // Date
 }
 ```
 
@@ -337,36 +338,47 @@ export default async function BillingPage() {
 
 ## Route Protection
 
-Protect routes that require an active subscription using middleware:
+Protect routes that require access using middleware. The middleware supports multiple business models:
 
 **File:** `middleware.ts`
 
 ```typescript
 import { hasActiveSubscription } from "@/features/subscription/services/subscription.service";
+import { hasActiveOrder } from "@/features/benefits";
 
-const REQUIRE_SUBSCRIPTION_ROUTES: string[] = [routes.dashboard];
+const REQUIRE_ACCESS_ROUTES: string[] = [routes.dashboard];
 
-async function handleSubscription(
+async function handleAccess(
   request: NextRequest,
   userId: string
 ): Promise<NextResponse | null> {
   const { pathname } = request.nextUrl;
 
-  const requiresSubscription = REQUIRE_SUBSCRIPTION_ROUTES.some(
+  const requiresAccess = REQUIRE_ACCESS_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  if (!requiresSubscription) return null;
+  if (!requiresAccess) return null;
 
-  const hasSubscription = await hasActiveSubscription(userId);
+  // Choose ONE based on your business model:
+  // 1. Subscription-only (recurring payments)
+  // const hasUserAccess = await hasActiveSubscription(userId);
 
-  return hasSubscription
+  // 2. One-time purchase (orders/benefits)
+  const hasUserAccess = await hasActiveOrder(userId);
+
+  // 3. Hybrid (subscription OR one-time)
+  // const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId);
+
+  return hasUserAccess
     ? null
     : NextResponse.redirect(new URL(routes.choosePlan, request.url));
 }
 ```
 
-Users without an active subscription are redirected to the pricing/choose-plan page.
+Users without access are redirected to the pricing/choose-plan page.
+
+**Note:** For one-time purchases (selling code, downloadable files, etc.), use `hasActiveOrder()` which checks if the user has any benefit grants from Polar. See [One-Time & Benefits](/docs/payments/one-time) for more details.
 
 ## Customer Portal
 

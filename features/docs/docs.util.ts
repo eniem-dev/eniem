@@ -47,6 +47,10 @@ export const docsNavigation: NavigationSection[] = [
         title: "Legal Pages",
         url: "/docs/guides/legal-pages",
       },
+      {
+        title: "Sell Code via GitHub",
+        url: "/docs/guides/sell-code-via-github",
+      },
     ],
   },
   {
