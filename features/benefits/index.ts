@@ -5,6 +5,7 @@ export type { GitHubBenefit, GitHubBenefitsResult } from "./models/github-benefi
 // Services
 export { getDownloadables } from "./services/downloadables.service";
 export { getGitHubBenefits } from "./services/github-benefits.service";
+export { hasActiveOrder } from "./services/benefits.service";
 
 // Queries
 export { getDownloadablesQuery } from "./queries/downloadables.query";

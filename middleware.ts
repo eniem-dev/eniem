@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { env, routes } from "@/config";
 import { hasActiveSubscription } from "@/features/subscription/services/subscription.service";
+import { hasActiveOrder } from "@/features/benefits";
 
 // Routes accessible in landing mode ONLY
 const LANDING_MODE_ALLOWED_ROUTES = [
@@ -19,15 +20,13 @@ const PUBLIC_ROUTES = [
   routes.docs,
   routes.auth.signup,
   routes.auth.login,
-  routes.auth.forgotPassword,
-  routes.auth.resetPassword,
   routes.legal.termsOfService,
   routes.legal.privacy,
 ];
 
 const AUTH_API_PREFIX = "/api/auth";
 
-const REQUIRE_SUBSCRIPTION_ROUTES: string[] = [routes.dashboard];
+const REQUIRE_ACCESS_ROUTES: string[] = [routes.dashboard];
 
 function handleLandingMode(request: NextRequest): NextResponse | null {
   if (!env.landingMode) return null;
@@ -40,21 +39,29 @@ function handleLandingMode(request: NextRequest): NextResponse | null {
     : NextResponse.redirect(new URL(routes.landing, request.url));
 }
 
-async function handleSubscription(
+async function handleAccess(
   request: NextRequest,
   userId: string
 ): Promise<NextResponse | null> {
   const { pathname } = request.nextUrl;
 
-  const requiresSubscription = REQUIRE_SUBSCRIPTION_ROUTES.some(
+  const requiresAccess = REQUIRE_ACCESS_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(`${route}/`)
   );
 
-  if (!requiresSubscription) return null;
+  if (!requiresAccess) return null;
 
-  const hasSubscription = await hasActiveSubscription(userId);
+  // Choose ONE based on your business model:
+  // 1. Subscription-only (recurring payments)
+  const hasUserAccess = await hasActiveSubscription(userId);
 
-  return hasSubscription
+  // 2. One-time purchase (orders/benefits)
+  // const hasUserAccess = await hasActiveOrder(userId);
+
+  // 3. Hybrid (subscription OR one-time)
+  // const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId);
+
+  return hasUserAccess
     ? null
     : NextResponse.redirect(new URL(routes.choosePlan, request.url));
 }
@@ -76,8 +83,8 @@ async function handleAuthentication(request: NextRequest): Promise<NextResponse>
       return NextResponse.redirect(new URL(routes.auth.login, request.url));
     }
 
-    const subscriptionResponse = await handleSubscription(request, session.user.id);
-    if (subscriptionResponse) return subscriptionResponse;
+    const accessResponse = await handleAccess(request, session.user.id);
+    if (accessResponse) return accessResponse;
 
     return NextResponse.next();
   } catch {
