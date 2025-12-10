@@ -16,7 +16,7 @@ export default function Error({
     <>
       <Navbar />
       <main className="flex min-h-screen flex-col items-start justify-center bg-background px-6 pt-20 sm:px-12 lg:px-24">
-        <div className="max-w-xl">
+        <div className="max-w-xl mx-auto">
           <p className="text-sm font-semibold text-destructive">
             {locales.ErrorPage.code}
           </p>
