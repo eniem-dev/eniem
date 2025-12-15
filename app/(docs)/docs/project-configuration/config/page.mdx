@@ -16,18 +16,18 @@ config/
 
 The `env.ts` file provides typed access to all environment variables, organized by domain:
 
-| Section      | Variables                                                               | Description                         |
-| ------------ | ----------------------------------------------------------------------- | ----------------------------------- |
-| Project      | `projectUrl`, `appName`                                                 | Core application settings           |
-| BetterAuth   | `secret`, `url`                                                         | Authentication configuration        |
-| Database     | `url`                                                                   | PostgreSQL/SQLite connection string |
-| OAuth        | `github.*`, `twitter.*`                                                 | Social login credentials            |
-| Environment  | `isProduction`, `isDevelopment`                                         | Runtime environment detection       |
-| Landing Mode | `landingMode`                                                           | Feature flag for landing page mode  |
-| Storage      | `endpoint`, `region`, `bucket`, `accessKeyId`, `secretAccessKey`, `cdn` | DigitalOcean Spaces configuration   |
-| Upload       | `maxFileSizeMB`, `maxFileSizeBytes`                                     | File upload size limits             |
-| Payment      | `polarAccessToken`, `polarServer`, `polarWebhookSecret`                 | Polar integration settings          |
-| Email        | `resendApiKey`, `fromAddress`, `brandLogoUrl`                           | Resend email configuration          |
+| Section      | Variables                                                               | Description                        |
+| ------------ | ----------------------------------------------------------------------- | ---------------------------------- |
+| Project      | `projectUrl`, `appName`                                                 | Core application settings          |
+| BetterAuth   | `secret`, `url`                                                         | Authentication configuration       |
+| Database     | `url`                                                                   | PostgreSQL connection string       |
+| OAuth        | `github.*`, `twitter.*`                                                 | Social login credentials           |
+| Environment  | `isProduction`, `isDevelopment`                                         | Runtime environment detection      |
+| Landing Mode | `landingMode`                                                           | Feature flag for landing page mode |
+| Storage      | `endpoint`, `region`, `bucket`, `accessKeyId`, `secretAccessKey`, `cdn` | DigitalOcean Spaces configuration  |
+| Upload       | `maxFileSizeMB`, `maxFileSizeBytes`                                     | File upload size limits            |
+| Payment      | `polarAccessToken`, `polarServer`, `polarWebhookSecret`                 | Polar integration settings         |
+| Email        | `resendApiKey`, `fromAddress`, `brandLogoUrl`                           | Resend email configuration         |
 
 ### Usage
 

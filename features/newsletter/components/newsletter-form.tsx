@@ -5,7 +5,7 @@ import { useAction } from "next-safe-action/hooks";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { subscribeAction } from "../actions/subscribe.action";
+import { subscribeToNewsletterAction } from "../actions/newsletter.action";
 import { locales } from "@/locales";
 import { motion } from "framer-motion";
 import { Mail, CheckCircle } from "lucide-react";
@@ -15,7 +15,7 @@ export function NewsletterForm() {
   const [email, setEmail] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
-  const { execute, isExecuting } = useAction(subscribeAction, {
+  const { execute, isExecuting } = useAction(subscribeToNewsletterAction, {
     onSuccess: ({ data }) => {
       captureEvent("email_submitted", { email });
       toast.success(data.message);

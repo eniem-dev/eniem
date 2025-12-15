@@ -213,7 +213,8 @@ export const locales = {
   AccountPage: {
     metadata: {
       title: "Account Settings - Your App Name",
-      description: "Manage your personal information, change your password, and customize your profile",
+      description:
+        "Manage your personal information, change your password, and customize your profile",
     },
     title: "Account Settings",
     description: "Manage your personal information and account preferences",

@@ -3,7 +3,7 @@
 import { Brand } from "@/components/brand";
 import { NavBorder } from "@/components/navbar/nav-border";
 import { ThemeSelector } from "@/components/theme-selector";
-import { NewsletterForm } from "@/features/landing-mode";
+import { NewsletterForm } from "@/features/newsletter";
 import { locales } from "@/locales";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Sparkles } from "lucide-react";

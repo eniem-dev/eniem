@@ -9,8 +9,6 @@ import {
   DeleteAccountEmail,
 } from "@/components/emails";
 
-const resend = new Resend(env.email.resendApiKey);
-
 interface SendEmailOptions {
   to: string;
   subject: string;
@@ -35,6 +33,7 @@ async function sendEmail({ to, subject, template, debugInfo }: SendEmailOptions)
     return { success: true };
   }
 
+  const resend = new Resend(env.email.resendApiKey);
   const { error } = await resend.emails.send({
     from: env.email.fromAddress,
     to,
@@ -93,5 +92,14 @@ export async function sendDeleteAccountEmail(email: string, token: string, url: 
       brandLogoUrl: env.email.brandLogoUrl,
     }),
     debugInfo: { Token: token, "Confirmation Link": url },
+  });
+}
+
+export async function addContact(email: string, firstName?: string, lastName?: string) {
+  const resend = new Resend(env.email.resendApiKey);
+  return resend.contacts.create({
+    email: email,
+    firstName: firstName,
+    lastName: lastName,
   });
 }

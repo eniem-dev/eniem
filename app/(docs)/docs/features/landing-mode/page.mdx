@@ -1,10 +1,10 @@
 # Landing Mode
 
-Landing mode is a feature that allow you to create a basic landing page to collect emails while your are building your application.
+Landing mode is a feature that allows you to create a basic landing page to collect emails while you are building your application.
 
 The purpose is while this mode is enabled to redirect all requests to the landing page.
 
-All the code related to the landing mode is located in the folder `features/landing-mode`.
+All the code related to the newsletter feature is located in the folder `features/newsletter`.
 
 ## Setup
 
@@ -16,7 +16,7 @@ LANDING_MODE=true
 
 ## Middleware
 
-When the landing mode is enabled the next js middleware will redirect all requests to the landing page except the page list that are whitelisted.
+When the landing mode is enabled the Next.js middleware will redirect all requests to the landing page except the pages that are whitelisted.
 
 **middleware.ts**
 
@@ -41,13 +41,37 @@ function handleLandingMode(request: NextRequest): NextResponse | null {
 }
 ```
 
-This way when a user try to access any page of the application it will be redirected to the landing page.
+This way when a user tries to access any page of the application they will be redirected to the landing page.
 
-## Collecting emails
+## Collecting Emails
 
-By default the landing mode only save the collected emails in the database.
+The newsletter feature provides two methods for collecting emails through a service layer.
 
-The emails are stored in the `CollectedEmail` model:
+### Service Layer
+
+The service layer (`features/newsletter/services/newsletter.service.ts`) provides two functions:
+
+```ts
+import { prisma } from "@/lib/db";
+import { addContact } from "@/lib/email";
+import { logger } from "@/lib/logger";
+
+// Method 1: Save to database
+export async function saveEmailToDatabase(email: string): Promise<void> {
+  await prisma.collectedEmail.create({ data: { email } });
+  logger.info("Email saved to database", { email });
+}
+
+// Method 2: Save to email provider (Resend)
+export async function saveEmailToProvider(email: string): Promise<void> {
+  await addContact(email);
+  logger.info("Email saved to email provider", { email });
+}
+```
+
+### Method 1: Database Storage (Default)
+
+By default, the newsletter action saves collected emails to the database using the `CollectedEmail` model:
 
 ```prisma
 model CollectedEmail {
@@ -59,22 +83,48 @@ model CollectedEmail {
 }
 ```
 
-If you want to send this emails to a third party service you can edit the `subscribeAction` function in `features/landing-mode/actions/subscribe.action.ts`
+This is useful when you want to:
+- Keep full control over your email list
+- Export emails manually later
+- Use your own email marketing solution
+
+### Method 2: Email Provider (Resend)
+
+The second method sends emails directly to your email provider (Resend) using the `addContact` function from `lib/email.ts`.
+
+This is useful when you want to:
+- Automatically add subscribers to your Resend audience
+- Use Resend's built-in email marketing features
+- Sync contacts in real-time
+
+### Switching Between Methods
+
+Edit the action file at `features/newsletter/actions/newsletter.action.ts`:
 
 ```ts
-export const subscribeAction = actionClient
+export const subscribeToNewsletterAction = actionClient
   .inputSchema(newsletterSchema)
   .action(async ({ parsedInput: { email } }) => {
     try {
-      logger.info("Collecting email for landing page", { email });
+      logger.info("Collecting email for newsletter", { email });
 
-      // Replace this with your preferred email marketing service
-      await prisma.collectedEmail.create({ data: { email } });
+      // Method 1: Save to database (default)
+      await saveEmailToDatabase(email);
+
+      // Method 2: Save to email provider (Resend)
+      // Uncomment to send emails to your email marketing provider
+      // await saveEmailToProvider(email);
 
       logger.info("Email collected successfully", { email });
       return { success: true, message: locales.LandingPage.newsletter.success };
     } catch (error: unknown) {
-      //... error handling code
+      // ... error handling
     }
   });
 ```
+
+To use the email provider method:
+1. Comment out `await saveEmailToDatabase(email);`
+2. Uncomment `await saveEmailToProvider(email);`
+
+You can also use both methods simultaneously to have a local backup while syncing with your email provider.

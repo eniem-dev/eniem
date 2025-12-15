@@ -5,7 +5,7 @@
 ## Prerequisites
 
 - Completed the [Installation](/docs/getting-started/installation) guide
-- Database running (SQLite for dev, PostgreSQL for production)
+- Database running
 
 ## Steps
 
@@ -30,15 +30,13 @@ Visit any route - you'll be automatically redirected to `/landing`.
 Edit the landing page content in `app/(landing)/landing/page.tsx`:
 
 ```tsx
-import { NewsletterForm } from "@/features/landing-mode";
-import { locales } from "@/app/locales";
+import { NewsletterForm } from "@/features/newsletter";
+import { locales } from "@/locales";
 
 export default function LandingPage() {
   return (
     <section className="py-24 px-6 text-center">
-      <h1 className="text-7xl font-black">
-        {locales.LandingPage.hero.title}
-      </h1>
+      <h1 className="text-7xl font-black">{locales.LandingPage.hero.title}</h1>
       <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
         {locales.LandingPage.hero.subtitle}
       </p>
@@ -64,12 +62,34 @@ LandingPage: {
 }
 ```
 
+### 4. Choose Your Email Collection Method
+
+The newsletter feature provides two methods for collecting emails:
+
+**Method 1: Database Storage (Default)**
+
+Emails are saved to the `CollectedEmail` table in your database. No additional setup needed.
+
+**Method 2: Email Provider (Resend)**
+
+To send emails directly to Resend, edit `features/newsletter/actions/newsletter.action.ts`:
+
+```ts
+// Comment out the database method
+// await saveEmailToDatabase(email);
+
+// Uncomment the email provider method
+await saveEmailToProvider(email);
+```
+
+You can also use both methods simultaneously.
+
 ## Test It
 
 1. Visit `http://localhost:3000` - you should see the landing page
 2. Try visiting `/dashboard` or any other route - you'll be redirected to `/landing`
 3. Submit an email through the form
-4. Check your database for the collected email
+4. Check your database for the collected email (or your Resend audience if using that method)
 
 ## Disable Landing Mode
 
@@ -83,5 +103,5 @@ Or remove the variable entirely. Your application will immediately return to nor
 
 ## Next Steps
 
-- [Landing Mode Reference](/docs/landing-mode) - Full documentation with export options
+- [Landing Mode Reference](/docs/features/landing-mode) - Full documentation with email collection options
 - [Add OAuth Provider](/docs/guides/add-oauth) - Set up authentication for launch
