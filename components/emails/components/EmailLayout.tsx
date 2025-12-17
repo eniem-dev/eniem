@@ -24,19 +24,13 @@ export function EmailLayout({ preview, brandLogoUrl, children }: EmailLayoutProp
         <Container style={container}>
           <Section style={logoSection}>
             {brandLogoUrl && (
-              <Img
-                src={brandLogoUrl}
-                width="120"
-                height="40"
-                alt="Logo"
-                style={logo}
-              />
+              <Img src={brandLogoUrl} width="40" height="40" alt="Logo" style={logo} />
             )}
           </Section>
           {children}
           <Text style={footer}>
-            This email was sent by Eniem. If you didn&apos;t request this, you can
-            safely ignore it.
+            This email was sent by Eniem. If you didn&apos;t request this, you can safely
+            ignore it.
           </Text>
         </Container>
       </Body>
@@ -64,6 +58,7 @@ const logoSection = {
 
 const logo = {
   margin: "0 auto",
+  borderRadius: "100%",
 };
 
 const footer = {
