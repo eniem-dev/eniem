@@ -31,12 +31,12 @@ Before you begin, make sure you have:
 
 Configure the following settings:
 
-| Setting | Value |
-|---------|-------|
-| Build Pack | Nixpacks |
+| Setting       | Value        |
+| ------------- | ------------ |
+| Build Pack    | Nixpacks     |
 | Build Command | `pnpm build` |
 | Start Command | `pnpm start` |
-| Port | `3000` |
+| Port          | `3000`       |
 
 ---
 
@@ -67,10 +67,10 @@ After the first deployment, you need to run database migrations.
 
 ### Option A: Post-Deploy Command
 
-In Coolify, add a post-deploy command:
+In Coolify, add the following in the start command :
 
 ```bash
-pnpm db:migrate && pnpm db:generate
+pnpm db:migrate && pnpm db:generate && pnpm start
 ```
 
 ### Option B: Manual Migration
