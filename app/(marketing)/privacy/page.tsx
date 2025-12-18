@@ -1,14 +1,11 @@
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 
-export async function generateMetadata() {
-  const defaultMeta = await getDefaultMetadata();
-  return createMetadata({
-    ...defaultMeta,
-    title: locales.PrivacyPage.metadata.title,
-    description: locales.PrivacyPage.metadata.description,
-  });
-}
+export const metadata = createMetadata({
+  ...getDefaultMetadata(),
+  title: locales.PrivacyPage.metadata.title,
+  description: locales.PrivacyPage.metadata.description,
+});
 
 export default function PrivacyPage() {
   return (

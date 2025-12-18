@@ -6,10 +6,7 @@ import { GeistMono } from "geist/font/mono";
 import { Providers } from "@/components/providers/providers";
 import { Toaster } from "@/components/ui/sonner";
 
-export async function generateMetadata() {
-  const defaultMeta = await getDefaultMetadata();
-  return createMetadata(defaultMeta);
-}
+export const metadata = createMetadata(getDefaultMetadata());
 
 export default async function RootLayout({
   children,

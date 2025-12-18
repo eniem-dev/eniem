@@ -2,14 +2,11 @@ import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { PricingCard } from "@/components/pricing-card";
 
-export async function generateMetadata() {
-  const defaultMeta = await getDefaultMetadata();
-  return createMetadata({
-    ...defaultMeta,
-    title: locales.PricingPage.metadata.title,
-    description: locales.PricingPage.metadata.description,
-  });
-}
+export const metadata = createMetadata({
+  ...getDefaultMetadata(),
+  title: locales.PricingPage.metadata.title,
+  description: locales.PricingPage.metadata.description,
+});
 
 export default function PricingPage() {
   return (

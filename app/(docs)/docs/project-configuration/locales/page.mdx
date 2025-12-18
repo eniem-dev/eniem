@@ -64,21 +64,18 @@ The `as const` declaration is critical - it enables TypeScript to infer literal 
 
 ### Pattern 1: Page Metadata (SEO)
 
-Every page must generate metadata using locales for consistent SEO:
+Every page must define metadata using locales for consistent SEO:
 
 ```tsx
 // app/(auth)/login/page.tsx
 import { locales } from "@/locales";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 
-export async function generateMetadata() {
-  const defaultMeta = await getDefaultMetadata();
-  return createMetadata({
-    ...defaultMeta,
-    title: locales.LoginPage.metadata.title,
-    description: locales.LoginPage.metadata.description,
-  });
-}
+export const metadata = createMetadata({
+  ...getDefaultMetadata(),
+  title: locales.LoginPage.metadata.title,
+  description: locales.LoginPage.metadata.description,
+});
 ```
 
 ### Pattern 2: Component UI Labels

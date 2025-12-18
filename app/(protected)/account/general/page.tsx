@@ -5,14 +5,11 @@ import { locales } from "@/locales";
 import { headers } from "next/headers";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 
-export async function generateMetadata() {
-  const defaultMeta = await getDefaultMetadata();
-  return createMetadata({
-    ...defaultMeta,
-    title: locales.AccountGeneralPage.metadata.title,
-    description: locales.AccountGeneralPage.metadata.description,
-  });
-}
+export const metadata = createMetadata({
+  ...getDefaultMetadata(),
+  title: locales.AccountGeneralPage.metadata.title,
+  description: locales.AccountGeneralPage.metadata.description,
+});
 
 export default async function AccountGeneralPage() {
   const getHeaders = await headers();

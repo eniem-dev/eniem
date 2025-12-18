@@ -5,14 +5,11 @@ import { locales } from "@/locales";
 import { Navbar } from "@/components/navbar/navbar";
 import { Footer } from "@/components/footer";
 
-export async function generateMetadata() {
-  const defaultMeta = await getDefaultMetadata();
-  return createMetadata({
-    ...defaultMeta,
-    title: locales.NotFoundPage.metadata.title,
-    description: locales.NotFoundPage.metadata.description,
-  });
-}
+export const metadata = createMetadata({
+  ...getDefaultMetadata(),
+  title: locales.NotFoundPage.metadata.title,
+  description: locales.NotFoundPage.metadata.description,
+});
 
 export default function NotFound() {
   return (

@@ -4,14 +4,11 @@ import { ErrorCard } from "@/components/error-card";
 import { BillingOverview } from "@/features/billing/components/billing-overview";
 import { getBillingDataQuery } from "@/features/billing/queries/billing.query";
 
-export async function generateMetadata() {
-  const defaultMeta = await getDefaultMetadata();
-  return createMetadata({
-    ...defaultMeta,
-    title: locales.AccountBillingPage.metadata.title,
-    description: locales.AccountBillingPage.metadata.description,
-  });
-}
+export const metadata = createMetadata({
+  ...getDefaultMetadata(),
+  title: locales.AccountBillingPage.metadata.title,
+  description: locales.AccountBillingPage.metadata.description,
+});
 
 export default async function AccountBillingPage() {
   const { data, error } = await getBillingDataQuery();

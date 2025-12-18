@@ -6,14 +6,11 @@ import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { SuccessBanner } from "@/components/success-banner";
 
-export async function generateMetadata() {
-  const defaultMeta = await getDefaultMetadata();
-  return createMetadata({
-    ...defaultMeta,
-    title: locales.DashboardPage.metadata.title,
-    description: locales.DashboardPage.metadata.description,
-  });
-}
+export const metadata = createMetadata({
+  ...getDefaultMetadata(),
+  title: locales.DashboardPage.metadata.title,
+  description: locales.DashboardPage.metadata.description,
+});
 
 export default async function DashboardPage() {
   const session = await auth.api.getSession({

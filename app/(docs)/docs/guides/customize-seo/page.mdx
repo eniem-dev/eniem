@@ -33,14 +33,11 @@ export const locales = {
 For each page, use the `createMetadata` utility:
 
 ```typescript
-export async function generateMetadata() {
-  const defaultMeta = await getDefaultMetadata();
-  return createMetadata({
-    ...defaultMeta,
-    title: locales.HomePage.metadata.title,
-    description: locales.HomePage.metadata.description,
-  });
-}
+export const metadata = createMetadata({
+  ...getDefaultMetadata(),
+  title: locales.HomePage.metadata.title,
+  description: locales.HomePage.metadata.description,
+});
 ```
 
 ### 3. Add Open Graph Image

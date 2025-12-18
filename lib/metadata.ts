@@ -35,21 +35,16 @@ export const baseUrl = env.projectUrl;
 
 /**
  * Loads default metadata from the "metadata" translation namespace
- * @returns Promise<MetadataConfig> Default metadata configuration
+ * @returns MetadataConfig Default metadata configuration
  * @example
  * ```typescript
- * export async function generateMetadata() {
- *   const defaultMeta = await getDefaultMetadata();
- *   const locale = await getLocale();
- *
- *   return createMetadata(null, locale, {
- *     ...defaultMeta,
- *     title: "Custom Page Title",
- *   });
- * }
+ * export const metadata = createMetadata({
+ *   ...getDefaultMetadata(),
+ *   title: "Custom Page Title",
+ * });
  * ```
  */
-export async function getDefaultMetadata(): Promise<MetadataConfig> {
+export function getDefaultMetadata(): MetadataConfig {
   return {
     title: locales.metadata.title,
     description: locales.metadata.description,
@@ -63,31 +58,15 @@ export async function getDefaultMetadata(): Promise<MetadataConfig> {
 
 /**
  * Creates comprehensive metadata for Next.js pages with SEO optimization
- * @param t - Translation function from next-intl for i18n support (can be null when using default metadata)
- * @param locale - Current locale for language-specific metadata
  * @param config - Configuration object to customize metadata
  * @returns Complete Metadata object for Next.js
  * @example
  * ```typescript
- * // With custom translations
- * export async function generateMetadata() {
- *   const t = await getTranslations("myPage");
- *   const locale = await getLocale();
- *   return createMetadata(t, locale, {
- *     title: t("customTitle"),
- *     description: t("customDescription"),
- *   });
- * }
- *
- * // With default metadata
- * export async function generateMetadata() {
- *   const defaultMeta = await getDefaultMetadata();
- *   const locale = await getLocale();
- *   return createMetadata(null, locale, {
- *     ...defaultMeta,
- *     title: "Custom Page Title",
- *   });
- * }
+ * export const metadata = createMetadata({
+ *   ...getDefaultMetadata(),
+ *   title: locales.LoginPage.metadata.title,
+ *   description: locales.LoginPage.metadata.description,
+ * });
  * ```
  */
 export function createMetadata(config: MetadataConfig = {}): Metadata {
@@ -109,7 +88,9 @@ export function createMetadata(config: MetadataConfig = {}): Metadata {
     typeof keywords === "string" ? keywords.split(", ").map((k) => k.trim()) : keywords;
 
   return {
-    metadataBase: env.projectUrl ? new URL(env.projectUrl) : new URL("http://localhost:3000"),
+    metadataBase: env.projectUrl
+      ? new URL(env.projectUrl)
+      : new URL("http://localhost:3000"),
     title,
     description,
     keywords: keywordsArray,
@@ -131,25 +112,26 @@ export function createMetadata(config: MetadataConfig = {}): Metadata {
       },
     },
 
-    // Open Graph - Next.js will automatically use opengraph-image.png
+    // Open Graph
     openGraph: {
       type: "website",
       locale: "en",
       siteName: env.appName,
       title: title as string,
       description: description as string,
+      images: ["/opengraph-image.png"],
       ...openGraph,
     },
 
-    // Twitter Cards - Next.js will automatically use twitter-image.png
+    // Twitter Cards
     twitter: {
       card: "summary_large_image",
       title: title as string,
       description: description as string,
       creator: twitterCreator,
+      images: ["/opengraph-image.png"],
       ...twitter,
     },
-
     // App icons and manifest
     icons: {
       icon: [
