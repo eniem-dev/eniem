@@ -1,4 +1,4 @@
 {
   "title": "Deployments",
-  "pages": ["index", "self-hosted", "managed"]
+  "pages": ["self-hosted", "managed"]
 }

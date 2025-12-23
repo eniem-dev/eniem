@@ -1,7 +1,6 @@
 {
   "title": "Project Configuration",
   "pages": [
-    "index",
     "file-structure",
     "page-level-access",
     "locales",

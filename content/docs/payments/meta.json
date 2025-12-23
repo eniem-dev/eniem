@@ -1,4 +1,4 @@
 {
   "title": "Payments",
-  "pages": ["index", "subscription", "one-time"]
+  "pages": ["subscription", "one-time"]
 }
