@@ -40,7 +40,7 @@ export function baseOptions(): BaseLayoutProps {
           Eniem
         </span>
       ),
-      url: '/docs',
+      url: '/',
     },
     links: [
       {

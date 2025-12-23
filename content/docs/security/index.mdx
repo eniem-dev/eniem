@@ -15,20 +15,20 @@ A quick reminder of security essentials before going live.
 
 ## Authentication
 
-- [ ] [Rate limiting](/docs/authentication/rate-limits) is enabled
+- [ ] [Rate limiting](/authentication/rate-limits) is enabled
 - [ ] Email verification is required before sign-in
 - [ ] Password reset tokens expire (default: 1 hour)
 - [ ] OTP codes have attempt limits (default: 3 attempts)
 
 ## Access Control
 
-- [ ] [Protected routes](/docs/project-configuration/page-level-access) use middleware
+- [ ] [Protected routes](/project-configuration/page-level-access) use middleware
 - [ ] Server actions use `authenticatedActionClient`
 - [ ] API routes use `createAuthenticatedApiHandler`
 
 ## File Uploads
 
-- [ ] [File validation](/docs/features/file-upload) on both client and server
+- [ ] [File validation](/features/file-upload) on both client and server
 - [ ] File size limits enforced
 - [ ] MIME type checking enabled
 - [ ] Files stored in user-isolated folders
