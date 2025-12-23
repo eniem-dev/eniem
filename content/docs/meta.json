@@ -9,6 +9,8 @@
     "authentication",
     "payments",
     "deployments",
-    "security"
+    "security",
+    "---",
+    "[LLM Documentation](/llms-full.txt)"
   ]
 }
