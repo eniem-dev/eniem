@@ -1,0 +1,199 @@
+---
+title: "Analytics"
+description: "> Provider-agnostic event tracking with PostHog as the default implementation. Easily swap analytics providers without changing application code."
+---
+
+> Provider-agnostic event tracking with PostHog as the default implementation. Easily swap analytics providers without changing application code.
+
+## Why This Architecture?
+
+The tracking abstraction provides several key benefits:
+
+- **Provider Independence** - Switch from PostHog to Google Analytics, Mixpanel, or any other provider without touching your components
+- **Simple API** - One function to learn: `captureEvent(name, properties)`
+- **Type Safety** - Full TypeScript support for event properties
+- **Centralized Configuration** - All analytics setup in one place
+- **Easy Testing** - Mock the abstraction for tests without provider complexity
+
+## Overview
+
+| File | Purpose |
+| --- | --- |
+| `lib/tracking.ts` | Event tracking abstraction layer |
+| `instrumentation-client.ts` | PostHog initialization and configuration |
+| `.env.example` | Environment variables for analytics |
+
+## The Tracking Abstraction
+
+The core of the analytics system is a simple abstraction in `lib/tracking.ts`:
+
+```ts
+import posthog from "posthog-js";
+
+export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
+  posthog.capture(eventName, properties);
+}
+```
+
+This thin wrapper decouples your application code from the analytics provider. Every component imports from `@/lib/tracking`, never from `posthog-js` directly.
+
+## PostHog Configuration
+
+PostHog is initialized in `instrumentation-client.ts`:
+
+```ts
+import posthog from "posthog-js"
+
+posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
+  api_host: "/ingest",
+  ui_host: "https://eu.posthog.com",
+  capture_exceptions: true,
+  debug: process.env.NODE_ENV === "development",
+});
+```
+
+### Configuration Options
+
+| Option | Description |
+| --- | --- |
+| `api_host` | Proxy endpoint for events (avoids ad blockers) |
+| `ui_host` | PostHog dashboard URL (EU or US) |
+| `capture_exceptions` | Enable automatic error tracking |
+| `debug` | Log events to console in development |
+
+### Environment Variables
+
+Add to your `.env` file:
+
+```bash
+NEXT_PUBLIC_POSTHOG_KEY=phc_your_project_key
+```
+
+Get your key from your [PostHog project settings](https://app.posthog.com/project/settings).
+
+## Usage
+
+### Basic Event Tracking
+
+```tsx
+import { captureEvent } from "@/lib/tracking";
+
+export function SignUpButton() {
+  const handleClick = () => {
+    captureEvent("signup_button_clicked");
+  };
+
+  return <button onClick={handleClick}>Sign Up</button>;
+}
+```
+
+### Events with Properties
+
+```tsx
+import { captureEvent } from "@/lib/tracking";
+
+export function PricingCard({ plan }: { plan: string }) {
+  const handleSelect = () => {
+    captureEvent("plan_selected", {
+      plan_name: plan,
+      page: "pricing",
+    });
+  };
+
+  return <button onClick={handleSelect}>Select {plan}</button>;
+}
+```
+
+### Form Submission Tracking
+
+```tsx
+import { captureEvent } from "@/lib/tracking";
+import { useAction } from "next-safe-action/hooks";
+
+export function NewsletterForm() {
+  const [email, setEmail] = useState("");
+
+  const { execute, isExecuting } = useAction(subscribeAction, {
+    onSuccess: ({ data }) => {
+      captureEvent("email_submitted", { email });
+      toast.success(data.message);
+    },
+  });
+
+  return (
+    <form action={() => execute({ email })}>
+      <input value={email} onChange={(e) => setEmail(e.target.value)} />
+      <button type="submit" disabled={isExecuting}>Subscribe</button>
+    </form>
+  );
+}
+```
+
+## Event Naming Conventions
+
+Use `snake_case` for event names and be consistent:
+
+| Event | Description |
+| --- | --- |
+| `page_viewed` | User viewed a page |
+| `button_clicked` | User clicked a button |
+| `form_submitted` | User submitted a form |
+| `signup_completed` | User completed signup |
+| `purchase_completed` | User completed a purchase |
+
+## Swapping Analytics Providers
+
+The abstraction makes it trivial to switch providers. Here are examples:
+
+### Google Analytics
+
+```ts
+// lib/tracking.ts
+declare global {
+  interface Window {
+    gtag: (...args: unknown[]) => void;
+  }
+}
+
+export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
+  if (typeof window !== "undefined" && window.gtag) {
+    window.gtag("event", eventName, properties);
+  }
+}
+```
+
+### Mixpanel
+
+```ts
+// lib/tracking.ts
+import mixpanel from "mixpanel-browser";
+
+export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
+  mixpanel.track(eventName, properties);
+}
+```
+
+### Multiple Providers
+
+```ts
+// lib/tracking.ts
+import posthog from "posthog-js";
+
+export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
+  // PostHog for product analytics
+  posthog.capture(eventName, properties);
+
+  // Google Analytics for marketing
+  if (typeof window !== "undefined" && window.gtag) {
+    window.gtag("event", eventName, properties);
+  }
+}
+```
+
+## Best Practices
+
+1. **Always use the abstraction** - Never import `posthog-js` directly in components
+2. **Consistent naming** - Establish event naming conventions early and document them
+3. **Track user intent** - Focus on meaningful actions, not every click
+4. **Avoid PII** - Don't track personal identifiable information unless necessary
+5. **Test in development** - Use `debug: true` to verify events in console

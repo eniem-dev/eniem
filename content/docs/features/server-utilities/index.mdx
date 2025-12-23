@@ -1,0 +1,451 @@
+---
+title: "Server Utilities"
+description: "> Type-safe abstractions for queries, server actions, and API routes with built-in authentication and error handling."
+---
+
+> Type-safe abstractions for queries, server actions, and API routes with built-in authentication and error handling.
+
+## Why Server Utilities?
+
+Direct database calls and authentication checks scattered throughout your codebase lead to:
+
+- **Inconsistent error handling** across different endpoints
+- **Repeated authentication boilerplate** in every protected route
+- **Type safety gaps** between client and server responses
+- **Difficult debugging** without standardized logging
+
+Server utilities solve this with a unified pattern that provides:
+
+- Automatic session management and type inference
+- Consistent response formats (`ServerResponse<T>` and `ApiResponse<T>`)
+- Centralized error handling with proper HTTP status codes
+- Built-in logging for debugging and monitoring
+
+## Overview
+
+The system provides **four main patterns** for different use cases:
+
+| Pattern | File | Use Case |
+| --- | --- | --- |
+| Queries | `lib/server-handler.ts` | Server-side data fetching in RSC |
+| Server Actions | `lib/safe-action.server.ts` | Form submissions and mutations |
+| API Routes | `lib/server-handler.ts` | REST endpoints for external clients |
+| Utilities | `lib/safe-action.ts` | Client-side action result handling |
+
+Each pattern has two variants:
+- **Public** - Session is optional (can be `null`)
+- **Authenticated** - Session and user are guaranteed non-null
+
+## Response Types
+
+### ServerResponse (for Queries)
+
+Used by `createQuery` and `createAuthenticatedQuery`:
+
+```ts
+type ServerResponse<T> =
+  | { data: T; error: null }
+  | { data: null; error: string };
+```
+
+### ApiResponse (for API Routes)
+
+Used by `createApiHandler` and `createAuthenticatedApiHandler`:
+
+```ts
+type ApiResponse<T> =
+  | { success: true; data: T }
+  | { success: false; error: string };
+```
+
+## Queries
+
+Queries are for **server-side data fetching** in React Server Components. They return a `ServerResponse<T>`.
+
+### createQuery
+
+For public data that doesn't require authentication:
+
+```ts
+// features/posts/queries/posts.query.ts
+import { createQuery } from "@/lib/server-handler";
+
+export const getPublicPosts = () =>
+  createQuery(async ({ session }) => {
+    // session can be null - check before using
+    const posts = await prisma.post.findMany({
+      where: { published: true },
+    });
+
+    return {
+      posts,
+      isAuthenticated: !!session?.user,
+    };
+  });
+```
+
+Usage in a page:
+
+```tsx
+// app/posts/page.tsx
+import { getPublicPosts } from "@/features/posts";
+
+export default async function PostsPage() {
+  const { data, error } = await getPublicPosts();
+
+  if (error) {
+    return <ErrorMessage message={error} />;
+  }
+
+  return <PostList posts={data.posts} />;
+}
+```
+
+### createAuthenticatedQuery
+
+For protected data where authentication is required:
+
+```ts
+// features/user/queries/user.query.ts
+import { createAuthenticatedQuery } from "@/lib/server-handler";
+
+export const getCurrentUser = () =>
+  createAuthenticatedQuery(async ({ session, user }) => {
+    // user is guaranteed non-null with proper TypeScript types
+    const profile = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { preferences: true },
+    });
+
+    return profile;
+  });
+```
+
+Usage in a protected page:
+
+```tsx
+// app/dashboard/page.tsx
+import { getCurrentUser } from "@/features/user";
+import { redirect } from "next/navigation";
+
+export default async function DashboardPage() {
+  const { data, error } = await getCurrentUser();
+
+  if (error) {
+    // User is not authenticated
+    redirect("/auth/signin");
+  }
+
+  return <Dashboard user={data} />;
+}
+```
+
+## Server Actions
+
+Server actions are for **mutations and form submissions**. They use NextSafeAction for type-safe validation.
+
+### actionClient
+
+Base client for public actions:
+
+```ts
+// features/newsletter/actions/subscribe.action.ts
+"use server";
+
+import { actionClient } from "@/lib/safe-action.server";
+import { z } from "zod";
+import { locales } from "@/locales";
+
+const subscribeSchema = z.object({
+  email: z.string().email(locales.errors.invalidEmail),
+});
+
+export const subscribeAction = actionClient
+  .schema(subscribeSchema)
+  .action(async ({ parsedInput }) => {
+    const { email } = parsedInput;
+
+    await prisma.subscriber.create({
+      data: { email },
+    });
+
+    return { message: locales.success.subscribed };
+  });
+```
+
+### authenticatedActionClient
+
+For protected actions requiring authentication:
+
+```ts
+// features/user/actions/update-profile.action.ts
+"use server";
+
+import { authenticatedActionClient } from "@/lib/safe-action.server";
+import { updateProfileSchema } from "../schemas/profile.schema";
+import { logger } from "@/lib/logger";
+import { locales } from "@/locales";
+import { revalidatePath } from "next/cache";
+
+export const updateProfileAction = authenticatedActionClient
+  .schema(updateProfileSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { name, bio } = parsedInput;
+    const { session, user } = ctx;
+
+    logger.info("Updating user profile", { userId: user.id });
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { name, bio },
+    });
+
+    revalidatePath("/dashboard/profile");
+    return { success: true };
+  });
+```
+
+### Using Actions in Components
+
+Use the `useAction` hook from NextSafeAction to execute actions in client components. The hook provides `execute` to trigger the action and `isPending` to manage loading states.
+
+```tsx
+"use client";
+
+import { useAction } from "next-safe-action/hooks";
+import { updateProfileAction } from "@/features/user";
+import { isActionSuccessful } from "@/lib/safe-action";
+import { toast } from "sonner";
+
+export function ProfileForm() {
+  const { execute, isPending } = useAction(updateProfileAction, {
+    onSuccess: ({ data }) => {
+      if (isActionSuccessful(data)) {
+        toast.success("Profile updated!");
+      }
+    },
+    onError: ({ error }) => {
+      toast.error(error.serverError ?? "Something went wrong");
+    },
+  });
+
+  const handleSubmit = (formData: FormData) => {
+    execute({
+      name: formData.get("name") as string,
+      bio: formData.get("bio") as string,
+    });
+  };
+
+  return (
+    <form action={handleSubmit}>
+      {/* form fields */}
+      <button type="submit" disabled={isPending}>
+        {isPending ? "Saving..." : "Save"}
+      </button>
+    </form>
+  );
+}
+```
+
+## API Routes
+
+API routes are for **REST endpoints** consumed by external clients or when you need full control over HTTP responses.
+
+### createApiHandler
+
+Use for public API endpoints where authentication is optional. The `session` parameter will be `null` for unauthenticated requests.
+
+```ts
+// app/api/posts/route.ts
+import { createApiHandler } from "@/lib/server-handler";
+
+export const GET = await createApiHandler(async ({ session }) => {
+  const posts = await prisma.post.findMany({
+    where: { published: true },
+  });
+
+  return { posts, count: posts.length };
+});
+```
+
+### createAuthenticatedApiHandler
+
+Use for protected API endpoints. Returns 401 automatically if the user is not authenticated. Supports optional Zod schema validation via the `validate` option.
+
+```ts
+// app/api/posts/route.ts
+import { createAuthenticatedApiHandler } from "@/lib/server-handler";
+import { z } from "zod";
+
+const createPostSchema = z.object({
+  title: z.string().min(1),
+  content: z.string(),
+});
+
+export const POST = await createAuthenticatedApiHandler(
+  async ({ session, user, input }) => {
+    const post = await prisma.post.create({
+      data: {
+        ...input,
+        authorId: user.id,
+      },
+    });
+
+    return { post };
+  },
+  { validate: createPostSchema }
+);
+```
+
+### Response Format
+
+All API handlers return a consistent JSON structure. This makes it easy for clients to handle responses uniformly across all endpoints.
+
+```json
+// Success
+{ "success": true, "data": { "posts": [...] } }
+
+// Error
+{ "success": false, "error": "Unauthorized" }
+```
+
+## Utility Functions
+
+These type guards help with TypeScript narrowing, ensuring `data` is properly typed after the check.
+
+### isServerResponseSuccessful
+
+Use with `createQuery` and `createAuthenticatedQuery` responses. After the check, TypeScript knows `response.data` is non-null and `response.error` is null.
+
+```ts
+import { isServerResponseSuccessful } from "@/lib/server-handler";
+
+const response = await getPublicPosts();
+
+if (isServerResponseSuccessful(response)) {
+  // TypeScript knows response.data is non-null here
+  console.log(response.data.posts);
+}
+```
+
+### isApiResponseSuccessful
+
+Use with `createApiHandler` and `createAuthenticatedApiHandler` responses when consuming your own API from client-side code.
+
+```ts
+import { isApiResponseSuccessful } from "@/lib/server-handler";
+
+const response = await fetch("/api/posts").then(r => r.json());
+
+if (isApiResponseSuccessful(response)) {
+  // TypeScript knows response.data exists
+  console.log(response.data);
+}
+```
+
+### isActionSuccessful
+
+Use with NextSafeAction results. Returns `true` only if there's no `serverError` and no `validationErrors`.
+
+```ts
+import { isActionSuccessful } from "@/lib/safe-action";
+
+const result = await subscribeAction({ email: "user@example.com" });
+
+if (isActionSuccessful(result)) {
+  // No serverError or validationErrors
+  console.log(result.data);
+}
+```
+
+### resolveActionResult
+
+Converts an action result into a standard Promise that resolves with data or rejects with the error message. Useful for integrating with async/await patterns or libraries that expect promises.
+
+```ts
+import { resolveActionResult } from "@/lib/safe-action";
+
+try {
+  const data = await resolveActionResult(
+    subscribeAction({ email: "user@example.com" })
+  );
+  // data is the successful result
+} catch (error) {
+  // error is the serverError message
+}
+```
+
+## Best Practices
+
+### 1. Choose the Right Pattern
+
+| Need | Use |
+| --- | --- |
+| Fetch data in RSC | `createQuery` / `createAuthenticatedQuery` |
+| Form submission | `actionClient` / `authenticatedActionClient` |
+| External API | `createApiHandler` / `createAuthenticatedApiHandler` |
+
+### 2. Always Use Authenticated Variants for Protected Data
+
+Avoid manual authentication checks inside handlers. The authenticated variants handle this automatically and provide proper TypeScript types for `session` and `user`.
+
+```ts
+// ❌ Bad - manual auth check
+export const getProfile = () =>
+  createQuery(async ({ session }) => {
+    if (!session?.user) throw new UnauthorizedError();
+    // ...
+  });
+
+// ✅ Good - use authenticated variant
+export const getProfile = () =>
+  createAuthenticatedQuery(async ({ user }) => {
+    // user is guaranteed non-null
+  });
+```
+
+### 3. Use Locales for Error Messages
+
+Keep error messages centralized in the locales file for consistency and easier maintenance. This also prepares your app for internationalization.
+
+```ts
+import { locales } from "@/locales";
+
+throw new ValidationError(locales.errors.emailAlreadyExists);
+```
+
+### 4. Log Important Operations
+
+Use the custom logger for critical operations like account changes, payments, or data deletions. This helps with debugging and audit trails.
+
+```ts
+import { logger } from "@/lib/logger";
+
+export const deleteAccount = authenticatedActionClient
+  .schema(deleteAccountSchema)
+  .action(async ({ ctx }) => {
+    logger.info("Deleting user account", { userId: ctx.user.id });
+    // ...
+  });
+```
+
+### 5. Revalidate After Mutations
+
+After modifying data, invalidate Next.js cache to ensure users see fresh content. Use `revalidatePath` for specific routes or `revalidateTag` for tagged cache entries.
+
+```ts
+import { revalidatePath, revalidateTag } from "next/cache";
+
+export const updatePost = authenticatedActionClient
+  .schema(updatePostSchema)
+  .action(async ({ parsedInput }) => {
+    await prisma.post.update({ ... });
+
+    revalidatePath("/posts");
+    revalidateTag("posts");
+  });
+```
+
+## Next Steps
+
+- [Error Handling](/docs/features/error-handling) - Deep dive into error patterns

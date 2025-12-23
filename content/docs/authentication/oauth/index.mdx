@@ -1,0 +1,125 @@
+---
+title: "OAuth"
+description: "Social login with OAuth providers for quick authentication. OAuth allows users to sign in using their existing accounts from providers like GitHub or Twitter, e"
+---
+
+Social login with OAuth providers for quick authentication. OAuth allows users to sign in using their existing accounts from providers like GitHub or Twitter, eliminating the need to create and remember another password.
+
+## Supported Providers
+
+The application comes pre-configured with GitHub and Twitter/X OAuth providers. Each provider requires a client ID and secret obtained from their respective developer portals.
+
+| Provider  | Environment Variables                        |
+| --------- | -------------------------------------------- |
+| GitHub    | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`   |
+| Twitter/X | `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET` |
+
+## Configuration
+
+OAuth providers are configured in `lib/auth.ts` using the `socialProviders` option. BetterAuth handles the OAuth flow automatically, including token exchange and user profile fetching.
+
+```typescript
+export const auth = betterAuth({
+  socialProviders: {
+    github: {
+      clientId: env.oauth.github.clientId as string,
+      clientSecret: env.oauth.github.clientSecret as string,
+    },
+    twitter: {
+      clientId: env.oauth.twitter.clientId as string,
+      clientSecret: env.oauth.twitter.clientSecret as string,
+    },
+  },
+});
+```
+
+## Client Usage
+
+Triggering OAuth authentication is simple with the `signIn.social()` method. The user is redirected to the provider's login page, and after successful authentication, they're redirected back to the specified callback URL.
+
+```typescript
+import { signIn } from "@/lib/auth-client";
+
+await signIn.social({
+  provider: "github", // or "twitter"
+  callbackURL: "/dashboard",
+});
+```
+
+## Implementation
+
+**Component:** `features/authentication/components/social-auth-buttons.tsx`
+
+The `SocialAuthButtons` component provides OAuth buttons for login/signup:
+
+```typescript
+interface SocialAuthButtonsProps {
+  mode: "signin" | "signup";
+  disabled?: boolean;
+}
+
+export function SocialAuthButtons({ mode, disabled }: SocialAuthButtonsProps) {
+  const handleSocialAuth = async (provider: "github" | "twitter") => {
+    await signIn.social({
+      provider,
+      callbackURL: routes.dashboard,
+    });
+  };
+
+  return (
+    <>
+      <Button onClick={() => handleSocialAuth("github")}>
+        <GitHubIcon />
+        Sign in with GitHub
+      </Button>
+      <Button onClick={() => handleSocialAuth("twitter")}>
+        <TwitterIcon />
+        Sign in with Twitter
+      </Button>
+    </>
+  );
+}
+```
+
+Usage in login/signup forms:
+
+```typescript
+// login.tsx / signup.tsx
+<SocialAuthButtons mode="signin" disabled={loading} />
+```
+
+## Adding More Providers
+
+BetterAuth supports many OAuth providers out of the box including Google, Discord, Apple, Facebook, and more. Adding a new provider requires three steps: configuring the server, setting environment variables, and updating the UI.
+
+1. Add the provider configuration in `lib/auth.ts`:
+
+```typescript
+socialProviders: {
+  // existing providers...
+  google: {
+    clientId: env.oauth.google.clientId,
+    clientSecret: env.oauth.google.clientSecret,
+  },
+},
+```
+
+2. Add environment variables to your `.env`:
+
+```bash
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_CLIENT_SECRET=your-client-secret
+```
+
+3. Update the `SocialAuthButtons` component to include the new provider.
+
+For detailed setup instructions for each provider, see the official documentation:
+
+- [Google](https://www.better-auth.com/docs/authentication/google)
+- [Discord](https://www.better-auth.com/docs/authentication/discord)
+- [Apple](https://www.better-auth.com/docs/authentication/apple)
+
+## Related
+
+- [SIWE](/docs/authentication/siwe) - Web3 wallet authentication
+- [Rate Limits](/docs/authentication/rate-limits) - Auth endpoints are rate limited

@@ -1,0 +1,102 @@
+---
+title: "Config"
+description: "ENIEM uses a **centralized configuration system** where all environment variables and route constants are managed in the `config/` directory. This provides type"
+---
+
+ENIEM uses a **centralized configuration system** where all environment variables and route constants are managed in the `config/` directory. This provides type safety, a single source of truth, and full IDE autocomplete.
+
+## File Location
+
+```
+config/
+├── index.ts    # Re-exports env and routes
+├── env.ts      # Environment variables
+├── routes.ts   # Route constants
+└── wagmi.ts    # Web3 wallet configuration
+```
+
+## Environment Variables
+
+The `env.ts` file provides typed access to all environment variables, organized by domain:
+
+| Section      | Variables                                                               | Description                        |
+| ------------ | ----------------------------------------------------------------------- | ---------------------------------- |
+| Project      | `projectUrl`, `appName`                                                 | Core application settings          |
+| BetterAuth   | `secret`, `url`                                                         | Authentication configuration       |
+| Database     | `url`                                                                   | PostgreSQL connection string       |
+| OAuth        | `github.*`, `twitter.*`                                                 | Social login credentials           |
+| Environment  | `isProduction`, `isDevelopment`                                         | Runtime environment detection      |
+| Landing Mode | `landingMode`                                                           | Feature flag for landing page mode |
+| Storage      | `endpoint`, `region`, `bucket`, `accessKeyId`, `secretAccessKey`, `cdn` | DigitalOcean Spaces configuration  |
+| Upload       | `maxFileSizeMB`, `maxFileSizeBytes`                                     | File upload size limits            |
+| Payment      | `polarAccessToken`, `polarServer`, `polarWebhookSecret`                 | Polar integration settings         |
+| Email        | `resendApiKey`, `fromAddress`, `brandLogoUrl`                           | Resend email configuration         |
+
+### Usage
+
+```ts
+import { env } from "@/config";
+
+// Access environment values
+const baseUrl = env.projectUrl;
+const isProduction = env.isProduction;
+
+// Nested configuration
+const githubClientId = env.oauth.github.clientId;
+const maxUploadSize = env.upload.maxFileSizeBytes;
+```
+
+## Routes
+
+The `routes.ts` file provides type-safe route constants for navigation, preventing hardcoded URL strings throughout the codebase.
+
+### Structure
+
+```ts
+export const routes = {
+  home: "/",
+  landing: "/landing",
+  dashboard: "/dashboard",
+  pricing: "/pricing",
+
+  auth: {
+    signup: "/signup",
+    login: "/login",
+    resetPassword: "/reset-password",
+    forgotPassword: "/forgot-password",
+  },
+
+  account: {
+    general: "/account/general",
+    billing: "/account/billing",
+  },
+
+  legal: {
+    termsOfService: "/terms-of-service",
+    privacy: "/privacy",
+  },
+};
+```
+
+### Usage
+
+```tsx
+import { routes } from "@/config";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+
+// In components
+<Link href={routes.auth.login}>Login</Link>;
+
+// In redirects
+redirect(routes.dashboard);
+
+// In router navigation
+router.push(routes.account.billing);
+```
+
+## Web3 Configuration
+
+The `wagmi.ts` file configures wallet connections using RainbowKit and Wagmi. It defines supported chains and WalletConnect settings.
+
+For full Web3 authentication setup, see the [SIWE Authentication](/docs/authentication/siwe) documentation.

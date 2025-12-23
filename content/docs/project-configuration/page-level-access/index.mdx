@@ -1,0 +1,249 @@
+---
+title: "Page Level Access"
+description: "ENIEM uses a centralized access control system enforced by the Next.js middleware. This ensures consistent protection across all routes without requiring manual"
+---
+
+ENIEM uses a centralized access control system enforced by the Next.js middleware. This ensures consistent protection across all routes without requiring manual checks in every page component.
+
+## Philosophy
+
+### Middleware-First Approach
+
+We rely on middleware as much as possible to handle access control. This centralizes security logic in a single location (`middleware.ts`) and prevents developers from forgetting to add authentication checks in individual pages.
+
+### Private by Default
+
+To avoid accidentally exposing pages that should be protected, we opt for making pages **private by default**. Only explicitly whitelisted routes in `PUBLIC_ROUTES` are accessible without authentication.
+
+This approach means:
+
+- If you **forget** to add a route to `PUBLIC_ROUTES`, it will be protected (safe)
+- With the opposite approach (public by default), forgetting to protect a route would expose it (unsafe)
+
+## Access Levels Overview
+
+| Level         | Requirement                    | Redirect       | Example Routes             |
+| ------------- | ------------------------------ | -------------- | -------------------------- |
+| **Public**    | None                           | -              | `/`, `/pricing`, `/docs/*` |
+| **Protected** | Logged in                      | `/login`       | `/account/*`               |
+| **Access**    | Logged in + Subscription/Order | `/choose-plan` | `/dashboard/*`             |
+
+## Public Pages
+
+Public pages are defined in the `PUBLIC_ROUTES` array in the middleware. These routes are accessible to everyone without authentication.
+
+**middleware.ts**
+
+```ts
+const PUBLIC_ROUTES = [
+  routes.home,
+  routes.homeRedirect,
+  routes.pricing,
+  routes.docs,
+  routes.auth.signup,
+  routes.auth.login,
+  routes.auth.forgotPassword,
+  routes.auth.resetPassword,
+  routes.legal.termsOfService,
+  routes.legal.privacy,
+];
+
+const AUTH_API_PREFIX = "/api/auth";
+```
+
+The middleware also automatically allows:
+
+- All routes under `/api/auth/*` (BetterAuth API endpoints)
+- All routes under `/docs/*` (documentation)
+
+## Protected Pages
+
+Protected pages require the user to be logged in. If no session is found, the user is redirected to `/login`.
+
+**middleware.ts**
+
+```ts
+async function handleAuthentication(request: NextRequest): Promise<NextResponse> {
+  const { pathname } = request.nextUrl;
+
+  const isPublicRoute =
+    PUBLIC_ROUTES.some(
+      (route) => pathname === route || pathname.startsWith(AUTH_API_PREFIX)
+    ) || pathname.startsWith(routes.docs);
+
+  if (isPublicRoute) return NextResponse.next();
+
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+
+    if (!session) {
+      return NextResponse.redirect(new URL(routes.auth.login, request.url));
+    }
+
+    const accessResponse = await handleAccess(request, session.user.id);
+    if (accessResponse) return accessResponse;
+
+    return NextResponse.next();
+  } catch {
+    return NextResponse.redirect(new URL(routes.auth.login, request.url));
+  }
+}
+```
+
+## Access Required Pages
+
+Some pages require both authentication AND either an active subscription or a one-time purchase. If the user is logged in but doesn't have access, they are redirected to `/choose-plan`.
+
+**middleware.ts**
+
+```ts
+const REQUIRE_ACCESS_ROUTES: string[] = [routes.dashboard];
+
+async function handleAccess(
+  request: NextRequest,
+  userId: string
+): Promise<NextResponse | null> {
+  const { pathname } = request.nextUrl;
+
+  const requiresAccess = REQUIRE_ACCESS_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+
+  if (!requiresAccess) return null;
+
+  // Choose ONE based on your business model:
+  // 1. Subscription-only (recurring payments)
+  // const hasUserAccess = await hasActiveSubscription(userId);
+
+  // 2. One-time purchase (orders/benefits)
+  const hasUserAccess = await hasActiveOrder(userId);
+
+  // 3. Hybrid (subscription OR one-time)
+  // const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId);
+
+  return hasUserAccess
+    ? null
+    : NextResponse.redirect(new URL(routes.choosePlan, request.url));
+}
+```
+
+## Utility Functions
+
+### Server Utilities
+
+For handling authentication in queries and API handlers, use the server utilities module which provides `getSession()`, `requireAuth()`, `createQuery()`, and `createAuthenticatedQuery()`.
+
+See [Server Utilities](/docs/features/server-utilities) for detailed documentation.
+
+### Access Functions
+
+#### Subscription Check
+
+Located in `features/subscription/services/subscription.service.ts`:
+
+**`hasActiveSubscription(userId: string)`**
+
+Returns `Promise<boolean>`. Checks if a user has an active subscription (recurring payments).
+
+```ts
+export async function hasActiveSubscription(userId: string): Promise<boolean> {
+  const sub = await getUserSubscription(userId);
+  return sub?.status === "active";
+}
+```
+
+**`getUserSubscription(userId: string)`**
+
+Returns `Promise<Subscription | null>`. Retrieves the full subscription details for a user.
+
+```ts
+export async function getUserSubscription(userId: string) {
+  return prisma.subscription.findUnique({
+    where: { userId },
+  });
+}
+```
+
+#### One-Time Purchase Check
+
+Located in `features/benefits/services/benefits.service.ts`:
+
+**`hasActiveOrder(userId: string)`**
+
+Returns `Promise<boolean>`. Checks if a user has any benefit grants from Polar (works for both GitHub repository access and downloadable files).
+
+```ts
+export async function hasActiveOrder(userId: string): Promise<boolean> {
+  try {
+    const customerSession = await polarClient.customerSessions.create({
+      externalCustomerId: userId,
+    });
+
+    const response = await polarClient.customerPortal.benefitGrants.list(
+      { customerSession: customerSession.token },
+      {}
+    );
+
+    return (response.result.items?.length ?? 0) > 0;
+  } catch (error) {
+    logger.error("Failed to check benefit grants", { userId, error });
+    return false;
+  }
+}
+```
+
+This function queries Polar's API to check if the user has any active benefit grants, regardless of how they were acquired (subscription or one-time purchase).
+
+## Usage Examples
+
+### Creating a Protected Page
+
+Even though middleware handles protection, you may still need to access the session in your page:
+
+```tsx
+// app/(protected)/account/general/page.tsx
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { ErrorCard } from "@/components/error-card";
+import { locales } from "@/locales";
+
+export default async function AccountPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  if (!session) {
+    return <ErrorCard message={locales.errors.unauthorized} />;
+  }
+
+  const user = session.user;
+  return <div>Welcome, {user.name}</div>;
+}
+```
+
+### Using Authenticated Query
+
+```tsx
+import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { prisma } from "@/lib/db";
+
+export const getUserQuery = () =>
+  createAuthenticatedQuery(async ({ user }) => {
+    return prisma.user.findUnique({ where: { id: user.id } });
+  });
+```
+
+### Using Authenticated Server Action
+
+```tsx
+"use server";
+
+import { authenticatedActionClient } from "@/lib/safe-action.server";
+import { updateProfileSchema } from "./schemas";
+
+export const updateProfileAction = authenticatedActionClient
+  .inputSchema(updateProfileSchema)
+  .action(async ({ parsedInput, ctx }) => {
+    const { user } = ctx;
+    // user is guaranteed non-null
+    // ... update logic
+  });
+```

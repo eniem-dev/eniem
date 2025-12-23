@@ -1,0 +1,176 @@
+---
+title: "Payments Overview"
+description: "ENIEM uses [Polar.sh](https://polar.sh) as the payment provider, integrated via the [BetterAuth Polar adapter](https://polar.sh/docs/integrate/sdk/adapters/bett"
+---
+
+ENIEM uses [Polar.sh](https://polar.sh) as the payment provider, integrated via the [BetterAuth Polar adapter](https://polar.sh/docs/integrate/sdk/adapters/better-auth).
+
+## Architecture
+
+The payment system is organized across several features:
+
+```
+lib/
+├── auth.ts              # Polar plugin configuration
+├── polar.ts             # Polar client instance
+features/
+├── subscription/        # Recurring subscription logic
+│   ├── services/        # Sync, query, delete operations
+│   ├── queries/         # Server component queries
+│   └── models/          # TypeScript interfaces
+├── benefits/            # One-time purchase benefits
+│   ├── services/        # File downloads, GitHub access
+│   ├── queries/         # Authenticated queries
+│   └── components/      # UI components
+└── billing/             # Billing UI and order history
+    ├── services/        # Order fetching
+    └── components/      # Status cards, order history
+```
+
+## Payment Types
+
+| Type | Description | Use Case |
+|------|-------------|----------|
+| **Subscription** | Recurring monthly/yearly billing | SaaS access, premium features |
+| **One-Time** | Single purchase with benefits | Digital products, repository access |
+
+## How It Works
+
+### Customer Creation
+
+Customers are automatically created in Polar when users sign up:
+
+```typescript
+// lib/auth.ts
+polar({
+  client: polarClient,
+  createCustomerOnSignUp: true,  // Auto-create Polar customer
+  // ...
+})
+```
+
+The user's ID becomes the `externalId` in Polar, linking accounts.
+
+### Checkout Flow
+
+1. User clicks a `BuyButton` component
+2. BetterAuth redirects to Polar's hosted checkout
+3. After payment, user returns to your success URL
+4. Webhooks sync subscription/benefit data
+
+### Webhook Sync
+
+Polar sends webhook events to `/api/auth/polar/webhooks`:
+
+- **`onCustomerStateChanged`** - Subscription created, updated, or canceled
+- **`onOrderPaid`** - One-time or subscription payment completed
+
+## Configuration
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `POLAR_ACCESS_TOKEN` | API token from Polar dashboard | Yes |
+| `POLAR_SERVER` | `sandbox` for testing, `production` for live | Yes |
+| `POLAR_WEBHOOK_SECRET` | Webhook signature verification | Yes |
+
+```bash
+# .env
+POLAR_ACCESS_TOKEN=polar_at_xxx
+POLAR_SERVER=sandbox
+POLAR_WEBHOOK_SECRET=whsec_xxx
+```
+
+### Polar Client
+
+**File:** `lib/polar.ts`
+
+```typescript
+import { Polar } from "@polar-sh/sdk";
+import { env } from "@/config";
+
+export const polarClient = new Polar({
+  accessToken: env.payment.polarAccessToken,
+  server: env.payment.polarServer as "sandbox" | "production",
+});
+```
+
+### BetterAuth Integration
+
+**File:** `lib/auth.ts`
+
+```typescript
+import { polar, checkout, portal, usage, webhooks } from "@polar-sh/better-auth";
+
+export const auth = betterAuth({
+  // ...
+  plugins: [
+    polar({
+      client: polarClient,
+      createCustomerOnSignUp: true,
+      use: [
+        checkout({
+          products: [
+            { productId: "xxx", slug: "pro-monthly" },
+            { productId: "yyy", slug: "pro-yearly" },
+          ],
+          successUrl: "/success?checkout_id={CHECKOUT_ID}",
+          authenticatedUsersOnly: true,
+        }),
+        portal(),   // Customer portal access
+        usage(),    // Usage-based billing (optional)
+        webhooks({
+          secret: env.payment.polarWebhookSecret,
+          onCustomerStateChanged: async (payload) => {
+            // Handle subscription changes
+          },
+        }),
+      ],
+    }),
+  ],
+});
+```
+
+## Key Concepts
+
+### Products & Slugs
+
+Products are configured in `lib/auth.ts` with a Polar product ID and a custom slug:
+
+```typescript
+{
+  productId: "d221378e-c19a-4f5e-9efb-52d06dcda288",  // From Polar
+  slug: "pro-monthly",                                 // Your reference
+}
+```
+
+Use the slug with the `BuyButton` component:
+
+```tsx
+<BuyButton slug="pro-monthly" label="Subscribe" />
+```
+
+### Customer Portal
+
+The `portal()` plugin enables customers to manage their subscriptions via Polar's hosted portal. Access it via:
+
+```typescript
+import { authClient } from "@/lib/auth-client";
+
+await authClient.customer.portal();
+```
+
+### Data Storage
+
+| Data | Storage | Why |
+|------|---------|-----|
+| Subscriptions | Local database | Fast status checks, middleware access |
+| Benefits | Polar API (real-time) | Always current, no sync needed |
+| Orders | Polar API | Historical records, invoices |
+
+## Related
+
+- [Subscription](/docs/payments/subscription) - Recurring billing implementation
+- [One-Time & Benefits](/docs/payments/one-time) - Single purchases with file downloads and GitHub access
+- [Set Up Subscriptions](/docs/guides/setup-subscriptions) - Step-by-step setup guide

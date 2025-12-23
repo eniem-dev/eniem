@@ -1,0 +1,332 @@
+---
+title: "Email/Password Authentication"
+description: "Traditional email and password authentication with email verification and password reset flows."
+---
+
+Traditional email and password authentication with email verification and password reset flows.
+
+[Check the official documentation for more detail about implementation](https://www.better-auth.com/docs/authentication/email-password).
+
+## Architecture
+
+The email/password authentication is organized as follows:
+
+```
+features/authentication/
+├── components/
+│   ├── login.tsx                    # Login form UI
+│   ├── signup.tsx                   # Signup form UI
+│   ├── forgot-password.tsx          # Password reset request
+│   ├── reset-password.tsx           # New password form
+│   ├── auth-form-layout.tsx         # Shared card layout
+│   ├── email-verification-error.tsx # Unverified email state
+│   └── email-verification-success.tsx
+├── hooks/
+│   └── use-auth-form.ts             # Form logic & auth calls
+└── schemas/
+    └── auth.schema.ts               # Zod validation schemas
+```
+
+Pages are located in `app/(auth)/`:
+
+| Route              | Component              |
+| ------------------ | ---------------------- |
+| `/login`           | `Login`                |
+| `/signup`          | `SignUp`               |
+| `/forgot-password` | `ForgotPassword`       |
+| `/reset-password`  | `ResetPassword`        |
+
+## Configuration
+
+Email/password authentication is configured in `lib/auth.ts`. The configuration enables email verification (users must verify their email before signing in) and sets up the password reset flow with a 1-hour token expiry. Email sending is handled by custom functions that use React Email templates.
+
+```typescript
+export const auth = betterAuth({
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: true,
+    sendResetPassword: async ({ user, url, token }) => {
+      await sendPasswordResetEmail(user.email, token, url);
+    },
+    resetPasswordTokenExpiresIn: 3600, // 1 hour
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url, token }) => {
+      await sendVerificationEmail(user.email, token, url);
+    },
+    autoSignInAfterVerification: true,
+  },
+});
+```
+
+## Sign Up
+
+**Implementation:** `features/authentication/components/signup.tsx`
+
+The signup form uses the `useAuthForm` hook which handles form state and auth client calls:
+
+```typescript
+// hooks/use-auth-form.ts
+const { form, loading, handleAuthSubmit } = useAuthForm({
+  schema: signupSchema,
+  mode: "signup",
+});
+```
+
+**Client call:**
+
+```typescript
+import { signUp } from "@/lib/auth-client";
+
+await signUp.email({
+  email: "user@example.com",
+  password: "securePassword123",
+  name: "John Doe",
+  callbackURL: "/dashboard",
+});
+```
+
+**Validation schema** (`schemas/auth.schema.ts`):
+
+```typescript
+export const signupSchema = z
+  .object({
+    email: z.email(locales.errors.invalidEmail),
+    password: z.string().optional(),
+    passwordConfirmation: z.string().optional(),
+  })
+  .refine((data) => data.password.length >= 8, {
+    message: locales.errors.passwordTooShort,
+    path: ["password"],
+  })
+  .refine((data) => data.password === data.passwordConfirmation, {
+    message: locales.errors.passwordMismatch,
+    path: ["passwordConfirmation"],
+  });
+```
+
+**Flow:**
+
+1. User submits email and password on `/signup`
+2. Account created, verification email sent automatically
+3. Redirect to `/login?verified=pending&email=...`
+4. User clicks verification link in email
+5. Account verified, auto sign-in to dashboard
+
+## Sign In
+
+**Implementation:** `features/authentication/components/login.tsx`
+
+The login component handles multiple states including unverified emails:
+
+```typescript
+// login.tsx
+const {
+  form,
+  loading,
+  emailNotVerified,
+  pendingVerificationEmail,
+  handleAuthSubmit,
+  resendVerificationEmail,
+} = useAuthForm({ schema: loginSchema, mode: "login" });
+```
+
+**Client call:**
+
+```typescript
+import { signIn } from "@/lib/auth-client";
+
+await signIn.email({
+  email: "user@example.com",
+  password: "securePassword123",
+});
+```
+
+**Handling unverified emails:**
+
+When login fails with `EMAIL_NOT_VERIFIED`, the `EmailVerificationError` component displays with a resend option:
+
+```typescript
+// In use-auth-form.ts
+if (ctx.error.code === "EMAIL_NOT_VERIFIED") {
+  setEmailNotVerified(true);
+  setPendingVerificationEmail(email);
+}
+```
+
+**Resend verification:**
+
+```typescript
+import { authClient } from "@/lib/auth-client";
+
+await authClient.sendVerificationEmail({
+  email: "user@example.com",
+  callbackURL: "/dashboard",
+});
+```
+
+## Password Reset
+
+### Request Reset
+
+**Implementation:** `features/authentication/components/forgot-password.tsx`
+
+When a user forgets their password, they can request a reset link. The form collects their email and sends a reset token that expires after 1 hour for security.
+
+```typescript
+// forgot-password.tsx
+const onSubmit = async (data: ForgotPasswordFormData) => {
+  const result = await authClient.requestPasswordReset({
+    email: data.email,
+    redirectTo: `${window.location.origin}${routes.auth.resetPassword}`,
+  });
+};
+```
+
+**Client call:**
+
+```typescript
+import { authClient } from "@/lib/auth-client";
+
+await authClient.requestPasswordReset({
+  email: "user@example.com",
+  redirectTo: "/reset-password",
+});
+```
+
+**Flow:**
+
+1. User navigates to `/forgot-password`
+2. Enters their email address
+3. Reset email sent with token (expires in 1 hour)
+4. User clicks link → `/reset-password?token=xxx`
+
+### Set New Password
+
+**Implementation:** `features/authentication/components/reset-password.tsx`
+
+The component reads the token from URL search params and validates it:
+
+```typescript
+// reset-password.tsx
+useEffect(() => {
+  const tokenFromUrl = searchParams.get("token");
+  const error = searchParams.get("error");
+
+  if (error === "INVALID_TOKEN") {
+    setIsValidToken(false);
+  } else if (tokenFromUrl) {
+    setToken(tokenFromUrl);
+  }
+}, [searchParams]);
+
+const onSubmit = async (data: ResetPasswordFormData) => {
+  await authClient.resetPassword({
+    newPassword: data.newPassword,
+    token: token,
+  });
+};
+```
+
+**Client call:**
+
+```typescript
+import { authClient } from "@/lib/auth-client";
+
+await authClient.resetPassword({
+  newPassword: "newSecurePassword123",
+  token: tokenFromUrl,
+});
+```
+
+**Password requirements:**
+
+- Minimum 8 characters
+- Must match confirmation field
+
+## Change Email
+
+**Implementation:** `features/settings/hooks/use-user-update.ts`
+
+Email changes are handled in the settings feature, not the authentication feature:
+
+```typescript
+// use-user-update.ts
+const updateEmail = async (data: UpdateEmailInput) => {
+  const emailResult = await authClient.changeEmail({
+    newEmail: data.email,
+    callbackURL: routes.account.general,
+  });
+};
+```
+
+**Client call:**
+
+```typescript
+import { authClient } from "@/lib/auth-client";
+
+await authClient.changeEmail({
+  newEmail: "newemail@example.com",
+  callbackURL: "/account",
+});
+```
+
+**Configuration** in `lib/auth.ts`:
+
+```typescript
+user: {
+  changeEmail: {
+    enabled: true,
+    sendChangeEmailVerification: async ({ user, url, token }) => {
+      // Verification sent to CURRENT email for security
+      await sendVerificationEmail(user.email, token, url);
+    },
+  },
+},
+```
+
+> **Security Note:** The verification email is sent to the current email address, not the new one. This ensures the account owner approves the change.
+
+## Change Password
+
+**Implementation:** `features/settings/hooks/use-user-update.ts`
+
+Authenticated users can change their password from the account settings. The current password is required for security, and there's an option to revoke all other sessions (logging out other devices).
+
+```typescript
+// use-user-update.ts
+const updatePassword = async (data: UpdatePasswordInput) => {
+  const result = await authClient.changePassword({
+    newPassword: data.newPassword,
+    currentPassword: data.currentPassword,
+    revokeOtherSessions: data.revokeOtherSessions || false,
+  });
+};
+```
+
+**Client call:**
+
+```typescript
+import { authClient } from "@/lib/auth-client";
+
+await authClient.changePassword({
+  currentPassword: "oldPassword123",
+  newPassword: "newSecurePassword123",
+  revokeOtherSessions: true, // Optional: logout other devices
+});
+```
+
+## Email Templates
+
+All authentication emails are built with React Email for type-safe, component-based email templates. They are sent via Resend in production, and logged to the console in development for easy debugging.
+
+| Template             | Purpose                         | Location             |
+| -------------------- | ------------------------------- | -------------------- |
+| `VerificationEmail`  | New account verification        | `components/emails/` |
+| `PasswordResetEmail` | Password reset link (1h expiry) | `components/emails/` |
+
+Both templates use `EmailLayout` for consistent branding and styling.
+
+## Related
+
+- [Rate Limits](/docs/authentication/rate-limits) - Auth endpoints are rate limited

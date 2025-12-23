@@ -1,0 +1,117 @@
+---
+title: "Sell Code via GitHub"
+description: "This guide configures the boilerplate to sell code access via GitHub repository permissions using Polar."
+---
+
+This guide configures the boilerplate to sell code access via GitHub repository permissions using Polar.
+
+## Why GitHub-Only Authentication?
+
+When selling code via GitHub:
+
+- **Identity alignment**: Users authenticate with GitHub, giving you their GitHub username
+- **Seamless access**: Polar grants repository access automatically after purchase
+- **Simplified UX**: One-click authentication, no passwords or verification codes
+- **No unnecessary complexity**: Email/password, OTP, and Web3 auth add friction without value
+
+## Step 1: Remove All Auth Methods Except GitHub
+
+The boilerplate ships with multiple authentication methods. For selling code via GitHub, you only need GitHub OAuth.
+
+### Using an AI Assistant
+
+Copy this prompt and give it to your AI coding assistant (Claude, GPT, Cursor, or any AI agent):
+
+```markdown
+# Simplify Authentication to GitHub-Only
+
+You are simplifying authentication in this codebase to use ONLY GitHub OAuth.
+
+## Phase 1: Exploration
+
+Explore and identify ALL auth-related files:
+
+1. Main auth config (lib/auth.ts or similar)
+2. Auth client config (lib/auth-client.ts)
+3. Current auth methods: OAuth providers, email/password, OTP, SIWE/Web3
+4. Auth components: login, signup, forgot-password, reset-password, OTP verification, social buttons, SIWE button
+5. Auth hooks and schemas (features/authentication/hooks/, schemas/)
+6. Auth pages/routes (app/(auth)/)
+7. Web3 config (wagmi, rainbowkit) if present
+8. Email templates for auth (OTP, password reset)
+9. Middleware with auth routes
+10. Locales/i18n with auth strings
+11. package.json auth dependencies
+
+## Phase 2: Clarification
+
+Ask the user:
+
+1. Keep account deletion email verification? (recommended: yes for security)
+2. Clean up package.json dependencies? (recommended: yes)
+
+## Phase 3: Implementation
+
+Execute in this order:
+
+1. Update auth config - remove email/password, OTP, SIWE plugins, non-GitHub OAuth providers
+2. Update auth client - remove unused plugins (emailOTPClient, siweClient)
+3. Delete unused components (forgot-password, reset-password, otp-verification, siwe-button, email-verification-error, email-verification-success)
+4. Delete unused hooks (use-auth-form, use-ethereum-auth) and schemas
+5. Simplify login/signup components to single GitHub OAuth button
+6. Update social-auth-buttons to GitHub only
+7. Remove Web3 providers from app providers (WagmiProvider, RainbowKitProvider)
+8. Delete Web3 config files (wagmi.ts, rainbowkit-theme.ts)
+9. Delete unused email templates (OtpEmail, PasswordResetEmail)
+10. Update email.ts - remove sendOtpEmail and sendPasswordResetEmail functions
+11. Update middleware - remove forgot-password and reset-password from public routes
+12. Update locales - remove unused auth strings (OTP, password reset, Twitter, Ethereum)
+13. Clean package.json - remove: @rainbow-me/rainbowkit, wagmi, viem, siwe, input-otp
+14. Run pnpm install (or npm install / yarn)
+15. Run build to verify no errors
+
+## Phase 4: Verification
+
+1. Fix any import errors from deleted files
+2. Remove empty directories (hooks/, schemas/ if empty)
+3. Ensure build passes with no TypeScript errors
+4. Confirm login/signup pages show only "Sign in/up with GitHub" button
+```
+
+### What Gets Removed
+
+| Category | Removed |
+|----------|---------|
+| **Auth Methods** | Email/password, Email OTP, SIWE (Ethereum), Twitter OAuth |
+| **Components** | forgot-password, reset-password, otp-verification, siwe-button, email-verification-error/success |
+| **Hooks** | use-auth-form, use-ethereum-auth |
+| **Schemas** | auth.schema.ts |
+| **Pages** | /forgot-password, /reset-password |
+| **Config** | wagmi.ts, rainbowkit-theme.ts, auth.constants.ts |
+| **Email Templates** | OtpEmail, PasswordResetEmail |
+| **Dependencies** | @rainbow-me/rainbowkit, wagmi, viem, siwe, input-otp |
+
+### What Gets Kept
+
+- **GitHub OAuth** - The only authentication method
+- **Account deletion flow** - Email verification for security
+- **Polar integration** - For payments and GitHub repo access
+- **Core auth infrastructure** - Session management, middleware protection
+
+### Verification Checklist
+
+After running the prompt, verify:
+
+1. `pnpm build` passes without errors
+2. Login page shows only "Sign in with GitHub" button
+3. Signup page shows only "Sign up with GitHub" button
+4. No TypeScript errors about missing imports
+5. Middleware correctly protects routes
+
+## Next Steps
+
+Once authentication is simplified:
+
+- [Setup OAuth](/docs/guides/setup-oauth) - Configure your GitHub OAuth app
+- [Setup Subscriptions](/docs/guides/setup-subscriptions) - Create Polar products with GitHub repo benefits
+- [Subscription Payments](/docs/payments/subscription) - Manage recurring subscriptions

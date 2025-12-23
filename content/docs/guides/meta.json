@@ -1,0 +1,13 @@
+{
+  "title": "Guides",
+  "pages": [
+    "index",
+    "enable-landing-mode",
+    "setup-oauth",
+    "setup-subscriptions",
+    "sell-code-via-github",
+    "add-web3-auth",
+    "customize-seo",
+    "legal-pages"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "title": "Features",
+  "pages": [
+    "index",
+    "landing-mode",
+    "server-utilities",
+    "error-handling",
+    "emails",
+    "analytics",
+    "file-upload"
+  ]
+}

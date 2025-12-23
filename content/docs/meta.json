@@ -1,0 +1,14 @@
+{
+  "title": "Eniem",
+  "pages": [
+    "index",
+    "getting-started",
+    "guides",
+    "project-configuration",
+    "features",
+    "authentication",
+    "payments",
+    "deployments",
+    "security"
+  ]
+}
