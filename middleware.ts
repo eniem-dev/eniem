@@ -20,6 +20,8 @@ const PUBLIC_ROUTES = [
   routes.docs,
   routes.auth.signup,
   routes.auth.login,
+  routes.auth.forgotPassword,
+  routes.auth.resetPassword,
   routes.legal.termsOfService,
   routes.legal.privacy,
 ];

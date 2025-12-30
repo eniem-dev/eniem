@@ -4,23 +4,9 @@ import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { PricingCard } from "@/components/pricing-card";
-import {
-  KeyRound,
-  CreditCard,
-  Mail,
-  Shield,
-  LayoutDashboard,
-  Moon,
-} from "lucide-react";
+import { KeyRound, CreditCard, Mail, Shield, LayoutDashboard, Moon } from "lucide-react";
 
-const featureIcons = [
-  KeyRound,
-  CreditCard,
-  Mail,
-  Shield,
-  LayoutDashboard,
-  Moon,
-];
+const featureIcons = [KeyRound, CreditCard, Mail, Shield, LayoutDashboard, Moon];
 
 export function HomePageContent() {
   return (
@@ -37,7 +23,7 @@ export function HomePageContent() {
           <Link href={routes.auth.signup}>
             <Button size="lg">{locales.HomePage.hero.getStarted}</Button>
           </Link>
-          <Button size="lg" variant="outline">
+          <Button size="lg" variant="outline" loading>
             {locales.HomePage.hero.watchDemo}
           </Button>
         </div>
