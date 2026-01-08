@@ -79,6 +79,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       <Image
         sizes="100vw"
         style={{ width: "100%", height: "auto" }}
+        alt=""
         {...(props as ImageProps)}
       />
     ),

@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { BookOpen } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 import {
@@ -19,9 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { docsNavigation } from "../docs.util";
 import { NavigationSection } from "../docs.model";
-import { env, routes } from "@/config";
 import { Brand } from "@/components/brand";
-import Link from "next/link";
 
 interface DocsSidebarProps extends React.ComponentProps<typeof Sidebar> {
   navigation?: NavigationSection[];

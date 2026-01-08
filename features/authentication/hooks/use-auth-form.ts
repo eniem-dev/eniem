@@ -61,7 +61,7 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
         setCodeSent(true);
         toast.success(locales.OtpVerification.codeSentSuccess);
       }
-    } catch (error) {
+    } catch {
       toast.error(locales.OtpVerification.otpSendFailed);
     } finally {
       setLoading(false);
@@ -130,7 +130,7 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
         await handleSendCode(email);
         return;
       }
-    } catch (error) {
+    } catch {
       setLoading(false);
       toast.error(locales.errors.serverError);
     }
@@ -154,7 +154,7 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
       } else {
         toast.success(locales.EmailVerification.resendSuccess);
       }
-    } catch (error) {
+    } catch {
       toast.error(locales.EmailVerification.resendFailed);
     } finally {
       setLoading(false);

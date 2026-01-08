@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import { addContact } from "@/lib/email";
 import { logger } from "@/lib/logger";
-import { locales } from "@/locales";
 
 const isDuplicateEmailError = (error: unknown): boolean => {
   return (

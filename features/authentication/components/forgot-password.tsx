@@ -50,7 +50,7 @@ export default function ForgotPassword() {
         setEmailSent(true);
         toast.success(locales.ForgotPasswordForm.successMessage);
       }
-    } catch (error) {
+    } catch {
       toast.error(locales.ForgotPasswordForm.errorMessage);
     } finally {
       setLoading(false);

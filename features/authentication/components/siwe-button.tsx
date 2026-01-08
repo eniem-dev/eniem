@@ -29,7 +29,6 @@ export function SiweButton({ mode, disabled = false, callbackURL }: SiweButtonPr
       {({
         account,
         chain,
-        openAccountModal,
         openChainModal,
         openConnectModal,
         authenticationStatus,

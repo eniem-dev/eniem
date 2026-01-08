@@ -31,7 +31,7 @@ export function SocialAuthButtons({ mode, disabled = false, callbackURL }: Socia
           onResponse: () => setLoading(false),
         }
       );
-    } catch (error) {
+    } catch {
       setLoading(false);
     }
   };

@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { env, routes } from "@/config";
 import { hasActiveSubscription } from "@/features/subscription/services/subscription.service";
-import { hasActiveOrder } from "@/features/benefits";
 
 // Routes accessible in landing mode ONLY
 const LANDING_MODE_ALLOWED_ROUTES = [

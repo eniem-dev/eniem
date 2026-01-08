@@ -4,7 +4,7 @@ import { actionClient } from "@/lib/safe-action.server";
 import { newsletterSchema } from "../schemas/newsletter.schema";
 import { locales } from "@/locales";
 import { logger } from "@/lib/logger";
-import { saveEmailToDatabase, saveEmailToProvider } from "../services/newsletter.service";
+import { saveEmailToDatabase } from "../services/newsletter.service";
 
 export const subscribeToNewsletterAction = actionClient
   .inputSchema(newsletterSchema)
@@ -21,7 +21,7 @@ export const subscribeToNewsletterAction = actionClient
 
       logger.info("Email collected successfully", { email });
       return { success: true, message: locales.LandingPage.newsletter.success };
-    } catch (error: unknown) {
+    } catch {
       throw new Error(locales.LandingPage.newsletter.error);
     }
   });

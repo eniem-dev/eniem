@@ -15,7 +15,7 @@ interface OtpVerificationProps {
   email: string;
 }
 
-export function OtpVerification({ onComplete, onResend, isLoading, email }: OtpVerificationProps) {
+export function OtpVerification({ onComplete, onResend, isLoading }: OtpVerificationProps) {
   return (
     <div className="grid gap-3">
       <Label>{locales.OtpVerification.verificationCodeLabel}</Label>
