@@ -1,10 +1,11 @@
 import "./globals.css";
 
-import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { AnalyticsScript } from "@/components/analytics/analytics-script";
 import { Providers } from "@/components/providers/providers";
 import { Toaster } from "@/components/ui/sonner";
+import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 
 export const metadata = createMetadata(getDefaultMetadata());
 
@@ -19,6 +20,7 @@ export default async function RootLayout({
         className={`${GeistSans.variable} ${GeistMono.variable} font-sans antialiased `}
       >
         <Providers>
+          <AnalyticsScript />
           <Toaster richColors position="top-center" />
           {children}
         </Providers>
