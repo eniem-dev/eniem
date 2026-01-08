@@ -69,7 +69,7 @@ export function useEthereumAuth(callbackURL?: string) {
         refetch();
         router.push(callbackURL ?? routes.dashboard);
       }
-    } catch (error) {
+    } catch {
       const errorMessage =
         mode === "signin"
           ? locales.SocialAuthButtons.ethereumSignInFailed

@@ -11,18 +11,6 @@ module.exports = {
     "/api/*", // API routes
   ],
 
-  // Multi-language support
-  alternateRefs: [
-    {
-      href: process.env.NEXT_PUBLIC_SITE_URL || "https://eniem.dev",
-      hreflang: "en",
-    },
-    {
-      href: (process.env.NEXT_PUBLIC_SITE_URL || "https://eniem.dev") + "/fr",
-      hreflang: "fr",
-    },
-  ],
-
   // Custom transformation for specific pages
   transform: async (config, path) => {
     // Homepage gets highest priority
@@ -32,7 +20,6 @@ module.exports = {
         changefreq: "daily",
         priority: 1.0,
         lastmod: new Date().toISOString(),
-        alternateRefs: config.alternateRefs ?? [],
       };
     }
 
@@ -43,7 +30,6 @@ module.exports = {
         changefreq: "weekly",
         priority: 0.9,
         lastmod: new Date().toISOString(),
-        alternateRefs: config.alternateRefs ?? [],
       };
     }
 
@@ -54,7 +40,6 @@ module.exports = {
         changefreq: "monthly",
         priority: 0.6,
         lastmod: new Date().toISOString(),
-        alternateRefs: config.alternateRefs ?? [],
       };
     }
 
@@ -64,7 +49,6 @@ module.exports = {
       changefreq: config.changefreq,
       priority: config.priority,
       lastmod: new Date().toISOString(),
-      alternateRefs: config.alternateRefs ?? [],
     };
   },
 

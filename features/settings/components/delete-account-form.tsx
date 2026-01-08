@@ -29,7 +29,7 @@ export function DeleteAccountForm({ userEmail }: DeleteAccountFormProps) {
     try {
       await authClient.deleteUser();
       toast.success(locales.success.deleteAccountEmailSent);
-    } catch (error) {
+    } catch {
       toast.error(locales.errors.accountDeletionFailed);
     } finally {
       setIsLoading(false);

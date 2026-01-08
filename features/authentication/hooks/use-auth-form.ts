@@ -7,9 +7,9 @@ import { authClient } from "@/lib/auth-client";
 import { signUp, signIn } from "@/lib/auth-client";
 import { routes } from "@/config";
 import { locales } from "@/locales";
-import type { LoginFormData, SignupFormData } from "../schemas/auth.schema";
 
 interface AuthFormOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   schema: any;
   mode: "login" | "signup";
   callbackURL?: string;
@@ -24,7 +24,7 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
   const [emailNotVerified, setEmailNotVerified] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
-  const form = useForm<any>({
+  const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: mode === "signup"
       ? {
@@ -58,14 +58,14 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
         setCodeSent(true);
         toast.success(locales.OtpVerification.codeSentSuccess);
       }
-    } catch (error) {
+    } catch {
       toast.error(locales.OtpVerification.otpSendFailed);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAuthSubmit = async (data: any) => {
+  const handleAuthSubmit = async (data: { email: string; password?: string; otp?: string }) => {
     setLoading(true);
     try {
       const { email, password, otp } = data;
@@ -127,7 +127,7 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
         await handleSendCode(email);
         return;
       }
-    } catch (error) {
+    } catch {
       setLoading(false);
       toast.error(locales.errors.serverError);
     }
@@ -151,12 +151,14 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
       } else {
         toast.success(locales.EmailVerification.resendSuccess);
       }
-    } catch (error) {
+    } catch {
       toast.error(locales.EmailVerification.resendFailed);
     } finally {
       setLoading(false);
     }
   };
+
+  const onSubmit = form.handleSubmit(handleAuthSubmit);
 
   return {
     form,
@@ -166,7 +168,7 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
     emailNotVerified,
     pendingVerificationEmail,
     handleSendCode,
-    handleAuthSubmit,
+    onSubmit,
     onOtpComplete,
     resendVerificationEmail,
     getValues,

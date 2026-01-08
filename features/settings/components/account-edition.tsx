@@ -17,7 +17,7 @@ export function AccountEdition({ user, providerId }: AccountEditionProps) {
   return (
     <div className="space-y-8">
       <ImageForm user={user} />
-      <ProfileForm user={user} providerId={providerId} />
+      <ProfileForm user={user} />
       {isCredentialProvider && <PasswordForm />}
       <DeleteAccountForm userEmail={user.email} />
     </div>

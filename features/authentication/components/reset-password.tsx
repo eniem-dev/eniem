@@ -78,7 +78,7 @@ export default function ResetPassword() {
         toast.success(locales.ResetPasswordForm.successMessage);
         router.push(routes.auth.login);
       }
-    } catch (error) {
+    } catch {
       toast.error(locales.ResetPasswordForm.errorMessage);
     } finally {
       setLoading(false);

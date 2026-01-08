@@ -1,6 +1,6 @@
 import { getDownloadablesQuery } from "../queries/downloadables.query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { locales } from "@/locales";
 import { ErrorCard } from "@/components/error-card";
 

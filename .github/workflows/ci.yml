@@ -30,5 +30,10 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Create .env for build
+        run: |
+          cp .env.example .env
+          echo "BETTER_AUTH_SECRET=ci-build-secret-not-for-production" >> .env
+
       - name: Build
         run: pnpm build

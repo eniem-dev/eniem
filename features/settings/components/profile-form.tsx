@@ -15,7 +15,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { updateProfileSchema, type UpdateProfileInput } from "../settings.schemas";
 import type { UserInfos } from "../settings.types";
 import { useUserUpdate } from "../hooks/use-user-update";
 
@@ -23,11 +22,9 @@ import { locales } from "@/locales";
 
 interface ProfileFormProps {
   user: UserInfos;
-  providerId: string;
-  onProfileUpdated?: (updatedUser: UserInfos) => void;
 }
 
-export function ProfileForm({ user, providerId, onProfileUpdated }: ProfileFormProps) {
+export function ProfileForm({ user }: ProfileFormProps) {
   const { updateDisplayName, updateEmail } = useUserUpdate();
 
   // Separate loading states for each form
