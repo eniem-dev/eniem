@@ -7,13 +7,10 @@ import { authClient } from "@/lib/auth-client";
 import { signUp, signIn } from "@/lib/auth-client";
 import { routes } from "@/config";
 import { locales } from "@/locales";
-import type { LoginFormData, SignupFormData } from "../schemas/auth.schema";
-import type { z } from "zod";
-
-type AuthFormData = LoginFormData | SignupFormData;
 
 interface AuthFormOptions {
-  schema: z.ZodType<AuthFormData>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  schema: any;
   mode: "login" | "signup";
   callbackURL?: string;
   loginRedirectURL?: string;
@@ -27,7 +24,7 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
   const [emailNotVerified, setEmailNotVerified] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
 
-  const form = useForm<AuthFormData>({
+  const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: mode === "signup"
       ? {
@@ -68,7 +65,7 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
     }
   };
 
-  const handleAuthSubmit = async (data: AuthFormData) => {
+  const handleAuthSubmit = async (data: { email: string; password?: string; otp?: string }) => {
     setLoading(true);
     try {
       const { email, password, otp } = data;
@@ -161,6 +158,8 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
     }
   };
 
+  const onSubmit = form.handleSubmit(handleAuthSubmit);
+
   return {
     form,
     loading,
@@ -169,7 +168,7 @@ export function useAuthForm({ schema, mode, callbackURL, loginRedirectURL }: Aut
     emailNotVerified,
     pendingVerificationEmail,
     handleSendCode,
-    handleAuthSubmit,
+    onSubmit,
     onOtpComplete,
     resendVerificationEmail,
     getValues,

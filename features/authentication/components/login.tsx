@@ -40,14 +40,14 @@ export default function Login() {
   const signupLink = appendPlanSelectionToUrl(routes.auth.signup, planSelection);
 
   const {
-    form: { register, handleSubmit, formState: { errors, isSubmitting }, watch, setValue },
+    form: { register, formState: { errors, isSubmitting }, watch, setValue },
     loading,
     codeSent,
     password,
     emailNotVerified,
     pendingVerificationEmail,
     handleSendCode,
-    handleAuthSubmit,
+    onSubmit,
     onOtpComplete,
     resendVerificationEmail,
     getValues,
@@ -71,7 +71,7 @@ export default function Login() {
       title={locales.LoginForm.title}
       description={locales.LoginForm.description}
     >
-      <form onSubmit={handleSubmit(handleAuthSubmit)} className="grid gap-4">
+      <form onSubmit={onSubmit} className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="email">{locales.LoginForm.emailLabel}</Label>
           <Input

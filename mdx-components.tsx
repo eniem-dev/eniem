@@ -75,12 +75,12 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
         {children}
       </a>
     ),
-    img: (props) => (
+    img: ({ alt, ...props }) => (
       <Image
+        {...(props as Omit<ImageProps, "alt">)}
         sizes="100vw"
         style={{ width: "100%", height: "auto" }}
-        alt=""
-        {...(props as ImageProps)}
+        alt={alt ?? ""}
       />
     ),
     hr: () => <hr className="my-4 md:my-8" />,
