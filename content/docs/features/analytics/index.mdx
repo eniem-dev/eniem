@@ -1,56 +1,74 @@
 ---
 title: "Analytics"
-description: "> Provider-agnostic event tracking with PostHog as the default implementation. Easily swap analytics providers without changing application code."
+description: "Flexible analytics system with built-in support for Umami (default) and PostHog. Switch providers via environment variable without changing application code."
 ---
 
 ## Why This Architecture?
 
-The tracking abstraction provides several key benefits:
+The analytics abstraction provides several key benefits:
 
-- **Provider Independence** - Switch from PostHog to Google Analytics, Mixpanel, or any other provider without touching your components
+- **Built-in Provider Toggle** - Switch between Umami, PostHog, or disable analytics via a single environment variable
+- **Provider Independence** - Same `captureEvent` API regardless of which provider you use
 - **Simple API** - One function to learn: `captureEvent(name, properties)`
 - **Type Safety** - Full TypeScript support for event properties
-- **Centralized Configuration** - All analytics setup in one place
+- **Lazy Loading** - Providers are loaded only when needed
 - **Easy Testing** - Mock the abstraction for tests without provider complexity
+
+## Quick Start
+
+Set your preferred provider in `.env`:
+
+```bash
+# Umami (default) - lightweight, privacy-focused
+NEXT_PUBLIC_ANALYTICS_PROVIDER=umami
+
+# PostHog - feature-rich with session replay, funnels, A/B tests
+NEXT_PUBLIC_ANALYTICS_PROVIDER=posthog
+
+# Disable analytics
+NEXT_PUBLIC_ANALYTICS_PROVIDER=none
+```
 
 ## Overview
 
 | File | Purpose |
 | --- | --- |
+| `lib/analytics/index.ts` | Provider abstraction and lazy loading |
+| `lib/analytics/types.ts` | TypeScript interfaces for providers |
+| `lib/analytics/umami.ts` | Umami provider implementation |
+| `lib/analytics/posthog.ts` | PostHog provider implementation |
 | `lib/tracking.ts` | Event tracking abstraction layer |
-| `instrumentation-client.ts` | PostHog initialization and configuration |
-| `.env.example` | Environment variables for analytics |
+| `components/analytics/analytics-script.tsx` | Conditional Umami script loader |
+| `instrumentation-client.ts` | PostHog initialization |
+| `config/env.ts` | Analytics environment configuration |
 
-## The Tracking Abstraction
+## Provider Configuration
 
-The core of the analytics system is a simple abstraction in `lib/tracking.ts`:
+### Umami (Default)
 
-```ts
-import posthog from "posthog-js";
+Umami is a lightweight, privacy-focused analytics solution. It's the default provider.
 
-export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
-  posthog.capture(eventName, properties);
-}
+```bash
+NEXT_PUBLIC_ANALYTICS_PROVIDER=umami
+NEXT_PUBLIC_UMAMI_WEBSITE_ID=your-website-id
+NEXT_PUBLIC_UMAMI_HOST=https://cloud.umami.is
 ```
 
-This thin wrapper decouples your application code from the analytics provider. Every component imports from `@/lib/tracking`, never from `posthog-js` directly.
+Get your Website ID from your [Umami dashboard](https://cloud.umami.is/).
 
-## PostHog Configuration
+### PostHog
 
-PostHog is initialized in `instrumentation-client.ts`:
+PostHog provides feature-rich product analytics including session replay, funnels, and A/B testing.
 
-```ts
-import posthog from "posthog-js"
-
-posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-  api_host: "/ingest",
-  ui_host: "https://eu.posthog.com",
-  capture_exceptions: true,
-  debug: process.env.NODE_ENV === "development",
-});
+```bash
+NEXT_PUBLIC_ANALYTICS_PROVIDER=posthog
+NEXT_PUBLIC_POSTHOG_KEY=phc_your_project_key
+NEXT_PUBLIC_POSTHOG_HOST=https://eu.posthog.com
 ```
 
-### Configuration Options
+Get your key from your [PostHog project settings](https://app.posthog.com/project/settings).
+
+PostHog is initialized with these options:
 
 | Option | Description |
 | --- | --- |
@@ -59,15 +77,31 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
 | `capture_exceptions` | Enable automatic error tracking |
 | `debug` | Log events to console in development |
 
-### Environment Variables
+### Disable Analytics
 
-Add to your `.env` file:
+To completely disable analytics (useful for development or self-hosted instances):
 
 ```bash
-NEXT_PUBLIC_POSTHOG_KEY=phc_your_project_key
+NEXT_PUBLIC_ANALYTICS_PROVIDER=none
 ```
 
-Get your key from your [PostHog project settings](https://app.posthog.com/project/settings).
+## The Tracking Abstraction
+
+The core of the analytics system is a provider-agnostic abstraction in `lib/tracking.ts`:
+
+```ts
+import { getAnalyticsProvider } from "@/lib/analytics";
+
+export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
+  const provider = getAnalyticsProvider();
+  provider.capture(eventName, properties);
+}
+```
+
+The `getAnalyticsProvider()` function lazily loads the configured provider, ensuring that:
+- Only the selected provider's code is loaded
+- Missing configuration is logged as warnings
+- The API remains consistent regardless of provider
 
 ## Usage
 
@@ -139,59 +173,37 @@ Use `snake_case` for event names and be consistent:
 | `signup_completed` | User completed signup |
 | `purchase_completed` | User completed a purchase |
 
-## Swapping Analytics Providers
+## Adding Custom Providers
 
-The abstraction makes it trivial to switch providers. Here are examples:
+To add a new provider (e.g., Google Analytics, Mixpanel):
 
-### Google Analytics
-
-```ts
-// lib/tracking.ts
-declare global {
-  interface Window {
-    gtag: (...args: unknown[]) => void;
-  }
-}
-
-export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
-  if (typeof window !== "undefined" && window.gtag) {
-    window.gtag("event", eventName, properties);
-  }
-}
-```
-
-### Mixpanel
+1. Create a new provider file in `lib/analytics/`:
 
 ```ts
-// lib/tracking.ts
+// lib/analytics/mixpanel.ts
+import type { AnalyticsProvider } from "./types";
 import mixpanel from "mixpanel-browser";
 
-export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
-  mixpanel.track(eventName, properties);
-}
+export const mixpanelProvider: AnalyticsProvider = {
+  capture: (eventName, properties) => {
+    mixpanel.track(eventName, properties);
+  },
+};
 ```
 
-### Multiple Providers
+2. Update `lib/analytics/index.ts` to include your provider:
 
 ```ts
-// lib/tracking.ts
-import posthog from "posthog-js";
-
-export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
-  // PostHog for product analytics
-  posthog.capture(eventName, properties);
-
-  // Google Analytics for marketing
-  if (typeof window !== "undefined" && window.gtag) {
-    window.gtag("event", eventName, properties);
-  }
-}
+case "mixpanel":
+  return mixpanelProvider;
 ```
+
+3. Add the new option to your environment configuration.
 
 ## Best Practices
 
-1. **Always use the abstraction** - Never import `posthog-js` directly in components
+1. **Always use the abstraction** - Never import provider SDKs directly in components
 2. **Consistent naming** - Establish event naming conventions early and document them
 3. **Track user intent** - Focus on meaningful actions, not every click
 4. **Avoid PII** - Don't track personal identifiable information unless necessary
-5. **Test in development** - Use `debug: true` to verify events in console
+5. **Check configuration** - Missing env vars are logged as warnings, check your console
