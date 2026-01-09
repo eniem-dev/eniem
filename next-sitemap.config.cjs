@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: "https://doc.eniem.dev",
+  siteUrl: "https://docs.eniem.dev",
   generateRobotsTxt: false, // Cloudflare manages robots.txt
   changefreq: "weekly",
   priority: 0.7,
