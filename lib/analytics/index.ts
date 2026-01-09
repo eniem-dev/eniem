@@ -1,35 +1,25 @@
 import { env } from "@/config";
 
+import { posthogProvider } from "./posthog";
 import type { AnalyticsProvider, AnalyticsProviderType } from "./types";
+import { umamiProvider } from "./umami";
 
 const noopProvider: AnalyticsProvider = {
   name: "none",
   track: () => {},
 };
 
-// Lazy load providers to avoid importing posthog-js when not needed
-let cachedProvider: AnalyticsProvider | null = null;
-
 export function getAnalyticsProvider(): AnalyticsProvider {
-  if (cachedProvider) return cachedProvider;
+  const provider = env.analytics.provider as AnalyticsProviderType;
 
-  const providerType = env.analytics.provider as AnalyticsProviderType;
-  let provider: AnalyticsProvider;
-
-  switch (providerType) {
+  switch (provider) {
     case "posthog":
-      // Dynamic import to avoid loading posthog-js when using umami
-      provider = require("./posthog").posthogProvider;
-      break;
+      return posthogProvider;
     case "umami":
-      provider = require("./umami").umamiProvider;
-      break;
+      return umamiProvider;
     default:
-      provider = noopProvider;
+      return noopProvider;
   }
-
-  cachedProvider = provider;
-  return provider;
 }
 
 export type { AnalyticsProvider, AnalyticsProviderType };

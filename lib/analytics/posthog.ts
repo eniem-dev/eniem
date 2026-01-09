@@ -1,17 +1,14 @@
+import posthog from "posthog-js";
+
 import type { AnalyticsProvider } from "./types";
 
-function getPostHog() {
-  if (typeof window !== "undefined") {
-    // posthog-js is initialized in instrumentation-client.ts
-    // Access it dynamically to avoid SSR issues
-    return require("posthog-js").default;
-  }
-  return null;
-}
+// posthog-js is initialized in instrumentation-client.ts
+// Only call methods on client side to avoid SSR issues
+const isClient = typeof window !== "undefined";
 
 export const posthogProvider: AnalyticsProvider = {
   name: "posthog",
-  track: (event, properties) => getPostHog()?.capture(event, properties),
-  identify: (userId, traits) => getPostHog()?.identify(userId, traits),
-  pageView: (url) => getPostHog()?.capture("$pageview", { $current_url: url }),
+  track: (event, properties) => isClient && posthog.capture(event, properties),
+  identify: (userId, traits) => isClient && posthog.identify(userId, traits),
+  pageView: (url) => isClient && posthog.capture("$pageview", { $current_url: url }),
 };
