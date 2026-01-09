@@ -23,7 +23,7 @@ export function HomePageContent() {
           <Link href={routes.auth.signup}>
             <Button size="lg">{locales.HomePage.hero.getStarted}</Button>
           </Link>
-          <Button size="lg" variant="outline" loading>
+          <Button size="lg" variant="outline">
             {locales.HomePage.hero.watchDemo}
           </Button>
         </div>

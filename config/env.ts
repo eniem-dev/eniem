@@ -65,4 +65,18 @@ export const env = {
     fromAddress: process.env.EMAIL_FROM_ADDRESS || "no-reply@eniem.dev",
     brandLogoUrl: process.env.EMAIL_BRAND_LOGO_URL,
   },
+
+  // Analytics Configuration
+  analytics: {
+    provider: (process.env.NEXT_PUBLIC_ANALYTICS_PROVIDER || "umami") as
+      | "umami"
+      | "posthog"
+      | "none",
+    // Umami
+    umamiWebsiteId: process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID,
+    umamiHost: process.env.NEXT_PUBLIC_UMAMI_HOST || "https://cloud.umami.is",
+    // PostHog
+    posthogKey: process.env.NEXT_PUBLIC_POSTHOG_KEY,
+    posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
+  },
 } as const;

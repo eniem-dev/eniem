@@ -4,19 +4,23 @@ import createMDX from "@next/mdx";
 const nextConfig: NextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   async rewrites() {
-    return [
-      {
-        source: "/ingest/static/:path*",
-        destination: "https://eu-assets.i.posthog.com/static/:path*",
-      },
-      {
-        source: "/ingest/:path*",
-        destination: "https://eu.i.posthog.com/:path*",
-      },
-    ];
+    // Only add PostHog rewrites if PostHog is the analytics provider
+    if (process.env.NEXT_PUBLIC_ANALYTICS_PROVIDER === "posthog") {
+      return [
+        {
+          source: "/ingest/static/:path*",
+          destination: "https://eu-assets.i.posthog.com/static/:path*",
+        },
+        {
+          source: "/ingest/:path*",
+          destination: "https://eu.i.posthog.com/:path*",
+        },
+      ];
+    }
+    return [];
   },
-  // This is required to support PostHog trailing slash API requests
-  skipTrailingSlashRedirect: true,
+  // Required for PostHog trailing slash API requests
+  skipTrailingSlashRedirect: process.env.NEXT_PUBLIC_ANALYTICS_PROVIDER === "posthog",
 };
 
 // Use string-based plugin specification for Turbopack compatibility
