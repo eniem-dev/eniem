@@ -3,6 +3,7 @@
 
 # generated content
 .source
+/public/sitemap*.xml
 
 # test & build
 /coverage
