@@ -10,6 +10,7 @@ import {
   Web3Setup,
   AnalyticsSetup,
   CloneStep,
+  EnvStep,
 } from "./steps/index.js";
 
 type WizardStep =
@@ -21,6 +22,7 @@ type WizardStep =
   | "web3"
   | "analytics"
   | "cloning"
+  | "env"
   | "complete";
 
 interface WizardProps {
@@ -31,6 +33,7 @@ interface WizardProps {
 export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
   const [step, setStep] = useState<WizardStep>("project");
   const [cloneError, setCloneError] = useState<string>("");
+  const [projectDestination, setProjectDestination] = useState<string>("");
   const { config, setProject, setAuth, setOAuth, setPayment, setStorage, setWeb3, setAnalytics } =
     useConfig();
 
@@ -70,12 +73,22 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
   };
 
   const handleCloneComplete = (destination: string) => {
+    setProjectDestination(destination);
+    setStep("env");
+  };
+
+  const handleEnvComplete = (_envPath: string) => {
     setStep("complete");
     // Build final config with all collected values
     const finalConfig: AppConfig = {
       ...config,
     };
-    onComplete(finalConfig, destination);
+    onComplete(finalConfig, projectDestination);
+  };
+
+  const handleEnvError = (error: string) => {
+    // For now just log - could add retry UI later
+    console.error("Env generation failed:", error);
   };
 
   const handleCloneError = (error: string) => {
@@ -105,6 +118,15 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
           projectName={config.project.name}
           onComplete={handleCloneComplete}
           onError={handleCloneError}
+        />
+      )}
+
+      {step === "env" && (
+        <EnvStep
+          config={config}
+          destination={projectDestination}
+          onComplete={handleEnvComplete}
+          onError={handleEnvError}
         />
       )}
 

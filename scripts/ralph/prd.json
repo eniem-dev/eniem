@@ -157,7 +157,7 @@
         ".env file written to project root"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 4: Project Generation - src/lib/env.ts"
     },
     {

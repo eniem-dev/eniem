@@ -6,3 +6,4 @@ export { StorageSetup } from "./StorageSetup.js";
 export { Web3Setup } from "./Web3Setup.js";
 export { AnalyticsSetup } from "./AnalyticsSetup.js";
 export { CloneStep } from "./CloneStep.js";
+export { EnvStep } from "./EnvStep.js";
