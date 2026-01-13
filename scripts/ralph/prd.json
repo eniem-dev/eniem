@@ -261,7 +261,7 @@
         "Updates as wizard progresses"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 6: UX Polish - src/components/WizardProgress.tsx (new), src/Wizard.tsx"
     },
     {
@@ -274,7 +274,7 @@
         "Shows status message confirming BetterAuth enabled"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 6: UX Polish - src/steps/AuthSetup.tsx"
     },
     {
