@@ -1,8 +1,27 @@
-import { render, Text } from "ink";
+import { render, Box, Text } from "ink";
 import React from "react";
+import { createRequire } from "module";
+
+const require = createRequire(import.meta.url);
+const pkg = require("../package.json") as { name: string; version: string };
+
+const Header = () => {
+  return (
+    <Box flexDirection="column" marginBottom={1}>
+      <Text bold color="cyan">
+        {pkg.name} v{pkg.version}
+      </Text>
+      <Text dimColor>Scaffold your next Eniem project</Text>
+    </Box>
+  );
+};
 
 const App = () => {
-  return <Text>eniem-cli v0.1.0</Text>;
+  return (
+    <Box flexDirection="column">
+      <Header />
+    </Box>
+  );
 };
 
 render(<App />);
