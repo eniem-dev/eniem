@@ -8,7 +8,6 @@ export interface ProjectConfig {
 
 export interface AuthConfig {
   enabled: boolean;
-  databaseUrl?: string;
 }
 
 export interface OAuthProvider {

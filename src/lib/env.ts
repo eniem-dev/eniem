@@ -17,10 +17,6 @@ export function generateEnvContent(config: AppConfig): string {
   const betterAuthSecret = config.project?.secret || nanoid(32);
   lines.push(`BETTER_AUTH_SECRET=${betterAuthSecret}`);
 
-  // Database URL (from auth config)
-  if (config.auth?.enabled && config.auth.databaseUrl) {
-    lines.push(`DATABASE_URL=${config.auth.databaseUrl}`);
-  }
 
   // OAuth - GitHub
   if (config.oauth?.github) {

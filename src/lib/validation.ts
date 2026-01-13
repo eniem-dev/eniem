@@ -27,17 +27,6 @@ export const optionalUrlSchema = z
     "Invalid URL format"
   );
 
-// Database URL validation (PostgreSQL, MySQL, SQLite)
-export const databaseUrlSchema = z
-  .string()
-  .min(1, "Database URL is required")
-  .refine(
-    (url) =>
-      /^(postgres(ql)?|mysql|sqlite):\/\//.test(url) ||
-      url.startsWith("file:"),
-    "Database URL must be a valid PostgreSQL, MySQL, or SQLite connection string"
-  );
-
 // Generic non-empty string
 export const requiredStringSchema = z.string().min(1, "This field is required");
 
@@ -58,6 +47,5 @@ export const schemas = {
   projectName: projectNameSchema,
   url: urlSchema,
   optionalUrl: optionalUrlSchema,
-  databaseUrl: databaseUrlSchema,
   required: requiredStringSchema,
 };
