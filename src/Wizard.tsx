@@ -11,6 +11,7 @@ import {
   AnalyticsSetup,
   CloneStep,
   EnvStep,
+  GitStep,
 } from "./steps/index.js";
 
 type WizardStep =
@@ -23,6 +24,7 @@ type WizardStep =
   | "analytics"
   | "cloning"
   | "env"
+  | "git"
   | "complete";
 
 interface WizardProps {
@@ -78,6 +80,15 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
   };
 
   const handleEnvComplete = (_envPath: string) => {
+    setStep("git");
+  };
+
+  const handleEnvError = (error: string) => {
+    // For now just log - could add retry UI later
+    console.error("Env generation failed:", error);
+  };
+
+  const handleGitComplete = () => {
     setStep("complete");
     // Build final config with all collected values
     const finalConfig: AppConfig = {
@@ -86,9 +97,9 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
     onComplete(finalConfig, projectDestination);
   };
 
-  const handleEnvError = (error: string) => {
+  const handleGitError = (error: string) => {
     // For now just log - could add retry UI later
-    console.error("Env generation failed:", error);
+    console.error("Git init failed:", error);
   };
 
   const handleCloneError = (error: string) => {
@@ -127,6 +138,14 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
           destination={projectDestination}
           onComplete={handleEnvComplete}
           onError={handleEnvError}
+        />
+      )}
+
+      {step === "git" && (
+        <GitStep
+          destination={projectDestination}
+          onComplete={handleGitComplete}
+          onError={handleGitError}
         />
       )}
 
