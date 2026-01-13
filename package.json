@@ -2,6 +2,10 @@
   "name": "eniem-cli",
   "version": "0.1.0",
   "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "execa": "^9.5.2",
     "giget": "^1.2.3",
