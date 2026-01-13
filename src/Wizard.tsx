@@ -12,6 +12,7 @@ import {
   CloneStep,
   EnvStep,
   GitStep,
+  InstallStep,
 } from "./steps/index.js";
 
 type WizardStep =
@@ -25,6 +26,7 @@ type WizardStep =
   | "cloning"
   | "env"
   | "git"
+  | "install"
   | "complete";
 
 interface WizardProps {
@@ -89,6 +91,15 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
   };
 
   const handleGitComplete = () => {
+    setStep("install");
+  };
+
+  const handleGitError = (error: string) => {
+    // For now just log - could add retry UI later
+    console.error("Git init failed:", error);
+  };
+
+  const handleInstallComplete = () => {
     setStep("complete");
     // Build final config with all collected values
     const finalConfig: AppConfig = {
@@ -97,9 +108,9 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
     onComplete(finalConfig, projectDestination);
   };
 
-  const handleGitError = (error: string) => {
+  const handleInstallError = (error: string) => {
     // For now just log - could add retry UI later
-    console.error("Git init failed:", error);
+    console.error("pnpm install failed:", error);
   };
 
   const handleCloneError = (error: string) => {
@@ -146,6 +157,14 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
           destination={projectDestination}
           onComplete={handleGitComplete}
           onError={handleGitError}
+        />
+      )}
+
+      {step === "install" && (
+        <InstallStep
+          destination={projectDestination}
+          onComplete={handleInstallComplete}
+          onError={handleInstallError}
         />
       )}
 
