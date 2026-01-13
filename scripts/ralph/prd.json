@@ -1,0 +1,242 @@
+{
+  "branchName": "feat/eniem-cli",
+  "stories": [
+    {
+      "id": "001",
+      "title": "Initialize repo with pnpm init",
+      "acceptanceCriteria": [
+        "package.json exists with name 'eniem-cli'",
+        "version set to 0.1.0",
+        "type set to 'module'"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Phase 1: Project Setup"
+    },
+    {
+      "id": "002",
+      "title": "Install dependencies",
+      "acceptanceCriteria": [
+        "ink ^5.0.1 installed",
+        "react ^18.3.1 installed",
+        "giget ^1.2.3 installed",
+        "execa ^9.5.2 installed",
+        "nanoid ^5.0.9 installed",
+        "zod ^3.24.1 installed",
+        "meow ^13.2.0 installed",
+        "TypeScript and tsup dev dependencies installed"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Phase 1: Project Setup"
+    },
+    {
+      "id": "003",
+      "title": "Configure TypeScript and build setup",
+      "acceptanceCriteria": [
+        "tsconfig.json configured for React/JSX",
+        "tsup configured to build src/cli.tsx",
+        "Build outputs ESM format",
+        "pnpm build script works"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Phase 1: Project Setup"
+    },
+    {
+      "id": "004",
+      "title": "Set up bin entry point",
+      "acceptanceCriteria": [
+        "bin/eniem-cli.js exists",
+        "package.json bin field configured",
+        "Executable runs with npx"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Phase 1: Project Setup"
+    },
+    {
+      "id": "005",
+      "title": "Create entry point with Ink app",
+      "acceptanceCriteria": [
+        "src/cli.tsx exists",
+        "Ink render function initializes app",
+        "App displays CLI header with version"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Phase 2: Core CLI Structure"
+    },
+    {
+      "id": "006",
+      "title": "Implement new command with argument parsing",
+      "acceptanceCriteria": [
+        "meow parses CLI arguments",
+        "Project name accepted as positional argument",
+        "Prompts for project name if not provided",
+        "--help and --version flags work"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Phase 2: Core CLI Structure"
+    },
+    {
+      "id": "007",
+      "title": "Build reusable prompt components",
+      "acceptanceCriteria": [
+        "TextInput component with styling",
+        "Confirm component for yes/no prompts",
+        "Select component for option selection",
+        "Spinner component for loading states"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Phase 2: Core CLI Structure - Components in src/components/"
+    },
+    {
+      "id": "008",
+      "title": "Implement setup steps as React components",
+      "acceptanceCriteria": [
+        "ProjectSetup.tsx prompts for name, URL, secret",
+        "AuthSetup.tsx handles BetterAuth config",
+        "OAuthSetup.tsx prompts for GitHub/Twitter OAuth",
+        "PaymentSetup.tsx prompts for Polar config",
+        "StorageSetup.tsx prompts for DigitalOcean Spaces",
+        "Web3Setup.tsx prompts for WalletConnect",
+        "AnalyticsSetup.tsx prompts for analytics provider"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Phase 3: Configuration Steps - Components in src/steps/"
+    },
+    {
+      "id": "009",
+      "title": "Build state management for collected configuration",
+      "acceptanceCriteria": [
+        "Configuration state tracks all user inputs",
+        "State flows through wizard steps",
+        "Final config object available for env generation"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Phase 3: Configuration Steps"
+    },
+    {
+      "id": "010",
+      "title": "Add validation with Zod schemas",
+      "acceptanceCriteria": [
+        "Project name validated (alphanumeric, kebab-case)",
+        "URLs validated with proper format",
+        "Required fields enforced",
+        "Error messages displayed on validation failure"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Phase 3: Configuration Steps"
+    },
+    {
+      "id": "011",
+      "title": "Implement giget cloning",
+      "acceptanceCriteria": [
+        "giget clones from eniem-dev/eniem-boilerplate",
+        "Clone destination is project name directory",
+        "Progress shown during clone",
+        "Error handling for network failures"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Phase 4: Project Generation - src/lib/clone.ts"
+    },
+    {
+      "id": "012",
+      "title": "Generate .env file from collected config",
+      "acceptanceCriteria": [
+        "All core env vars generated (PROJECT_URL, BETTER_AUTH_SECRET, DATABASE_URL)",
+        "Conditional sections only included when configured",
+        "BETTER_AUTH_SECRET auto-generated if empty (32 chars via nanoid)",
+        ".env file written to project root"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Phase 4: Project Generation - src/lib/env.ts"
+    },
+    {
+      "id": "013",
+      "title": "Initialize fresh git repository",
+      "acceptanceCriteria": [
+        "Remove existing .git directory from clone",
+        "Run git init",
+        "Create initial commit",
+        "No remote origin set"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Phase 4: Project Generation - src/lib/git.ts"
+    },
+    {
+      "id": "014",
+      "title": "Run pnpm install",
+      "acceptanceCriteria": [
+        "pnpm install runs in project directory",
+        "Progress/spinner shown during install",
+        "Error handling for install failures",
+        "Success message on completion"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "Phase 4: Project Generation"
+    },
+    {
+      "id": "015",
+      "title": "Add colorful output and spinners",
+      "acceptanceCriteria": [
+        "Section headers styled distinctly",
+        "Success messages in green",
+        "Error messages in red",
+        "Spinner shown during async operations"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Phase 5: Polish"
+    },
+    {
+      "id": "016",
+      "title": "Handle errors gracefully",
+      "acceptanceCriteria": [
+        "Network errors caught and displayed",
+        "File system errors handled",
+        "User can retry or exit on failure",
+        "No unhandled promise rejections"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Phase 5: Polish"
+    },
+    {
+      "id": "017",
+      "title": "Add --help and --version flags",
+      "acceptanceCriteria": [
+        "--help displays usage information",
+        "--version displays current version",
+        "Help shows available commands and options"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Phase 5: Polish"
+    },
+    {
+      "id": "018",
+      "title": "Test full flow end-to-end",
+      "acceptanceCriteria": [
+        "CLI builds successfully",
+        "Can scaffold new project with all options",
+        "Generated .env has correct values",
+        "Scaffolded project runs with pnpm dev",
+        "App accessible at localhost:3000"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "Phase 5: Polish - See Verification section in plan.md"
+    }
+  ]
+}
