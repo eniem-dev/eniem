@@ -9,6 +9,7 @@ interface TextInputProps {
   onSubmit?: (value: string) => void;
   placeholder?: string;
   mask?: string;
+  error?: string;
 }
 
 export const TextInput = ({
@@ -18,19 +19,25 @@ export const TextInput = ({
   onSubmit,
   placeholder,
   mask,
+  error,
 }: TextInputProps) => {
   return (
-    <Box>
-      <Text bold color="blue">
-        {label}:{" "}
-      </Text>
-      <InkTextInput
-        value={value}
-        onChange={onChange}
-        onSubmit={onSubmit}
-        placeholder={placeholder}
-        mask={mask}
-      />
+    <Box flexDirection="column">
+      <Box>
+        <Text bold color="blue">
+          {label}:{" "}
+        </Text>
+        <InkTextInput
+          value={value}
+          onChange={onChange}
+          onSubmit={onSubmit}
+          placeholder={placeholder}
+          mask={mask}
+        />
+      </Box>
+      {error && (
+        <Text color="red">  ✗ {error}</Text>
+      )}
     </Box>
   );
 };

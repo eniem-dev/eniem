@@ -1,6 +1,7 @@
 import { Box, Text } from "ink";
 import React, { useState } from "react";
 import { TextInput } from "../components/index.js";
+import { validate, projectNameSchema, optionalUrlSchema } from "../lib/validation.js";
 
 interface ProjectConfig {
   name: string;
@@ -20,17 +21,38 @@ export const ProjectSetup = ({ initialName, onComplete }: ProjectSetupProps) => 
   const [name, setName] = useState(initialName ?? "");
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState("");
+  const [nameError, setNameError] = useState<string | undefined>();
+  const [urlError, setUrlError] = useState<string | undefined>();
 
   const handleNameSubmit = (value: string) => {
-    if (value.trim()) {
-      setName(value.trim());
+    const trimmed = value.trim();
+    const result = validate(projectNameSchema, trimmed);
+    if (result.success) {
+      setNameError(undefined);
+      setName(trimmed);
       setStep("url");
+    } else {
+      setNameError(result.error);
     }
   };
 
   const handleUrlSubmit = (value: string) => {
-    setUrl(value.trim());
-    setStep("secret");
+    const trimmed = value.trim();
+    if (trimmed === "") {
+      // Empty URL is allowed, will use default
+      setUrlError(undefined);
+      setUrl(trimmed);
+      setStep("secret");
+    } else {
+      const result = validate(optionalUrlSchema, trimmed);
+      if (result.success) {
+        setUrlError(undefined);
+        setUrl(trimmed);
+        setStep("secret");
+      } else {
+        setUrlError(result.error);
+      }
+    }
   };
 
   const handleSecretSubmit = (value: string) => {
@@ -49,9 +71,10 @@ export const ProjectSetup = ({ initialName, onComplete }: ProjectSetupProps) => 
         <TextInput
           label="Project name"
           value={name}
-          onChange={setName}
+          onChange={(v) => { setName(v); setNameError(undefined); }}
           onSubmit={handleNameSubmit}
           placeholder="my-eniem-app"
+          error={nameError}
         />
       )}
 
@@ -63,9 +86,10 @@ export const ProjectSetup = ({ initialName, onComplete }: ProjectSetupProps) => 
         <TextInput
           label="Project URL"
           value={url}
-          onChange={setUrl}
+          onChange={(v) => { setUrl(v); setUrlError(undefined); }}
           onSubmit={handleUrlSubmit}
           placeholder={`https://${name}.example.com`}
+          error={urlError}
         />
       )}
 

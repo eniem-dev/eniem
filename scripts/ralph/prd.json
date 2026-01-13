@@ -131,8 +131,8 @@
         "Error messages displayed on validation failure"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": "Phase 3: Configuration Steps"
+      "passes": true,
+      "notes": "Phase 3: Configuration Steps - Schemas in src/lib/validation.ts, TextInput supports error prop"
     },
     {
       "id": "011",

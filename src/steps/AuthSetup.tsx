@@ -1,6 +1,7 @@
 import { Box, Text } from "ink";
 import React, { useState } from "react";
 import { Confirm, TextInput } from "../components/index.js";
+import { validate, databaseUrlSchema } from "../lib/validation.js";
 
 interface AuthConfig {
   enabled: boolean;
@@ -17,6 +18,7 @@ export const AuthSetup = ({ onComplete }: AuthSetupProps) => {
   const [step, setStep] = useState<Step>("enable");
   const [enabled, setEnabled] = useState(false);
   const [databaseUrl, setDatabaseUrl] = useState("");
+  const [dbError, setDbError] = useState<string | undefined>();
 
   const handleEnableConfirm = (confirmed: boolean) => {
     setEnabled(confirmed);
@@ -29,9 +31,16 @@ export const AuthSetup = ({ onComplete }: AuthSetupProps) => {
   };
 
   const handleDatabaseSubmit = (value: string) => {
-    setDatabaseUrl(value.trim());
-    setStep("done");
-    onComplete({ enabled: true, databaseUrl: value.trim() });
+    const trimmed = value.trim();
+    const result = validate(databaseUrlSchema, trimmed);
+    if (result.success) {
+      setDbError(undefined);
+      setDatabaseUrl(trimmed);
+      setStep("done");
+      onComplete({ enabled: true, databaseUrl: trimmed });
+    } else {
+      setDbError(result.error);
+    }
   };
 
   return (
@@ -58,9 +67,10 @@ export const AuthSetup = ({ onComplete }: AuthSetupProps) => {
         <TextInput
           label="Database URL"
           value={databaseUrl}
-          onChange={setDatabaseUrl}
+          onChange={(v) => { setDatabaseUrl(v); setDbError(undefined); }}
           onSubmit={handleDatabaseSubmit}
           placeholder="postgresql://user:pass@localhost:5432/db"
+          error={dbError}
         />
       )}
 
