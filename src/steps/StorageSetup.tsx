@@ -74,7 +74,7 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
       <SectionHeader title="Storage (DigitalOcean Spaces)" />
 
       {step === "enable" && (
-        <Confirm label="Enable DO Spaces storage?" onConfirm={handleEnableConfirm} />
+        <Confirm label="Configure DO Spaces storage?" onConfirm={handleEnableConfirm} />
       )}
 
       {step !== "enable" && (

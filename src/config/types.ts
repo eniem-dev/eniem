@@ -2,8 +2,6 @@
 
 export interface ProjectConfig {
   name: string;
-  url: string;
-  secret: string;
 }
 
 export interface AuthConfig {
@@ -23,7 +21,7 @@ export interface OAuthConfig {
 export interface PaymentConfig {
   enabled: boolean;
   accessToken?: string;
-  organizationId?: string;
+  server?: "sandbox" | "production";
   webhookSecret?: string;
 }
 
@@ -41,19 +39,20 @@ export interface Web3Config {
   walletConnectProjectId?: string;
 }
 
-export type AnalyticsProvider = "plausible" | "posthog" | "none";
+export type AnalyticsProvider = "umami" | "posthog" | "none";
 
 export interface AnalyticsConfig {
   enabled: boolean;
   provider?: AnalyticsProvider;
   siteId?: string;
-  apiKey?: string;
+  hostUrl?: string;
 }
 
 // Complete app configuration
 export interface AppConfig {
   project?: ProjectConfig;
   auth?: AuthConfig;
+  authSecret?: string;
   oauth?: OAuthConfig;
   payment?: PaymentConfig;
   storage?: StorageConfig;

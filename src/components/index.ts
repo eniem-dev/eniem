@@ -6,3 +6,4 @@ export { SectionHeader } from "./SectionHeader.js";
 export { StatusMessage } from "./StatusMessage.js";
 export { ErrorRecovery } from "./ErrorRecovery.js";
 export { WizardProgress } from "./WizardProgress.js";
+export { CompletedSteps } from "./CompletedSteps.js";

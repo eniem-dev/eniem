@@ -286,8 +286,87 @@
         "databaseUrl removed from AuthConfig type"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Phase 6: UX Polish - src/steps/AuthSetup.tsx, src/lib/env.ts, src/config/types.ts"
+    },
+    {
+      "id": "023",
+      "title": "Remove project URL prompt entirely",
+      "acceptanceCriteria": [
+        "Project URL step removed from ProjectSetup wizard",
+        "ProjectConfig interface no longer includes url field",
+        "ENV file uses hardcoded localhost:3000 for PROJECT_URL",
+        "WizardProgress and completion summary no longer show URL"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Phase 7: CLI Fixes - src/steps/ProjectSetup.tsx, src/config/types.ts, src/lib/env.ts, src/components/WizardProgress.tsx"
+    },
+    {
+      "id": "028",
+      "title": "Add step persistence with CompletedSteps component",
+      "acceptanceCriteria": [
+        "CompletedSteps component shows all previously completed steps",
+        "Each completed step shows green checkmark or yellow skip marker",
+        "Completed steps visible above current active step",
+        "Steps shown: Project name, Clone status, OAuth, Payment, Storage, Web3, Analytics"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Phase 7: CLI Fixes - src/components/CompletedSteps.tsx (new), src/Wizard.tsx"
+    },
+    {
+      "id": "024",
+      "title": "Remove BetterAuth step display",
+      "acceptanceCriteria": [
+        "AuthSetup step no longer displayed in wizard",
+        "Wizard skips directly from cloning to oauth step",
+        "BetterAuth enabled automatically without user interaction",
+        "AuthSetup component import removed from Wizard"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Phase 7: CLI Fixes - src/Wizard.tsx"
+    },
+    {
+      "id": "025",
+      "title": "Replace Plausible with Umami analytics",
+      "acceptanceCriteria": [
+        "AnalyticsProvider type changed from plausible to umami",
+        "Provider options show Umami instead of Plausible",
+        "Umami-specific labels and placeholders displayed",
+        "Umami Website ID and Host URL collected"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Phase 7: CLI Fixes - src/config/types.ts, src/steps/AnalyticsSetup.tsx"
+    },
+    {
+      "id": "026",
+      "title": "Add configuration summary at completion",
+      "acceptanceCriteria": [
+        "Setup Complete screen shows summary of all configured options",
+        "Green checkmarks for configured features",
+        "Yellow skip markers for skipped features",
+        "Shows: Project name, URL, Auth, OAuth providers, Payment, Storage, Web3, Analytics"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Phase 7: CLI Fixes - src/Wizard.tsx"
+    },
+    {
+      "id": "027",
+      "title": "Update .env file format",
+      "acceptanceCriteria": [
+        "All env vars included with empty values for unconfigured options",
+        "Correct variable names: DIGITALOCEAN_SPACES_*, NEXT_PUBLIC_*",
+        "Analytics supports umami (NEXT_PUBLIC_UMAMI_*) and posthog (NEXT_PUBLIC_POSTHOG_*)",
+        "Includes DATABASE_URL, LANDING_MODE, Email config sections",
+        "Helpful comments explaining each section"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Phase 7: CLI Fixes - src/lib/env.ts"
     }
   ]
 }

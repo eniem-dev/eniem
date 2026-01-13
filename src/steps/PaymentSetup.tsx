@@ -5,7 +5,7 @@ import { Confirm, TextInput, SectionHeader, StatusMessage } from "../components/
 interface PaymentConfig {
   enabled: boolean;
   accessToken?: string;
-  organizationId?: string;
+  server?: "sandbox" | "production";
   webhookSecret?: string;
 }
 
@@ -13,13 +13,13 @@ interface PaymentSetupProps {
   onComplete: (config: PaymentConfig) => void;
 }
 
-type Step = "enable" | "token" | "org" | "webhook" | "done";
+type Step = "enable" | "token" | "server" | "webhook" | "done";
 
 export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
   const [step, setStep] = useState<Step>("enable");
   const [enabled, setEnabled] = useState(false);
   const [accessToken, setAccessToken] = useState("");
-  const [organizationId, setOrganizationId] = useState("");
+  const [server, setServer] = useState<"sandbox" | "production">("sandbox");
   const [webhookSecret, setWebhookSecret] = useState("");
 
   const handleEnableConfirm = (confirmed: boolean) => {
@@ -34,11 +34,12 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
 
   const handleTokenSubmit = (value: string) => {
     setAccessToken(value.trim());
-    setStep("org");
+    setStep("server");
   };
 
-  const handleOrgSubmit = (value: string) => {
-    setOrganizationId(value.trim());
+  const handleServerSubmit = (value: string) => {
+    const serverValue = value.trim().toLowerCase() === "production" ? "production" : "sandbox";
+    setServer(serverValue);
     setStep("webhook");
   };
 
@@ -48,7 +49,7 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
     onComplete({
       enabled: true,
       accessToken,
-      organizationId,
+      server,
       webhookSecret: value.trim(),
     });
   };
@@ -58,7 +59,7 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
       <SectionHeader title="Payments (Polar)" />
 
       {step === "enable" && (
-        <Confirm label="Enable Polar payments?" onConfirm={handleEnableConfirm} />
+        <Confirm label="Configure Polar payments?" onConfirm={handleEnableConfirm} />
       )}
 
       {step !== "enable" && (
@@ -78,22 +79,22 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
         />
       )}
 
-      {(step === "org" || step === "webhook" || step === "done") && enabled && accessToken && (
+      {(step === "server" || step === "webhook" || step === "done") && enabled && accessToken && (
         <StatusMessage status="success">Access token configured</StatusMessage>
       )}
 
-      {step === "org" && (
+      {step === "server" && (
         <TextInput
-          label="Organization ID"
-          value={organizationId}
-          onChange={setOrganizationId}
-          onSubmit={handleOrgSubmit}
-          placeholder="org_..."
+          label="Server (sandbox or production)"
+          value={server}
+          onChange={(v) => setServer(v as "sandbox" | "production")}
+          onSubmit={handleServerSubmit}
+          placeholder="sandbox"
         />
       )}
 
-      {(step === "webhook" || step === "done") && enabled && organizationId && (
-        <StatusMessage status="success">Organization: {organizationId}</StatusMessage>
+      {(step === "webhook" || step === "done") && enabled && (
+        <StatusMessage status="success">Server: {server}</StatusMessage>
       )}
 
       {step === "webhook" && (

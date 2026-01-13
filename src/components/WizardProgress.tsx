@@ -13,9 +13,6 @@ export const WizardProgress = ({ config }: WizardProgressProps) => {
   if (config.project?.name) {
     items.push(`Project: ${config.project.name}`);
   }
-  if (config.project?.url) {
-    items.push(`URL: ${config.project.url}`);
-  }
 
   // Enabled features
   const features: string[] = [];

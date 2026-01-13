@@ -2,30 +2,30 @@ import { Box } from "ink";
 import React, { useState } from "react";
 import { Confirm, Select, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
 
-type AnalyticsProvider = "plausible" | "posthog" | "none";
+type AnalyticsProvider = "umami" | "posthog" | "none";
 
 interface AnalyticsConfig {
   enabled: boolean;
   provider?: AnalyticsProvider;
   siteId?: string;
-  apiKey?: string;
+  hostUrl?: string;
 }
 
 interface AnalyticsSetupProps {
   onComplete: (config: AnalyticsConfig) => void;
 }
 
-type Step = "enable" | "provider" | "siteId" | "apiKey" | "done";
+type Step = "enable" | "provider" | "siteId" | "hostUrl" | "done";
 
 export const AnalyticsSetup = ({ onComplete }: AnalyticsSetupProps) => {
   const [step, setStep] = useState<Step>("enable");
   const [enabled, setEnabled] = useState(false);
   const [provider, setProvider] = useState<AnalyticsProvider>("none");
   const [siteId, setSiteId] = useState("");
-  const [apiKey, setApiKey] = useState("");
+  const [hostUrl, setHostUrl] = useState("");
 
   const providerOptions = [
-    { label: "Plausible", value: "plausible" },
+    { label: "Umami", value: "umami" },
     { label: "PostHog", value: "posthog" },
   ];
 
@@ -46,36 +46,36 @@ export const AnalyticsSetup = ({ onComplete }: AnalyticsSetupProps) => {
 
   const handleSiteIdSubmit = (value: string) => {
     setSiteId(value.trim());
-    setStep("apiKey");
+    setStep("hostUrl");
   };
 
-  const handleApiKeySubmit = (value: string) => {
-    setApiKey(value.trim());
+  const handleHostUrlSubmit = (value: string) => {
+    setHostUrl(value.trim());
     setStep("done");
     onComplete({
       enabled: true,
       provider,
       siteId,
-      apiKey: value.trim(),
+      hostUrl: value.trim(),
     });
   };
 
   const getSiteIdLabel = () => {
-    if (provider === "plausible") return "Plausible Domain";
-    if (provider === "posthog") return "PostHog Project ID";
+    if (provider === "umami") return "Umami Website ID";
+    if (provider === "posthog") return "PostHog Key";
     return "Site ID";
   };
 
   const getSiteIdPlaceholder = () => {
-    if (provider === "plausible") return "mysite.com";
+    if (provider === "umami") return "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
     if (provider === "posthog") return "phc_...";
     return "";
   };
 
-  const getApiKeyLabel = () => {
-    if (provider === "plausible") return "Plausible API Key (optional)";
-    if (provider === "posthog") return "PostHog API Key";
-    return "API Key";
+  const getHostUrlLabel = () => {
+    if (provider === "umami") return "Umami Host URL (optional)";
+    if (provider === "posthog") return "PostHog Host URL";
+    return "Host URL";
   };
 
   return (
@@ -100,7 +100,7 @@ export const AnalyticsSetup = ({ onComplete }: AnalyticsSetupProps) => {
         />
       )}
 
-      {(step === "siteId" || step === "apiKey" || step === "done") && enabled && provider !== "none" && (
+      {(step === "siteId" || step === "hostUrl" || step === "done") && enabled && provider !== "none" && (
         <StatusMessage status="success">Provider: {provider}</StatusMessage>
       )}
 
@@ -114,23 +114,22 @@ export const AnalyticsSetup = ({ onComplete }: AnalyticsSetupProps) => {
         />
       )}
 
-      {(step === "apiKey" || step === "done") && enabled && siteId && (
+      {(step === "hostUrl" || step === "done") && enabled && siteId && (
         <StatusMessage status="success">{getSiteIdLabel()}: {siteId}</StatusMessage>
       )}
 
-      {step === "apiKey" && (
+      {step === "hostUrl" && (
         <TextInput
-          label={getApiKeyLabel()}
-          value={apiKey}
-          onChange={setApiKey}
-          onSubmit={handleApiKeySubmit}
-          placeholder="..."
-          mask="*"
+          label={getHostUrlLabel()}
+          value={hostUrl}
+          onChange={setHostUrl}
+          onSubmit={handleHostUrlSubmit}
+          placeholder={provider === "umami" ? "https://cloud.umami.is" : "https://eu.posthog.com"}
         />
       )}
 
-      {step === "done" && enabled && apiKey && (
-        <StatusMessage status="success">API key configured</StatusMessage>
+      {step === "done" && enabled && hostUrl && (
+        <StatusMessage status="success">Host: {hostUrl}</StatusMessage>
       )}
     </Box>
   );

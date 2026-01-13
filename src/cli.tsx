@@ -28,18 +28,20 @@ const cli = meow(
     $ eniem-cli [project-name]
 
   Options
+    --git-host     SSH host alias for git clone (default: github.com)
     --help, -h     Show this help message
     --version, -v  Show version number
 
   Examples
     $ eniem-cli my-app
-    $ eniem-cli
+    $ eniem-cli --git-host 0xtiby my-app
 `,
   {
     importMeta: import.meta,
     autoHelp: true,
     autoVersion: true,
     flags: {
+      gitHost: { type: "string", default: "github.com" },
       help: { type: "boolean", shortFlag: "h" },
       version: { type: "boolean", shortFlag: "v" },
     },
@@ -59,9 +61,10 @@ const Header = () => {
 
 interface AppProps {
   initialProjectName?: string;
+  gitHost: string;
 }
 
-const App = ({ initialProjectName }: AppProps) => {
+const App = ({ initialProjectName, gitHost }: AppProps) => {
   const handleWizardComplete = (config: AppConfig, destination: string) => {
     // Config is now available for env generation
     // destination is the path where the project was cloned
@@ -73,11 +76,12 @@ const App = ({ initialProjectName }: AppProps) => {
     <ConfigProvider>
       <Box flexDirection="column">
         <Header />
-        <Wizard initialProjectName={initialProjectName} onComplete={handleWizardComplete} />
+        <Wizard initialProjectName={initialProjectName} gitHost={gitHost} onComplete={handleWizardComplete} />
       </Box>
     </ConfigProvider>
   );
 };
 
 const projectName = cli.input[0];
-render(<App initialProjectName={projectName} />);
+const gitHost = cli.flags.gitHost;
+render(<App initialProjectName={projectName} gitHost={gitHost} />);

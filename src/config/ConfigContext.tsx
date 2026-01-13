@@ -14,6 +14,7 @@ interface ConfigContextValue {
   config: AppConfig;
   setProject: (config: ProjectConfig) => void;
   setAuth: (config: AuthConfig) => void;
+  setAuthSecret: (secret: string) => void;
   setOAuth: (config: OAuthConfig) => void;
   setPayment: (config: PaymentConfig) => void;
   setStorage: (config: StorageConfig) => void;
@@ -36,6 +37,10 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
 
   const setAuth = useCallback((auth: AuthConfig) => {
     setConfig((prev) => ({ ...prev, auth }));
+  }, []);
+
+  const setAuthSecret = useCallback((authSecret: string) => {
+    setConfig((prev) => ({ ...prev, authSecret }));
   }, []);
 
   const setOAuth = useCallback((oauth: OAuthConfig) => {
@@ -64,6 +69,7 @@ export const ConfigProvider = ({ children }: ConfigProviderProps) => {
         config,
         setProject,
         setAuth,
+        setAuthSecret,
         setOAuth,
         setPayment,
         setStorage,

@@ -5,10 +5,11 @@ import { cloneBoilerplate } from "../lib/clone.js";
 
 interface CloneStepProps {
   projectName: string;
+  gitHost: string;
   onComplete: (destination: string) => void;
 }
 
-export const CloneStep = ({ projectName, onComplete }: CloneStepProps) => {
+export const CloneStep = ({ projectName, gitHost, onComplete }: CloneStepProps) => {
   const [status, setStatus] = useState<"cloning" | "complete" | "error">("cloning");
   const [progress, setProgress] = useState("Initializing...");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -21,6 +22,7 @@ export const CloneStep = ({ projectName, onComplete }: CloneStepProps) => {
 
     const result = await cloneBoilerplate({
       projectName,
+      gitHost,
       onProgress: setProgress,
     });
 
@@ -31,7 +33,7 @@ export const CloneStep = ({ projectName, onComplete }: CloneStepProps) => {
       setStatus("error");
       setErrorMessage(result.error || "Unknown error");
     }
-  }, [projectName, onComplete]);
+  }, [projectName, gitHost, onComplete]);
 
   useEffect(() => {
     runClone();
