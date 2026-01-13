@@ -221,8 +221,8 @@
         "Help shows available commands and options"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": "Phase 5: Polish"
+      "passes": true,
+      "notes": "Phase 5: Polish - meow autoHelp/autoVersion explicit, -h/-v short flags work"
     },
     {
       "id": "018",

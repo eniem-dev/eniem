@@ -37,6 +37,8 @@ const cli = meow(
 `,
   {
     importMeta: import.meta,
+    autoHelp: true,
+    autoVersion: true,
     flags: {
       help: { type: "boolean", shortFlag: "h" },
       version: { type: "boolean", shortFlag: "v" },
