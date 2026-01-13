@@ -9,6 +9,7 @@ import {
   StorageSetup,
   Web3Setup,
   AnalyticsSetup,
+  CloneStep,
 } from "./steps/index.js";
 
 type WizardStep =
@@ -19,15 +20,17 @@ type WizardStep =
   | "storage"
   | "web3"
   | "analytics"
+  | "cloning"
   | "complete";
 
 interface WizardProps {
   initialProjectName?: string;
-  onComplete: (config: AppConfig) => void;
+  onComplete: (config: AppConfig, destination: string) => void;
 }
 
 export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
   const [step, setStep] = useState<WizardStep>("project");
+  const [cloneError, setCloneError] = useState<string>("");
   const { config, setProject, setAuth, setOAuth, setPayment, setStorage, setWeb3, setAnalytics } =
     useConfig();
 
@@ -63,13 +66,20 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
 
   const handleAnalyticsComplete = (analyticsConfig: Parameters<typeof setAnalytics>[0]) => {
     setAnalytics(analyticsConfig);
+    setStep("cloning");
+  };
+
+  const handleCloneComplete = (destination: string) => {
     setStep("complete");
     // Build final config with all collected values
     const finalConfig: AppConfig = {
       ...config,
-      analytics: analyticsConfig,
     };
-    onComplete(finalConfig);
+    onComplete(finalConfig, destination);
+  };
+
+  const handleCloneError = (error: string) => {
+    setCloneError(error);
   };
 
   return (
@@ -90,10 +100,18 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
 
       {step === "analytics" && <AnalyticsSetup onComplete={handleAnalyticsComplete} />}
 
+      {step === "cloning" && config.project && (
+        <CloneStep
+          projectName={config.project.name}
+          onComplete={handleCloneComplete}
+          onError={handleCloneError}
+        />
+      )}
+
       {step === "complete" && (
         <Box flexDirection="column" marginTop={1}>
           <Text bold color="green">
-            ✓ Configuration complete!
+            ✓ Project scaffolded successfully!
           </Text>
           <Text dimColor>Project: {config.project?.name}</Text>
         </Box>

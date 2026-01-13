@@ -46,10 +46,11 @@ interface AppProps {
 }
 
 const App = ({ initialProjectName }: AppProps) => {
-  const handleWizardComplete = (config: AppConfig) => {
+  const handleWizardComplete = (config: AppConfig, destination: string) => {
     // Config is now available for env generation
-    // This will be used by later stories (011-014)
+    // destination is the path where the project was cloned
     console.log("Final config:", JSON.stringify(config, null, 2));
+    console.log("Project cloned to:", destination);
   };
 
   return (
