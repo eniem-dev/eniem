@@ -1,7 +1,7 @@
 import { Box, Text } from "ink";
 import React, { useState } from "react";
 import { useConfig, type AppConfig } from "./config/index.js";
-import { SectionHeader, StatusMessage } from "./components/index.js";
+import { SectionHeader, StatusMessage, WizardProgress } from "./components/index.js";
 import {
   ProjectSetup,
   AuthSetup,
@@ -100,6 +100,8 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
 
   return (
     <Box flexDirection="column">
+      {step !== "project" && step !== "complete" && <WizardProgress config={config} />}
+
       {step === "project" && (
         <ProjectSetup initialName={initialProjectName} onComplete={handleProjectComplete} />
       )}
