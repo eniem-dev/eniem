@@ -5,6 +5,20 @@ import meow from "meow";
 import { ConfigProvider, type AppConfig } from "./config/index.js";
 import { Wizard } from "./Wizard.js";
 
+// Handle unhandled promise rejections globally
+process.on("unhandledRejection", (reason) => {
+  console.error("\n\x1b[31m✗ An unexpected error occurred:\x1b[0m");
+  console.error(reason instanceof Error ? reason.message : String(reason));
+  process.exit(1);
+});
+
+// Handle uncaught exceptions globally
+process.on("uncaughtException", (error) => {
+  console.error("\n\x1b[31m✗ An unexpected error occurred:\x1b[0m");
+  console.error(error.message);
+  process.exit(1);
+});
+
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { name: string; version: string };
 

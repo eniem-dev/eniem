@@ -1,45 +1,55 @@
 import { Box } from "ink";
-import React, { useState, useEffect } from "react";
-import { Spinner, SectionHeader, StatusMessage } from "../components/index.js";
+import React, { useState, useEffect, useCallback } from "react";
+import { Spinner, SectionHeader, StatusMessage, ErrorRecovery } from "../components/index.js";
 import { cloneBoilerplate } from "../lib/clone.js";
 
 interface CloneStepProps {
   projectName: string;
   onComplete: (destination: string) => void;
-  onError: (error: string) => void;
 }
 
-export const CloneStep = ({ projectName, onComplete, onError }: CloneStepProps) => {
+export const CloneStep = ({ projectName, onComplete }: CloneStepProps) => {
   const [status, setStatus] = useState<"cloning" | "complete" | "error">("cloning");
   const [progress, setProgress] = useState("Initializing...");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [retryCount, setRetryCount] = useState(0);
+
+  const runClone = useCallback(async () => {
+    setStatus("cloning");
+    setProgress("Initializing...");
+    setErrorMessage("");
+
+    const result = await cloneBoilerplate({
+      projectName,
+      onProgress: setProgress,
+    });
+
+    if (result.success) {
+      setStatus("complete");
+      onComplete(result.destination);
+    } else {
+      setStatus("error");
+      setErrorMessage(result.error || "Unknown error");
+    }
+  }, [projectName, onComplete]);
 
   useEffect(() => {
-    const runClone = async () => {
-      const result = await cloneBoilerplate({
-        projectName,
-        onProgress: setProgress,
-      });
-
-      if (result.success) {
-        setStatus("complete");
-        onComplete(result.destination);
-      } else {
-        setStatus("error");
-        setErrorMessage(result.error || "Unknown error");
-        onError(result.error || "Unknown error");
-      }
-    };
-
     runClone();
-  }, [projectName, onComplete, onError]);
+  }, [runClone, retryCount]);
+
+  const handleRetry = useCallback(() => {
+    setRetryCount((prev) => prev + 1);
+  }, []);
 
   if (status === "error") {
     return (
       <Box flexDirection="column" marginTop={1}>
         <SectionHeader title="Cloning Boilerplate" />
-        <StatusMessage status="error">Clone failed</StatusMessage>
-        <StatusMessage status="error">{errorMessage}</StatusMessage>
+        <ErrorRecovery
+          error={errorMessage}
+          onRetry={handleRetry}
+          context="Failed to clone the boilerplate repository"
+        />
       </Box>
     );
   }

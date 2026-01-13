@@ -37,7 +37,6 @@ interface WizardProps {
 
 export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
   const [step, setStep] = useState<WizardStep>("project");
-  const [cloneError, setCloneError] = useState<string>("");
   const [projectDestination, setProjectDestination] = useState<string>("");
   const { config, setProject, setAuth, setOAuth, setPayment, setStorage, setWeb3, setAnalytics } =
     useConfig();
@@ -86,18 +85,8 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
     setStep("git");
   };
 
-  const handleEnvError = (error: string) => {
-    // For now just log - could add retry UI later
-    console.error("Env generation failed:", error);
-  };
-
   const handleGitComplete = () => {
     setStep("install");
-  };
-
-  const handleGitError = (error: string) => {
-    // For now just log - could add retry UI later
-    console.error("Git init failed:", error);
   };
 
   const handleInstallComplete = () => {
@@ -107,15 +96,6 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
       ...config,
     };
     onComplete(finalConfig, projectDestination);
-  };
-
-  const handleInstallError = (error: string) => {
-    // For now just log - could add retry UI later
-    console.error("pnpm install failed:", error);
-  };
-
-  const handleCloneError = (error: string) => {
-    setCloneError(error);
   };
 
   return (
@@ -140,7 +120,6 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
         <CloneStep
           projectName={config.project.name}
           onComplete={handleCloneComplete}
-          onError={handleCloneError}
         />
       )}
 
@@ -149,7 +128,6 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
           config={config}
           destination={projectDestination}
           onComplete={handleEnvComplete}
-          onError={handleEnvError}
         />
       )}
 
@@ -157,7 +135,6 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
         <GitStep
           destination={projectDestination}
           onComplete={handleGitComplete}
-          onError={handleGitError}
         />
       )}
 
@@ -165,7 +142,6 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
         <InstallStep
           destination={projectDestination}
           onComplete={handleInstallComplete}
-          onError={handleInstallError}
         />
       )}
 
