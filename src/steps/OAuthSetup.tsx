@@ -1,6 +1,6 @@
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import React, { useState } from "react";
-import { Confirm, TextInput } from "../components/index.js";
+import { Confirm, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
 
 interface OAuthProvider {
   clientId: string;
@@ -83,18 +83,16 @@ export const OAuthSetup = ({ onComplete }: OAuthSetupProps) => {
 
   return (
     <Box flexDirection="column">
-      <Text bold color="magenta">
-        OAuth Providers
-      </Text>
+      <SectionHeader title="OAuth Providers" />
 
       {step === "github_enable" && (
         <Confirm label="Enable GitHub OAuth?" onConfirm={handleGithubEnable} />
       )}
 
       {step !== "github_enable" && (
-        <Text color={githubEnabled ? "green" : "yellow"}>
-          {githubEnabled ? "✓" : "○"} GitHub: {githubEnabled ? "Enabled" : "Skipped"}
-        </Text>
+        <StatusMessage status={githubEnabled ? "success" : "skip"}>
+          GitHub: {githubEnabled ? "Enabled" : "Skipped"}
+        </StatusMessage>
       )}
 
       {step === "github_id" && (
@@ -122,7 +120,7 @@ export const OAuthSetup = ({ onComplete }: OAuthSetupProps) => {
         step !== "github_id" &&
         step !== "github_secret" &&
         githubEnabled && (
-          <Text color="green">✓ GitHub credentials configured</Text>
+          <StatusMessage status="success">GitHub credentials configured</StatusMessage>
         )}
 
       {(step === "twitter_enable" ||
@@ -135,9 +133,9 @@ export const OAuthSetup = ({ onComplete }: OAuthSetupProps) => {
           )}
 
           {step !== "twitter_enable" && (
-            <Text color={twitterEnabled ? "green" : "yellow"}>
-              {twitterEnabled ? "✓" : "○"} Twitter: {twitterEnabled ? "Enabled" : "Skipped"}
-            </Text>
+            <StatusMessage status={twitterEnabled ? "success" : "skip"}>
+              Twitter: {twitterEnabled ? "Enabled" : "Skipped"}
+            </StatusMessage>
           )}
 
           {step === "twitter_id" && (
@@ -162,7 +160,7 @@ export const OAuthSetup = ({ onComplete }: OAuthSetupProps) => {
           )}
 
           {step === "done" && twitterEnabled && (
-            <Text color="green">✓ Twitter credentials configured</Text>
+            <StatusMessage status="success">Twitter credentials configured</StatusMessage>
           )}
         </>
       )}

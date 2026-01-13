@@ -1,6 +1,7 @@
 import { Box, Text } from "ink";
 import React, { useState } from "react";
 import { useConfig, type AppConfig } from "./config/index.js";
+import { SectionHeader, StatusMessage } from "./components/index.js";
 import {
   ProjectSetup,
   AuthSetup,
@@ -170,10 +171,9 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
 
       {step === "complete" && (
         <Box flexDirection="column" marginTop={1}>
-          <Text bold color="green">
-            ✓ Project scaffolded successfully!
-          </Text>
-          <Text dimColor>Project: {config.project?.name}</Text>
+          <SectionHeader title="Setup Complete" />
+          <StatusMessage status="success">Project scaffolded successfully!</StatusMessage>
+          <Text dimColor>  cd {config.project?.name} && pnpm dev</Text>
         </Box>
       )}
     </Box>

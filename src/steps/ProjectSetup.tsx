@@ -1,6 +1,6 @@
 import { Box, Text } from "ink";
 import React, { useState } from "react";
-import { TextInput } from "../components/index.js";
+import { TextInput, SectionHeader, StatusMessage } from "../components/index.js";
 import { validate, projectNameSchema, optionalUrlSchema } from "../lib/validation.js";
 
 interface ProjectConfig {
@@ -63,9 +63,7 @@ export const ProjectSetup = ({ initialName, onComplete }: ProjectSetupProps) => 
 
   return (
     <Box flexDirection="column">
-      <Text bold color="magenta">
-        Project Configuration
-      </Text>
+      <SectionHeader title="Project Configuration" />
 
       {step === "name" && (
         <TextInput
@@ -79,7 +77,7 @@ export const ProjectSetup = ({ initialName, onComplete }: ProjectSetupProps) => 
       )}
 
       {step !== "name" && (
-        <Text color="green">✓ Name: {name}</Text>
+        <StatusMessage status="success">Name: {name}</StatusMessage>
       )}
 
       {step === "url" && (
@@ -94,7 +92,7 @@ export const ProjectSetup = ({ initialName, onComplete }: ProjectSetupProps) => 
       )}
 
       {(step === "secret" || step === "done") && url && (
-        <Text color="green">✓ URL: {url}</Text>
+        <StatusMessage status="success">URL: {url}</StatusMessage>
       )}
 
       {step === "secret" && (
@@ -110,7 +108,7 @@ export const ProjectSetup = ({ initialName, onComplete }: ProjectSetupProps) => 
       )}
 
       {step === "done" && (
-        <Text color="green">✓ Secret: {secret ? "***" : "(auto-generated)"}</Text>
+        <StatusMessage status="success">Secret: {secret ? "***" : "(auto-generated)"}</StatusMessage>
       )}
     </Box>
   );

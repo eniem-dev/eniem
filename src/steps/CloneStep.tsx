@@ -1,6 +1,6 @@
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import React, { useState, useEffect } from "react";
-import { Spinner } from "../components/index.js";
+import { Spinner, SectionHeader, StatusMessage } from "../components/index.js";
 import { cloneBoilerplate } from "../lib/clone.js";
 
 interface CloneStepProps {
@@ -36,30 +36,26 @@ export const CloneStep = ({ projectName, onComplete, onError }: CloneStepProps) 
 
   if (status === "error") {
     return (
-      <Box flexDirection="column">
-        <Text bold color="red">
-          ✗ Clone failed
-        </Text>
-        <Text color="red">{errorMessage}</Text>
+      <Box flexDirection="column" marginTop={1}>
+        <SectionHeader title="Cloning Boilerplate" />
+        <StatusMessage status="error">Clone failed</StatusMessage>
+        <StatusMessage status="error">{errorMessage}</StatusMessage>
       </Box>
     );
   }
 
   if (status === "complete") {
     return (
-      <Box>
-        <Text bold color="green">
-          ✓ Project cloned to {projectName}/
-        </Text>
+      <Box flexDirection="column" marginTop={1}>
+        <SectionHeader title="Cloning Boilerplate" />
+        <StatusMessage status="success">Project cloned to {projectName}/</StatusMessage>
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="column">
-      <Text bold color="blue">
-        Cloning boilerplate
-      </Text>
+    <Box flexDirection="column" marginTop={1}>
+      <SectionHeader title="Cloning Boilerplate" />
       <Spinner label={progress} />
     </Box>
   );

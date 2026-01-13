@@ -1,6 +1,6 @@
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import React, { useState } from "react";
-import { Confirm, Select, TextInput } from "../components/index.js";
+import { Confirm, Select, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
 
 type AnalyticsProvider = "plausible" | "posthog" | "none";
 
@@ -80,18 +80,16 @@ export const AnalyticsSetup = ({ onComplete }: AnalyticsSetupProps) => {
 
   return (
     <Box flexDirection="column">
-      <Text bold color="magenta">
-        Analytics
-      </Text>
+      <SectionHeader title="Analytics" />
 
       {step === "enable" && (
         <Confirm label="Enable analytics?" onConfirm={handleEnableConfirm} />
       )}
 
       {step !== "enable" && (
-        <Text color={enabled ? "green" : "yellow"}>
-          {enabled ? "✓" : "○"} Analytics: {enabled ? "Enabled" : "Skipped"}
-        </Text>
+        <StatusMessage status={enabled ? "success" : "skip"}>
+          Analytics: {enabled ? "Enabled" : "Skipped"}
+        </StatusMessage>
       )}
 
       {step === "provider" && (
@@ -103,7 +101,7 @@ export const AnalyticsSetup = ({ onComplete }: AnalyticsSetupProps) => {
       )}
 
       {(step === "siteId" || step === "apiKey" || step === "done") && enabled && provider !== "none" && (
-        <Text color="green">✓ Provider: {provider}</Text>
+        <StatusMessage status="success">Provider: {provider}</StatusMessage>
       )}
 
       {step === "siteId" && (
@@ -117,7 +115,7 @@ export const AnalyticsSetup = ({ onComplete }: AnalyticsSetupProps) => {
       )}
 
       {(step === "apiKey" || step === "done") && enabled && siteId && (
-        <Text color="green">✓ {getSiteIdLabel()}: {siteId}</Text>
+        <StatusMessage status="success">{getSiteIdLabel()}: {siteId}</StatusMessage>
       )}
 
       {step === "apiKey" && (
@@ -132,7 +130,7 @@ export const AnalyticsSetup = ({ onComplete }: AnalyticsSetupProps) => {
       )}
 
       {step === "done" && enabled && apiKey && (
-        <Text color="green">✓ API key configured</Text>
+        <StatusMessage status="success">API key configured</StatusMessage>
       )}
     </Box>
   );

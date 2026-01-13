@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Box, Text } from "ink";
-import { Spinner } from "../components/index.js";
+import { Box } from "ink";
+import { Spinner, SectionHeader, StatusMessage } from "../components/index.js";
 import { writeEnvFile } from "../lib/env.js";
 import type { AppConfig } from "../config/types.js";
 
@@ -37,10 +37,8 @@ export const EnvStep = ({ config, destination, onComplete, onError }: EnvStepPro
   if (status === "generating") {
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text bold color="cyan">Environment Configuration</Text>
-        <Box marginTop={1}>
-          <Spinner label="Generating .env file..." />
-        </Box>
+        <SectionHeader title="Environment Configuration" />
+        <Spinner label="Generating .env file..." />
       </Box>
     );
   }
@@ -48,20 +46,16 @@ export const EnvStep = ({ config, destination, onComplete, onError }: EnvStepPro
   if (status === "error") {
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text bold color="cyan">Environment Configuration</Text>
-        <Box marginTop={1}>
-          <Text color="red">✗ {errorMessage}</Text>
-        </Box>
+        <SectionHeader title="Environment Configuration" />
+        <StatusMessage status="error">{errorMessage}</StatusMessage>
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Text bold color="cyan">Environment Configuration</Text>
-      <Box marginTop={1}>
-        <Text color="green">✓ .env file generated at {envPath}</Text>
-      </Box>
+      <SectionHeader title="Environment Configuration" />
+      <StatusMessage status="success">.env file generated at {envPath}</StatusMessage>
     </Box>
   );
 };

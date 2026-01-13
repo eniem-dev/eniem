@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Box, Text } from "ink";
-import { Spinner } from "../components/index.js";
+import { Box } from "ink";
+import { Spinner, SectionHeader, StatusMessage } from "../components/index.js";
 import { initGitRepo } from "../lib/git.js";
 
 interface GitStepProps {
@@ -37,10 +37,8 @@ export const GitStep = ({ destination, onComplete, onError }: GitStepProps) => {
   if (status === "initializing") {
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text bold color="cyan">Git Repository</Text>
-        <Box marginTop={1}>
-          <Spinner label={progressMessage} />
-        </Box>
+        <SectionHeader title="Git Repository" />
+        <Spinner label={progressMessage} />
       </Box>
     );
   }
@@ -48,20 +46,16 @@ export const GitStep = ({ destination, onComplete, onError }: GitStepProps) => {
   if (status === "error") {
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text bold color="cyan">Git Repository</Text>
-        <Box marginTop={1}>
-          <Text color="red">✗ {errorMessage}</Text>
-        </Box>
+        <SectionHeader title="Git Repository" />
+        <StatusMessage status="error">{errorMessage}</StatusMessage>
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Text bold color="cyan">Git Repository</Text>
-      <Box marginTop={1}>
-        <Text color="green">✓ Fresh git repository initialized with initial commit</Text>
-      </Box>
+      <SectionHeader title="Git Repository" />
+      <StatusMessage status="success">Fresh git repository initialized with initial commit</StatusMessage>
     </Box>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Box, Text } from "ink";
-import { Spinner } from "../components/index.js";
+import { Box } from "ink";
+import { Spinner, SectionHeader, StatusMessage } from "../components/index.js";
 import { runPnpmInstall } from "../lib/install.js";
 
 interface InstallStepProps {
@@ -37,10 +37,8 @@ export const InstallStep = ({ destination, onComplete, onError }: InstallStepPro
   if (status === "installing") {
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text bold color="cyan">Installing Dependencies</Text>
-        <Box marginTop={1}>
-          <Spinner label={progressMessage} />
-        </Box>
+        <SectionHeader title="Installing Dependencies" />
+        <Spinner label={progressMessage} />
       </Box>
     );
   }
@@ -48,20 +46,16 @@ export const InstallStep = ({ destination, onComplete, onError }: InstallStepPro
   if (status === "error") {
     return (
       <Box flexDirection="column" marginTop={1}>
-        <Text bold color="cyan">Installing Dependencies</Text>
-        <Box marginTop={1}>
-          <Text color="red">✗ {errorMessage}</Text>
-        </Box>
+        <SectionHeader title="Installing Dependencies" />
+        <StatusMessage status="error">{errorMessage}</StatusMessage>
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column" marginTop={1}>
-      <Text bold color="cyan">Installing Dependencies</Text>
-      <Box marginTop={1}>
-        <Text color="green">✓ Dependencies installed successfully</Text>
-      </Box>
+      <SectionHeader title="Installing Dependencies" />
+      <StatusMessage status="success">Dependencies installed successfully</StatusMessage>
     </Box>
   );
 };

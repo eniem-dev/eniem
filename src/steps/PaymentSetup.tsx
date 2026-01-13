@@ -1,6 +1,6 @@
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import React, { useState } from "react";
-import { Confirm, TextInput } from "../components/index.js";
+import { Confirm, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
 
 interface PaymentConfig {
   enabled: boolean;
@@ -55,18 +55,16 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
 
   return (
     <Box flexDirection="column">
-      <Text bold color="magenta">
-        Payments (Polar)
-      </Text>
+      <SectionHeader title="Payments (Polar)" />
 
       {step === "enable" && (
         <Confirm label="Enable Polar payments?" onConfirm={handleEnableConfirm} />
       )}
 
       {step !== "enable" && (
-        <Text color={enabled ? "green" : "yellow"}>
-          {enabled ? "✓" : "○"} Polar: {enabled ? "Enabled" : "Skipped"}
-        </Text>
+        <StatusMessage status={enabled ? "success" : "skip"}>
+          Polar: {enabled ? "Enabled" : "Skipped"}
+        </StatusMessage>
       )}
 
       {step === "token" && (
@@ -81,7 +79,7 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
       )}
 
       {(step === "org" || step === "webhook" || step === "done") && enabled && accessToken && (
-        <Text color="green">✓ Access token configured</Text>
+        <StatusMessage status="success">Access token configured</StatusMessage>
       )}
 
       {step === "org" && (
@@ -95,7 +93,7 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
       )}
 
       {(step === "webhook" || step === "done") && enabled && organizationId && (
-        <Text color="green">✓ Organization: {organizationId}</Text>
+        <StatusMessage status="success">Organization: {organizationId}</StatusMessage>
       )}
 
       {step === "webhook" && (
@@ -110,7 +108,7 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
       )}
 
       {step === "done" && enabled && webhookSecret && (
-        <Text color="green">✓ Webhook secret configured</Text>
+        <StatusMessage status="success">Webhook secret configured</StatusMessage>
       )}
     </Box>
   );

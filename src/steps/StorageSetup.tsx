@@ -1,6 +1,6 @@
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import React, { useState } from "react";
-import { Confirm, TextInput } from "../components/index.js";
+import { Confirm, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
 
 interface StorageConfig {
   enabled: boolean;
@@ -71,18 +71,16 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
 
   return (
     <Box flexDirection="column">
-      <Text bold color="magenta">
-        Storage (DigitalOcean Spaces)
-      </Text>
+      <SectionHeader title="Storage (DigitalOcean Spaces)" />
 
       {step === "enable" && (
         <Confirm label="Enable DO Spaces storage?" onConfirm={handleEnableConfirm} />
       )}
 
       {step !== "enable" && (
-        <Text color={enabled ? "green" : "yellow"}>
-          {enabled ? "✓" : "○"} DO Spaces: {enabled ? "Enabled" : "Skipped"}
-        </Text>
+        <StatusMessage status={enabled ? "success" : "skip"}>
+          DO Spaces: {enabled ? "Enabled" : "Skipped"}
+        </StatusMessage>
       )}
 
       {step === "endpoint" && (
@@ -97,7 +95,7 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
 
       {(step === "bucket" || step === "keyId" || step === "secretKey" || step === "region" || step === "done") &&
         enabled &&
-        endpoint && <Text color="green">✓ Endpoint: {endpoint}</Text>}
+        endpoint && <StatusMessage status="success">Endpoint: {endpoint}</StatusMessage>}
 
       {step === "bucket" && (
         <TextInput
@@ -111,7 +109,7 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
 
       {(step === "keyId" || step === "secretKey" || step === "region" || step === "done") &&
         enabled &&
-        bucket && <Text color="green">✓ Bucket: {bucket}</Text>}
+        bucket && <StatusMessage status="success">Bucket: {bucket}</StatusMessage>}
 
       {step === "keyId" && (
         <TextInput
@@ -125,7 +123,7 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
 
       {(step === "secretKey" || step === "region" || step === "done") &&
         enabled &&
-        accessKeyId && <Text color="green">✓ Access Key ID configured</Text>}
+        accessKeyId && <StatusMessage status="success">Access Key ID configured</StatusMessage>}
 
       {step === "secretKey" && (
         <TextInput
@@ -139,7 +137,7 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
       )}
 
       {(step === "region" || step === "done") && enabled && secretAccessKey && (
-        <Text color="green">✓ Secret Access Key configured</Text>
+        <StatusMessage status="success">Secret Access Key configured</StatusMessage>
       )}
 
       {step === "region" && (
@@ -152,7 +150,7 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
         />
       )}
 
-      {step === "done" && enabled && region && <Text color="green">✓ Region: {region}</Text>}
+      {step === "done" && enabled && region && <StatusMessage status="success">Region: {region}</StatusMessage>}
     </Box>
   );
 };

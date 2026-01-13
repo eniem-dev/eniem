@@ -1,6 +1,6 @@
 import { Box, Text } from "ink";
 import React, { useState } from "react";
-import { Confirm, TextInput } from "../components/index.js";
+import { Confirm, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
 import { validate, databaseUrlSchema } from "../lib/validation.js";
 
 interface AuthConfig {
@@ -45,9 +45,7 @@ export const AuthSetup = ({ onComplete }: AuthSetupProps) => {
 
   return (
     <Box flexDirection="column">
-      <Text bold color="magenta">
-        Authentication (BetterAuth)
-      </Text>
+      <SectionHeader title="Authentication (BetterAuth)" />
 
       {step === "enable" && (
         <Confirm
@@ -58,9 +56,9 @@ export const AuthSetup = ({ onComplete }: AuthSetupProps) => {
       )}
 
       {step !== "enable" && (
-        <Text color={enabled ? "green" : "yellow"}>
-          {enabled ? "✓" : "○"} BetterAuth: {enabled ? "Enabled" : "Skipped"}
-        </Text>
+        <StatusMessage status={enabled ? "success" : "skip"}>
+          BetterAuth: {enabled ? "Enabled" : "Skipped"}
+        </StatusMessage>
       )}
 
       {step === "database" && (
@@ -75,7 +73,9 @@ export const AuthSetup = ({ onComplete }: AuthSetupProps) => {
       )}
 
       {step === "done" && enabled && databaseUrl && (
-        <Text color="green">✓ Database: {databaseUrl.replace(/:[^:@]+@/, ":***@")}</Text>
+        <StatusMessage status="success">
+          Database: {databaseUrl.replace(/:[^:@]+@/, ":***@")}
+        </StatusMessage>
       )}
     </Box>
   );

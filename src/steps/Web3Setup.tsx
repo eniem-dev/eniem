@@ -1,6 +1,6 @@
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import React, { useState } from "react";
-import { Confirm, TextInput } from "../components/index.js";
+import { Confirm, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
 
 interface Web3Config {
   enabled: boolean;
@@ -39,18 +39,16 @@ export const Web3Setup = ({ onComplete }: Web3SetupProps) => {
 
   return (
     <Box flexDirection="column">
-      <Text bold color="magenta">
-        Web3 (WalletConnect)
-      </Text>
+      <SectionHeader title="Web3 (WalletConnect)" />
 
       {step === "enable" && (
         <Confirm label="Enable WalletConnect?" onConfirm={handleEnableConfirm} />
       )}
 
       {step !== "enable" && (
-        <Text color={enabled ? "green" : "yellow"}>
-          {enabled ? "✓" : "○"} WalletConnect: {enabled ? "Enabled" : "Skipped"}
-        </Text>
+        <StatusMessage status={enabled ? "success" : "skip"}>
+          WalletConnect: {enabled ? "Enabled" : "Skipped"}
+        </StatusMessage>
       )}
 
       {step === "projectId" && (
@@ -64,7 +62,7 @@ export const Web3Setup = ({ onComplete }: Web3SetupProps) => {
       )}
 
       {step === "done" && enabled && projectId && (
-        <Text color="green">✓ Project ID: {projectId}</Text>
+        <StatusMessage status="success">Project ID: {projectId}</StatusMessage>
       )}
     </Box>
   );
