@@ -2,6 +2,9 @@
   "name": "eniem-cli",
   "version": "0.1.0",
   "type": "module",
+  "bin": {
+    "eniem-cli": "./bin/eniem-cli.js"
+  },
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit"
