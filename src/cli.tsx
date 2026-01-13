@@ -1,8 +1,9 @@
 import { render, Box, Text } from "ink";
-import TextInput from "ink-text-input";
-import React, { useState } from "react";
+import React from "react";
 import { createRequire } from "module";
 import meow from "meow";
+import { ConfigProvider, type AppConfig } from "./config/index.js";
+import { Wizard } from "./Wizard.js";
 
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { name: string; version: string };
@@ -45,33 +46,19 @@ interface AppProps {
 }
 
 const App = ({ initialProjectName }: AppProps) => {
-  const [projectName, setProjectName] = useState(initialProjectName ?? "");
-  const [isNameConfirmed, setIsNameConfirmed] = useState(!!initialProjectName);
-
-  const handleSubmit = (value: string) => {
-    if (value.trim()) {
-      setProjectName(value.trim());
-      setIsNameConfirmed(true);
-    }
+  const handleWizardComplete = (config: AppConfig) => {
+    // Config is now available for env generation
+    // This will be used by later stories (011-014)
+    console.log("Final config:", JSON.stringify(config, null, 2));
   };
 
   return (
-    <Box flexDirection="column">
-      <Header />
-      {!isNameConfirmed ? (
-        <Box>
-          <Text>Project name: </Text>
-          <TextInput
-            value={projectName}
-            onChange={setProjectName}
-            onSubmit={handleSubmit}
-            placeholder="my-eniem-app"
-          />
-        </Box>
-      ) : (
-        <Text color="green">✓ Project: {projectName}</Text>
-      )}
-    </Box>
+    <ConfigProvider>
+      <Box flexDirection="column">
+        <Header />
+        <Wizard initialProjectName={initialProjectName} onComplete={handleWizardComplete} />
+      </Box>
+    </ConfigProvider>
   );
 };
 
