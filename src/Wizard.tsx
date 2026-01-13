@@ -43,7 +43,7 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
 
   const handleProjectComplete = (projectConfig: Parameters<typeof setProject>[0]) => {
     setProject(projectConfig);
-    setStep("auth");
+    setStep("cloning");
   };
 
   const handleAuthComplete = (authConfig: Parameters<typeof setAuth>[0]) => {
@@ -73,12 +73,12 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
 
   const handleAnalyticsComplete = (analyticsConfig: Parameters<typeof setAnalytics>[0]) => {
     setAnalytics(analyticsConfig);
-    setStep("cloning");
+    setStep("env");
   };
 
   const handleCloneComplete = (destination: string) => {
     setProjectDestination(destination);
-    setStep("env");
+    setStep("auth");
   };
 
   const handleEnvComplete = (_envPath: string) => {
@@ -104,6 +104,13 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
         <ProjectSetup initialName={initialProjectName} onComplete={handleProjectComplete} />
       )}
 
+      {step === "cloning" && config.project && (
+        <CloneStep
+          projectName={config.project.name}
+          onComplete={handleCloneComplete}
+        />
+      )}
+
       {step === "auth" && <AuthSetup onComplete={handleAuthComplete} />}
 
       {step === "oauth" && <OAuthSetup onComplete={handleOAuthComplete} />}
@@ -115,13 +122,6 @@ export const Wizard = ({ initialProjectName, onComplete }: WizardProps) => {
       {step === "web3" && <Web3Setup onComplete={handleWeb3Complete} />}
 
       {step === "analytics" && <AnalyticsSetup onComplete={handleAnalyticsComplete} />}
-
-      {step === "cloning" && config.project && (
-        <CloneStep
-          projectName={config.project.name}
-          onComplete={handleCloneComplete}
-        />
-      )}
 
       {step === "env" && (
         <EnvStep

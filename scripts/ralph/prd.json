@@ -235,8 +235,59 @@
         "App accessible at localhost:3000"
       ],
       "priority": 5,
+      "passes": true,
+      "notes": "Phase 5: Polish - CLI verified: build/typecheck pass, --help/--version work. Full E2E requires eniem-dev/eniem-boilerplate repo."
+    },
+    {
+      "id": "019",
+      "title": "Move cloning step to first position",
+      "acceptanceCriteria": [
+        "Clone step runs immediately after project name input",
+        "Config steps (auth, oauth, payment, storage, web3, analytics) run after clone",
+        "Env generation, git init, pnpm install run after config",
+        "Wizard flow: project name → clone → auth → oauth → ... → env → git → install"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Phase 6: UX Polish - src/Wizard.tsx"
+    },
+    {
+      "id": "020",
+      "title": "Add running config summary to wizard",
+      "acceptanceCriteria": [
+        "WizardProgress component shows completed config values",
+        "Summary displayed at top of wizard (dimmed/gray)",
+        "Shows: project name, URL, enabled features (OAuth, Payment, Storage, Web3, Analytics)",
+        "Updates as wizard progresses"
+      ],
+      "priority": 6,
       "passes": false,
-      "notes": "Phase 5: Polish - See Verification section in plan.md"
+      "notes": "Phase 6: UX Polish - src/components/WizardProgress.tsx (new), src/Wizard.tsx"
+    },
+    {
+      "id": "021",
+      "title": "Remove BetterAuth confirmation prompt",
+      "acceptanceCriteria": [
+        "AuthSetup no longer asks 'Enable BetterAuth?'",
+        "BetterAuth always enabled by default",
+        "Step auto-completes with enabled: true",
+        "Shows status message confirming BetterAuth enabled"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Phase 6: UX Polish - src/steps/AuthSetup.tsx"
+    },
+    {
+      "id": "022",
+      "title": "Remove database URL prompt",
+      "acceptanceCriteria": [
+        "AuthSetup no longer prompts for database URL",
+        "DATABASE_URL removed from env generation (uses boilerplate .env.example default)",
+        "databaseUrl removed from AuthConfig type"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Phase 6: UX Polish - src/steps/AuthSetup.tsx, src/lib/env.ts, src/config/types.ts"
     }
   ]
 }
