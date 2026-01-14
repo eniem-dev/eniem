@@ -2,3 +2,4 @@ scripts
 plan.md
 node_modules
 dist
+bin
