@@ -2,6 +2,10 @@
   "name": "eniem-cli",
   "version": "0.1.0",
   "description": "Interactive CLI wizard for scaffolding Eniem projects",
+  "author": {
+    "name": "0xtiby",
+    "url": "https://github.com/0xtiby"
+  },
   "type": "module",
   "repository": {
     "type": "git",
