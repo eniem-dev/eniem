@@ -1,3 +1,10 @@
+## [0.2.7](https://github.com/eniem-dev/eniem-cli/compare/v0.2.6...v0.2.7) (2026-01-15)
+
+
+### Bug Fixes
+
+* track bin folder for npm publishing ([35b8a77](https://github.com/eniem-dev/eniem-cli/commit/35b8a770fb9e2f2a0c706d77b651f859743750e8))
+
 ## [0.2.6](https://github.com/eniem-dev/eniem-cli/compare/v0.2.5...v0.2.6) (2026-01-15)
 
 
