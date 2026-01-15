@@ -8,8 +8,7 @@
   },
   "type": "module",
   "files": [
-    "dist",
-    "bin"
+    "dist"
   ],
   "repository": {
     "type": "git",
@@ -19,12 +18,12 @@
     "access": "public"
   },
   "bin": {
-    "eniem-cli": "./bin/eniem-cli.js"
+    "eniem-cli": "./dist/cli.js"
   },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "start": "node bin/eniem-cli.js",
+    "start": "node dist/cli.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
