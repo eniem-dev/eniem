@@ -1,3 +1,10 @@
+## [0.2.6](https://github.com/eniem-dev/eniem-cli/compare/v0.2.5...v0.2.6) (2026-01-15)
+
+
+### Bug Fixes
+
+* include dist and bin in npm package ([2db1a45](https://github.com/eniem-dev/eniem-cli/commit/2db1a4557836f0954ff66d8ea5d58c0f43e97b18))
+
 ## [0.2.5](https://github.com/eniem-dev/eniem-cli/compare/v0.2.4...v0.2.5) (2026-01-15)
 
 
