@@ -91,7 +91,7 @@ export function generateEnvContent(config: AppConfig): string {
   lines.push("# Polar Configuration (for payments and checkouts)");
   lines.push("# Get your access token from Polar Organization Settings");
   lines.push("# Use 'sandbox' for testing, 'production' for live payments");
-  lines.push(`POLAR_ACCESS_TOKEN=${config.payment?.accessToken || ""}`);
+  lines.push(`POLAR_ACCESS_TOKEN=${config.payment?.accessToken || "polar_xx"}`);
   lines.push(`POLAR_SERVER=${config.payment?.server || "sandbox"}`);
   lines.push(`POLAR_WEBHOOK_SECRET=${config.payment?.webhookSecret || ""}`);
 
