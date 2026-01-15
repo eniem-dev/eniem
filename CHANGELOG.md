@@ -1,3 +1,10 @@
+## [0.2.4](https://github.com/eniem-dev/eniem-cli/compare/v0.2.3...v0.2.4) (2026-01-15)
+
+
+### Bug Fixes
+
+* align workflow with semantic-release OIDC docs ([b5d1c23](https://github.com/eniem-dev/eniem-cli/commit/b5d1c23f1d1784c511fe00e3294c36d440abccdf))
+
 ## [0.2.3](https://github.com/eniem-dev/eniem-cli/compare/v0.2.2...v0.2.3) (2026-01-15)
 
 
