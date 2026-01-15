@@ -1,3 +1,10 @@
+## [0.2.1](https://github.com/eniem-dev/eniem-cli/compare/v0.2.0...v0.2.1) (2026-01-15)
+
+
+### Bug Fixes
+
+* update package metadata ([9370db1](https://github.com/eniem-dev/eniem-cli/commit/9370db1ef095f9ed4bf60e833108acb18e82178a))
+
 # [0.2.0](https://github.com/eniem-dev/eniem-cli/compare/v0.1.0...v0.2.0) (2026-01-15)
 
 
