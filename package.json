@@ -1,7 +1,15 @@
 {
   "name": "eniem-cli",
   "version": "0.1.0",
+  "description": "Interactive CLI wizard for scaffolding Eniem projects",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eniem-dev/eniem-cli.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "eniem-cli": "./bin/eniem-cli.js"
   },
