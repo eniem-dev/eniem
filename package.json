@@ -9,7 +9,11 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "start": "node bin/eniem-cli.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "feature:create": ".ralph/ralph-plan.sh",
+    "feature:implement": ".ralph/ralph.sh",
+    "feature:implement-once": ".ralph/ralph-once.sh",
+    "feature:list": "ls -1 .ralph/implementations/ 2>/dev/null || echo 'No implementations'"
   },
   "dependencies": {
     "execa": "^9.5.2",
