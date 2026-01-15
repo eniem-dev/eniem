@@ -1,7 +1,15 @@
 {
   "name": "eniem-cli",
   "version": "0.1.0",
+  "description": "Interactive CLI wizard for scaffolding Eniem projects",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eniem-dev/eniem-cli.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "eniem-cli": "./bin/eniem-cli.js"
   },
@@ -10,6 +18,10 @@
     "dev": "tsup --watch",
     "start": "node bin/eniem-cli.js",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
     "feature:create": ".ralph/ralph-plan.sh",
     "feature:implement": ".ralph/ralph.sh",
     "feature:implement-once": ".ralph/ralph-once.sh",
@@ -27,9 +39,20 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.2",
     "@types/node": "^25.0.8",
     "@types/react": "^19.2.8",
+    "@vitest/coverage-v8": "^4.0.17",
+    "eslint": "^9.39.2",
+    "globals": "^17.0.0",
+    "ink-testing-library": "^4.0.0",
+    "semantic-release": "^25.0.2",
     "tsup": "^8.5.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0",
+    "vitest": "^4.0.17"
   }
 }

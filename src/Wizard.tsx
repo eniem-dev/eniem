@@ -72,7 +72,7 @@ export const Wizard = ({ initialProjectName, gitHost, onComplete }: WizardProps)
     setStep("oauth");
   };
 
-  const handleEnvComplete = (_envPath: string) => {
+  const handleEnvComplete = () => {
     setStep("git");
   };
 

@@ -1,7 +1,7 @@
 import { Box } from "ink";
 import React, { useState } from "react";
 import { Confirm, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
-import type { OAuthConfig, OAuthProvider, Web3Config } from "../config/types.js";
+import type { OAuthConfig, Web3Config } from "../config/types.js";
 
 interface AuthSetupResult {
   oauth: OAuthConfig;
@@ -108,7 +108,6 @@ export const OAuthSetup = ({ onComplete }: OAuthSetupProps) => {
   ];
   const currentStepIndex = stepOrder.indexOf(step);
   const isPast = (s: Step) => currentStepIndex > stepOrder.indexOf(s);
-  const isAtOrPast = (s: Step) => currentStepIndex >= stepOrder.indexOf(s);
 
   return (
     <Box flexDirection="column">
