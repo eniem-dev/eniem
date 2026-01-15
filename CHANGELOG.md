@@ -1,3 +1,10 @@
+## [0.2.8](https://github.com/eniem-dev/eniem-cli/compare/v0.2.7...v0.2.8) (2026-01-15)
+
+
+### Bug Fixes
+
+* use dist/cli.js as bin entry point ([034f3fc](https://github.com/eniem-dev/eniem-cli/commit/034f3fcf7fe62f71ef713d12b24e0035273dee0f))
+
 ## [0.2.7](https://github.com/eniem-dev/eniem-cli/compare/v0.2.6...v0.2.7) (2026-01-15)
 
 
