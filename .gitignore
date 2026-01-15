@@ -50,3 +50,7 @@ public/sitemap-*.xml
 /lib/generated/prisma
 *.db
 .env.local
+
+# Ralph implementations (generated)
+.ralph/implementations/
+.ralph/.last-output

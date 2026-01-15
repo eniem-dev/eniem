@@ -1,0 +1,16 @@
+{
+  "branchName": "feat/example-feature",
+  "stories": [
+    {
+      "id": "001",
+      "title": "Example story title",
+      "acceptanceCriteria": [
+        "Criterion 1",
+        "Criterion 2"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Phase 1: Setup"
+    }
+  ]
+}
