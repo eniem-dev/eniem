@@ -1,3 +1,10 @@
+## [0.2.2](https://github.com/eniem-dev/eniem-cli/compare/v0.2.1...v0.2.2) (2026-01-15)
+
+
+### Bug Fixes
+
+* enable npm provenance for OIDC publishing ([3b5e444](https://github.com/eniem-dev/eniem-cli/commit/3b5e4446d6f803ba670a7163dbc2c821fa271313))
+
 ## [0.2.1](https://github.com/eniem-dev/eniem-cli/compare/v0.2.0...v0.2.1) (2026-01-15)
 
 
