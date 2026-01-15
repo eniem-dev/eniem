@@ -1,3 +1,10 @@
+## [0.2.5](https://github.com/eniem-dev/eniem-cli/compare/v0.2.4...v0.2.5) (2026-01-15)
+
+
+### Bug Fixes
+
+* upgrade npm to v11+ for OIDC trusted publishing ([fef57b2](https://github.com/eniem-dev/eniem-cli/commit/fef57b22a1ba1a249bcb08daf03f37d41cafa1c3))
+
 ## [0.2.4](https://github.com/eniem-dev/eniem-cli/compare/v0.2.3...v0.2.4) (2026-01-15)
 
 
