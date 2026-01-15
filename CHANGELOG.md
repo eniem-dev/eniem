@@ -1,3 +1,10 @@
+## [0.2.3](https://github.com/eniem-dev/eniem-cli/compare/v0.2.2...v0.2.3) (2026-01-15)
+
+
+### Bug Fixes
+
+* add registry-url for npm OIDC auth ([6ea0795](https://github.com/eniem-dev/eniem-cli/commit/6ea0795ba0aee069c3c7eee268d1c1def5806ee3))
+
 ## [0.2.2](https://github.com/eniem-dev/eniem-cli/compare/v0.2.1...v0.2.2) (2026-01-15)
 
 
