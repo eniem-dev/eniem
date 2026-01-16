@@ -17,11 +17,11 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma migrate reset",
     "ngrok": "ngrok http 3000",
-    "email:dev": "email dev --port 3001 --dir ./components/emails",
-    "feature:create": ".ralph/ralph-plan.sh",
-    "feature:implement": ".ralph/ralph.sh",
-    "feature:implement-once": ".ralph/ralph-once.sh",
-    "feature:list": "ls -1 .ralph/implementations/ 2>/dev/null || echo 'No implementations'"
+    "email:dev": "email dev --port 3001 --dir ./src/components/emails",
+    "ralph:plan": "./loop.sh plan",
+    "ralph:plan-work": "./loop.sh plan-work",
+    "ralph:build": "./loop.sh build",
+    "ralph:build:auto": "./loop.sh build 10"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.901.0",

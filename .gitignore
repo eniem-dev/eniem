@@ -51,6 +51,5 @@ public/sitemap-*.xml
 *.db
 .env.local
 
-# Ralph implementations (generated)
-.ralph/implementations/
-.ralph/.last-output
+# Ralph (generated/disposable)
+IMPLEMENTATION_PLAN.md
