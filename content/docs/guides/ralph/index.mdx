@@ -1,0 +1,163 @@
+---
+title: "AI-Driven Development with Ralph"
+description: "Automate feature implementation using Claude Code and user stories."
+---
+
+Ralph is an automated workflow that implements user stories using Claude Code. It reads a PRD (Product Requirements Document), implements stories one by one, and tracks progress.
+
+## Setup
+
+Make scripts executable after cloning:
+
+```bash
+chmod +x .ralph/*.sh
+```
+
+## How It Works
+
+1. **prd.json** defines user stories with acceptance criteria
+2. **prompt.md** instructs Claude to implement stories sequentially
+3. Ralph picks the highest priority story where `passes: false`
+4. Implements it, runs checks, commits, updates progress
+5. Outputs `<promise>COMPLETE</promise>` when all stories pass
+
+## Quick Start
+
+```bash
+# List available implementations
+pnpm feature:list
+
+# Create new feature (interactive planning)
+pnpm feature:create
+
+# Implement a feature
+pnpm feature:implement -- issue-123
+
+# Single iteration
+pnpm feature:implement-once -- issue-123
+```
+
+## Planning a Feature
+
+Use planning mode to define features interactively before implementation:
+
+```bash
+.ralph/ralph-plan.sh
+```
+
+This will:
+1. Ask questions about your feature
+2. Create a detailed plan
+3. Create a GitHub issue with the plan
+4. Optionally generate `prd.json` in `implementations/`
+
+**From existing GitHub issue:**
+
+```bash
+.ralph/ralph-plan.sh https://github.com/org/repo/issues/123
+```
+
+This skips planning and generates `prd.json` directly from the issue.
+
+## Manual Setup
+
+1. Create a folder in `implementations/`:
+
+```bash
+mkdir -p .ralph/implementations/feat-my-feature
+```
+
+2. Copy and customize the PRD:
+
+```bash
+cp .ralph/prd.json .ralph/implementations/feat-my-feature/
+cp .ralph/progress.txt .ralph/implementations/feat-my-feature/
+```
+
+3. Edit `prd.json` with your stories
+
+## Running Ralph
+
+Specify the implementation folder to work on:
+
+**Single iteration:**
+
+```bash
+.ralph/ralph-once.sh issue-123
+```
+
+**Loop until complete (max 10 iterations):**
+
+```bash
+.ralph/ralph.sh issue-123
+```
+
+**Loop with custom max:**
+
+```bash
+.ralph/ralph.sh issue-123 20
+```
+
+**Interactive mode (see output live):**
+
+```bash
+.ralph/ralph.sh issue-123 -i
+```
+
+**With git worktree (work in separate directory):**
+
+```bash
+.ralph/ralph.sh issue-123 -w
+```
+
+**Combined options:**
+
+```bash
+.ralph/ralph.sh issue-123 20 -i -w
+```
+
+## PRD Format
+
+```json
+{
+  "branchName": "feat/feature-name",
+  "stories": [
+    {
+      "id": "001",
+      "title": "Story title",
+      "acceptanceCriteria": [
+        "AC 1",
+        "AC 2"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Optional notes"
+    }
+  ]
+}
+```
+
+## Rules
+
+- Stories are implemented in priority order (lowest number first)
+- Only ONE story per iteration
+- Commits use conventional format (no story IDs)
+- Progress is appended after each story
+- `passes: true` marks a story as complete
+
+## Folder Structure
+
+```
+.ralph/
+├── prompt.md           # Implementation prompt
+├── prompt-plan.md      # Planning prompt
+├── ralph.sh            # Implementation loop runner
+├── ralph-once.sh       # Single implementation iteration
+├── ralph-plan.sh       # Planning mode (creates PRDs)
+├── prd.json            # Sample PRD template
+├── progress.txt        # Sample progress template
+└── implementations/    # Feature implementations (not committed)
+    └── feat-xxx/
+        ├── prd.json
+        └── progress.txt
+```
