@@ -30,7 +30,7 @@ export default async function DashboardPage() {
         </h1>
         <p className="text-muted-foreground">
           {locales.DashboardPage.description}{" "}
-          <Link href="/docs" className="underline">
+          <Link href="https://doc.eniem.dev" className="underline">
             {locales.DashboardPage.documentationLink}
           </Link>
           .

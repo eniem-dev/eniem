@@ -16,7 +16,6 @@ const PUBLIC_ROUTES = [
   routes.home,
   routes.homeRedirect,
   routes.pricing,
-  routes.docs,
   routes.auth.signup,
   routes.auth.login,
   routes.auth.forgotPassword,
@@ -70,10 +69,9 @@ async function handleAccess(
 async function handleAuthentication(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  const isPublicRoute =
-    PUBLIC_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(AUTH_API_PREFIX)
-    ) || pathname.startsWith(routes.docs);
+  const isPublicRoute = PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(AUTH_API_PREFIX)
+  );
 
   if (isPublicRoute) return NextResponse.next();
 
@@ -109,6 +107,6 @@ export const config = {
      * - manifest, robots.txt, sitemap
      * - Static assets like .png, .jpg, .svg
      */
-    "/((?!_next/static|_next/image|favicon.ico|ingest|manifest|manifest.json|robots.txt|sitemap|llms-full.txt|brand.png|android-chrome-|apple-touch-icon|favicon-|opengraph-image|twitter-image|icon|apple-icon|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|ingest|manifest|manifest.json|robots.txt|sitemap|brand.png|android-chrome-|apple-touch-icon|favicon-|opengraph-image|twitter-image|icon|apple-icon|.*\\.png$|.*\\.jpg$|.*\\.svg$).*)",
   ],
 };

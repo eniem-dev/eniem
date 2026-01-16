@@ -15,10 +15,6 @@ export function Navbar() {
   const navLinks = useMemo(() => {
     return [
       {
-        label: locales.NavBar.documentation,
-        href: routes.docs,
-      },
-      {
         label: locales.NavBar.pricing,
         href: routes.pricing,
       },

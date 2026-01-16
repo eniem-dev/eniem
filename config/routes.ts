@@ -19,7 +19,6 @@ export const routes = {
   home: "/",
   landing: "/landing",
   homeRedirect: "/home",
-  docs: "/docs",
   pricing: "/pricing",
   choosePlan: "/choose-plan",
   auth: {
