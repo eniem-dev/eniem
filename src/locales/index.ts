@@ -578,6 +578,23 @@ export const locales = {
     backToHome: "Back to home",
   },
 
+  BlogPage: {
+    metadata: {
+      title: "Blog - Your App Name",
+      description: "Read our latest articles and updates.",
+    },
+    title: "Blog",
+    subtitle: "Our latest articles and updates",
+    noPosts: "No posts yet. Check back soon!",
+  },
+
+  BlogPostPage: {
+    metadata: {
+      titleTemplate: "%s - Blog",
+    },
+    backToBlog: "Back to blog",
+  },
+
   PricingCard: {
     proMonthly: {
       name: "Basic Plan",

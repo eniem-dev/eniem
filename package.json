@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "dev": "velite --watch & next dev --turbopack",
+    "build": "velite && next build --turbopack",
     "postbuild": "next-sitemap --config next-sitemap.config.cjs",
     "postinstall": "prisma generate",
     "start": "next start",
@@ -73,6 +73,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "velite": "^0.3.1",
     "viem": "^2.37.7",
     "wagmi": "^2.17.1",
     "zod": "^4.1.11"
