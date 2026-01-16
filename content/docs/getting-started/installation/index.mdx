@@ -3,41 +3,86 @@ title: "Installation"
 description: "Here's a quick overview to get your app up and running."
 ---
 
-## Start a local server
+## Quick Start (Recommended)
 
-**1. In your terminal, run the following commands one-by-one:**
+The fastest way to get started is using the Eniem CLI:
 
 ```bash
-git clone https://github.com/eniem-dev/eniem-boilerplate [YOUR_APP_NAME]
+npx eniem-cli@latest [YOUR_APP_NAME]
 cd [YOUR_APP_NAME]
-git remote remove origin && rm -rf .git && git init
-pnpm install
+pnpm db:start
+pnpm db:migrate
 pnpm dev
 ```
 
 > Eniem requires Node 18.17 or greater. Type `node -v` in your terminal to check version.
 
-**2. Rename `.env.example` to `.env`:**
+**Using pnpm or bun?**
+
+```bash
+# pnpm
+pnpm dlx eniem-cli@latest [YOUR_APP_NAME]
+
+# bun
+bunx eniem-cli@latest [YOUR_APP_NAME]
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see your site. And voila!
+
+---
+
+## Manual Installation
+
+If you prefer to set up manually:
+
+**1. Clone the repository:**
+
+```bash
+git clone https://github.com/eniem-dev/eniem-boilerplate [YOUR_APP_NAME]
+cd [YOUR_APP_NAME]
+```
+
+**2. Remove git history and reinitialize:**
+
+```bash
+git remote remove origin && rm -rf .git && git init
+```
+
+**3. Install dependencies:**
+
+```bash
+pnpm install
+```
+
+**4. Rename `.env.example` to `.env`:**
 
 ```bash
 mv .env.example .env
 ```
 
-**3. Start the database:**
+**5. Start the database:**
 
 ```bash
 pnpm db:start
 ```
 
-**4. Run migrations:**
+**6. Run migrations:**
 
 ```bash
 pnpm db:migrate
 ```
 
-**5. Open [http://localhost:3000](http://localhost:3000) to see your site. And voila!**
+**7. Start the dev server:**
 
-## .env file
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see your site.
+
+### Configure .env
+
+> Skip this if you used the CLI — it handles `.env` setup automatically.
 
 Change `BETTER_AUTH_SECRET` to a random string (use `openssl rand -base64 32`). The file content should look like this:
 
