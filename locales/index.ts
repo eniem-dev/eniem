@@ -141,7 +141,6 @@ export const locales = {
   },
   NavBar: {
     pricing: "Pricing",
-    documentation: "Documentation",
   },
   NavAccount: {
     login: "Login",
