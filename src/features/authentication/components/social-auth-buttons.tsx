@@ -6,14 +6,16 @@ import { locales } from "@/locales";
 import { cn } from "@/lib/utils";
 import { GitHubIcon, TwitterIcon } from "./icons";
 import { SiweButton } from "./siwe-button";
+import type { OAuthProvider } from "@/lib/auth";
 
 interface SocialAuthButtonsProps {
   mode: "signin" | "signup";
   disabled?: boolean;
   callbackURL?: string;
+  availableProviders?: OAuthProvider[];
 }
 
-export function SocialAuthButtons({ mode, disabled = false, callbackURL }: SocialAuthButtonsProps) {
+export function SocialAuthButtons({ mode, disabled = false, callbackURL, availableProviders }: SocialAuthButtonsProps) {
   const [loading, setLoading] = useState(false);
 
   const isLoading = loading || disabled;
@@ -55,25 +57,29 @@ export function SocialAuthButtons({ mode, disabled = false, callbackURL }: Socia
       </div>
 
       <div className={cn("w-full gap-2 flex items-center justify-between flex-col")}>
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          disabled={isLoading}
-          onClick={() => handleSocialAuth("github")}
-        >
-          <GitHubIcon />
-          {authLabels.github}
-        </Button>
+        {availableProviders?.includes("github") && (
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            disabled={isLoading}
+            onClick={() => handleSocialAuth("github")}
+          >
+            <GitHubIcon />
+            {authLabels.github}
+          </Button>
+        )}
 
-        <Button
-          variant="outline"
-          className="w-full gap-2"
-          disabled={isLoading}
-          onClick={() => handleSocialAuth("twitter")}
-        >
-          <TwitterIcon />
-          {authLabels.twitter}
-        </Button>
+        {availableProviders?.includes("twitter") && (
+          <Button
+            variant="outline"
+            className="w-full gap-2"
+            disabled={isLoading}
+            onClick={() => handleSocialAuth("twitter")}
+          >
+            <TwitterIcon />
+            {authLabels.twitter}
+          </Button>
+        )}
 
         <SiweButton mode={mode} disabled={isLoading} callbackURL={callbackURL} />
       </div>

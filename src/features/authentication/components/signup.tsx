@@ -19,8 +19,13 @@ import {
   hasPlanSelection,
   appendPlanSelectionToUrl,
 } from "@/lib/plan-selection";
+import type { OAuthProvider } from "@/lib/auth";
 
-export default function SignUp() {
+interface SignUpProps {
+  availableProviders?: OAuthProvider[];
+}
+
+export default function SignUp({ availableProviders }: SignUpProps) {
   const searchParams = useSearchParams();
 
   const planSelection = useMemo(
@@ -128,7 +133,7 @@ export default function SignUp() {
         </Button>
       </form>
 
-      <SocialAuthButtons mode="signup" disabled={loading} callbackURL={callbackURL} />
+      <SocialAuthButtons mode="signup" disabled={loading} callbackURL={callbackURL} availableProviders={availableProviders} />
 
       <p className="text-center text-sm mt-4">
         {locales.SignUpForm.alreadyHaveAccount}{" "}

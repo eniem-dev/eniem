@@ -20,6 +20,19 @@ import { AUTH_CONSTANTS } from "./auth.constants";
 
 export { AUTH_CONSTANTS };
 
+export type OAuthProvider = "github" | "twitter";
+
+export function getAvailableOAuthProviders(): OAuthProvider[] {
+  const providers: OAuthProvider[] = [];
+  if (env.oauth.github.clientId && env.oauth.github.clientSecret) {
+    providers.push("github");
+  }
+  if (env.oauth.twitter.clientId && env.oauth.twitter.clientSecret) {
+    providers.push("twitter");
+  }
+  return providers;
+}
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
