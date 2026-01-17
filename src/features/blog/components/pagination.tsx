@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { locales } from "@/locales";
 
 interface PaginationProps {
   currentPage: number;
@@ -23,7 +24,7 @@ export function Pagination({ currentPage, totalPages, basePath }: PaginationProp
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
           <ChevronLeft className="size-4" />
-          Previous
+          {locales.Pagination.previous}
         </Link>
       ) : (
         <span
@@ -33,12 +34,14 @@ export function Pagination({ currentPage, totalPages, basePath }: PaginationProp
           )}
         >
           <ChevronLeft className="size-4" />
-          Previous
+          {locales.Pagination.previous}
         </span>
       )}
 
       <span className="text-sm text-muted-foreground">
-        Page {currentPage} of {totalPages}
+        {locales.Pagination.pageOf
+          .replace("{current}", String(currentPage))
+          .replace("{total}", String(totalPages))}
       </span>
 
       {hasNext ? (
@@ -46,7 +49,7 @@ export function Pagination({ currentPage, totalPages, basePath }: PaginationProp
           href={`${basePath}?page=${currentPage + 1}`}
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
-          Next
+          {locales.Pagination.next}
           <ChevronRight className="size-4" />
         </Link>
       ) : (
@@ -56,7 +59,7 @@ export function Pagination({ currentPage, totalPages, basePath }: PaginationProp
             "pointer-events-none opacity-50"
           )}
         >
-          Next
+          {locales.Pagination.next}
           <ChevronRight className="size-4" />
         </span>
       )}

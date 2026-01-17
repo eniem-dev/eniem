@@ -3,13 +3,10 @@ import Link from "next/link";
 import { posts } from "#site/content";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
-import { PostContent } from "@/features/blog";
-import { env } from "@/config";
+import { PostContent, PostHeader } from "@/features/blog";
+import type { BlogPostPageProps } from "@/features/blog";
+import { env, routes } from "@/config";
 import { ChevronLeft } from "lucide-react";
-
-interface BlogPostPageProps {
-  params: Promise<{ slug: string }>;
-}
 
 export async function generateStaticParams() {
   return posts.map((post) => ({
@@ -24,7 +21,7 @@ export async function generateMetadata({ params }: BlogPostPageProps) {
   if (!post) {
     return createMetadata({
       ...getDefaultMetadata(),
-      title: "Post Not Found",
+      title: locales.BlogPostPage.notFound,
     });
   }
 
@@ -47,39 +44,19 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
   return (
     <div className="py-16 max-w-3xl mx-auto">
       <Link
-        href="/blog"
+        href={routes.blog}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-8"
       >
         <ChevronLeft className="size-4" />
         {locales.BlogPostPage.backToBlog}
       </Link>
 
-      <header className="mb-8">
-        <time
-          dateTime={post.date}
-          className="text-sm text-muted-foreground"
-        >
-          {new Date(post.date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </time>
-        <h1 className="mt-2 text-4xl font-bold tracking-tight">{post.title}</h1>
-        <p className="mt-4 text-xl text-muted-foreground">{post.description}</p>
-        {post.tags && post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {post.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </header>
+      <PostHeader
+        date={post.date}
+        title={post.title}
+        description={post.description}
+        tags={post.tags}
+      />
 
       <PostContent code={post.content} />
     </div>

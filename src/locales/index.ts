@@ -593,6 +593,7 @@ export const locales = {
       titleTemplate: "%s - Blog",
     },
     backToBlog: "Back to blog",
+    notFound: "Post Not Found",
   },
 
   PricingCard: {
@@ -622,5 +623,15 @@ export const locales = {
         "Additional yearly benefit",
       ],
     },
+  },
+
+  PoweredByBadge: {
+    text: "Powered by eniem.dev",
+  },
+
+  Pagination: {
+    previous: "Previous",
+    next: "Next",
+    pageOf: "Page {current} of {total}",
   },
 } as const;

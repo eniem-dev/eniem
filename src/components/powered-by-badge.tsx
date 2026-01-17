@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { locales } from "@/locales";
 
 export function PoweredByBadge({ className }: { className?: string }) {
   return (
@@ -50,7 +51,7 @@ export function PoweredByBadge({ className }: { className?: string }) {
           strokeWidth="16"
         />
       </svg>
-      <span>Powered by eniem.dev</span>
+      <span>{locales.PoweredByBadge.text}</span>
     </Link>
   );
 }
