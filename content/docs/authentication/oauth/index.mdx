@@ -86,6 +86,10 @@ Usage in login/signup forms:
 <SocialAuthButtons mode="signin" disabled={loading} />
 ```
 
+## Conditional OAuth Buttons
+
+OAuth buttons only appear when their respective environment variables are configured. This prevents showing non-functional auth options to users. The SIWE (wallet) button always appears regardless of OAuth configuration.
+
 ## Adding More Providers
 
 BetterAuth supports many OAuth providers out of the box including Google, Discord, Apple, Facebook, and more. Adding a new provider requires three steps: configuring the server, setting environment variables, and updating the UI.

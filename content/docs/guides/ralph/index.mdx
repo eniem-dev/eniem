@@ -1,163 +1,199 @@
 ---
 title: "AI-Driven Development with Ralph"
-description: "Automate feature implementation using Claude Code and user stories."
+description: "Automate feature implementation using Claude Code with spec-based planning and building."
 ---
 
-Ralph is an automated workflow that implements user stories using Claude Code. It reads a PRD (Product Requirements Document), implements stories one by one, and tracks progress.
+Ralph is an autonomous AI coding workflow that uses Claude Code to implement features from specifications. It follows a spec-driven approach: define requirements in `specs/`, generate an implementation plan, then let Claude build iteratively.
 
 ## Setup
 
-Make scripts executable after cloning:
+Make the loop script executable after cloning:
 
 ```bash
-chmod +x .ralph/*.sh
+chmod +x loop.sh
 ```
 
 ## How It Works
 
-1. **prd.json** defines user stories with acceptance criteria
-2. **prompt.md** instructs Claude to implement stories sequentially
-3. Ralph picks the highest priority story where `passes: false`
-4. Implements it, runs checks, commits, updates progress
-5. Outputs `<promise>COMPLETE</promise>` when all stories pass
+1. **Create specs** via `/spec-interview` or manually in `specs/*.md`
+2. **Plan** analyzes specs and generates `IMPLEMENTATION_PLAN.md`
+3. **Build** implements tasks one at a time, validates, commits, and loops
+
+```
+specs/*.md → plan → IMPLEMENTATION_PLAN.md → build → committed code
+```
 
 ## Quick Start
 
 ```bash
-# List available implementations
-pnpm feature:list
+# 1. Create a spec for your feature
+/spec-interview user-authentication
 
-# Create new feature (interactive planning)
-pnpm feature:create
+# 2. Generate implementation plan (scoped to your feature)
+pnpm ralph:plan-work "user authentication"
 
-# Implement a feature
-pnpm feature:implement -- issue-123
+# 3. Build iteratively (1 iteration, supervised)
+pnpm ralph:build
 
-# Single iteration
-pnpm feature:implement-once -- issue-123
+# 4. Or run autonomously (10 iterations)
+pnpm ralph:build:auto
 ```
 
-## Planning a Feature
+## Commands
 
-Use planning mode to define features interactively before implementation:
+| Command | Description |
+| ------- | ----------- |
+| `pnpm ralph:plan` | Full planning from all specs |
+| `pnpm ralph:plan-work "desc"` | Scoped planning for specific work |
+| `pnpm ralph:build` | Single build iteration (supervised) |
+| `pnpm ralph:build:auto` | 10 build iterations (autonomous) |
+
+## Modes
+
+### Plan Mode
+
+Analyzes all specs and generates a prioritized implementation plan:
 
 ```bash
-.ralph/ralph-plan.sh
+pnpm ralph:plan
+# or with interactive output
+./loop.sh plan -i
 ```
 
-This will:
-1. Ask questions about your feature
-2. Create a detailed plan
-3. Create a GitHub issue with the plan
-4. Optionally generate `prd.json` in `implementations/`
+Uses `PROMPT_plan.md` to:
+- Study specs with parallel Sonnet subagents
+- Perform gap analysis against existing code
+- Generate `IMPLEMENTATION_PLAN.md` with prioritized tasks
 
-**From existing GitHub issue:**
+### Work-Scoped Plan Mode
+
+Creates a focused plan for specific work:
 
 ```bash
-.ralph/ralph-plan.sh https://github.com/org/repo/issues/123
+pnpm ralph:plan-work "user authentication"
+# or
+./loop.sh plan-work "user authentication" -i
 ```
 
-This skips planning and generates `prd.json` directly from the issue.
+Uses `PROMPT_plan_work.md` to:
+- Focus only on specs relevant to the scope
+- Generate a plan with branch creation as first task
+- Include PR creation as final task
 
-## Manual Setup
+### Build Mode
 
-1. Create a folder in `implementations/`:
+Implements tasks from the plan one at a time:
 
 ```bash
-mkdir -p .ralph/implementations/feat-my-feature
+# Single iteration (supervised)
+pnpm ralph:build
+
+# Multiple iterations (autonomous)
+./loop.sh build 10
+
+# Interactive mode (watch Claude work)
+./loop.sh build 5 -i
 ```
 
-2. Copy and customize the PRD:
+Uses `PROMPT_build.md` to:
+1. Select the most important task from the plan
+2. Search codebase to verify it doesn't already exist
+3. Implement using parallel Sonnet subagents
+4. Validate (build, lint, tests must pass)
+5. Update plan and commit
+6. Exit for fresh context on next iteration
+
+## Creating Specs
+
+Use the `/spec-interview` command for guided spec creation:
 
 ```bash
-cp .ralph/prd.json .ralph/implementations/feat-my-feature/
-cp .ralph/progress.txt .ralph/implementations/feat-my-feature/
+/spec-interview analytics-dashboard
 ```
 
-3. Edit `prd.json` with your stories
+The interview covers:
+1. **Purpose & JTBD**: What job does this feature accomplish?
+2. **Target User**: Who uses this feature?
+3. **Scope**: What's included and excluded?
+4. **Requirements**: Must-have vs nice-to-have
+5. **Constraints**: Technical and performance limits
+6. **Acceptance Criteria**: Testable success conditions
+7. **Edge Cases**: Error states and boundaries
 
-## Running Ralph
+Output is saved to `specs/<feature-name>.md`.
 
-Specify the implementation folder to work on:
+## Claude Commands
 
-**Single iteration:**
+### `/spec-interview`
+
+Interactive spec creation through guided questions:
 
 ```bash
-.ralph/ralph-once.sh issue-123
+/spec-interview <feature-name>
 ```
 
-**Loop until complete (max 10 iterations):**
+### `/fix-code-review`
+
+Automatically address GitHub PR review comments:
 
 ```bash
-.ralph/ralph.sh issue-123
+/fix-code-review https://github.com/owner/repo/pull/123
 ```
 
-**Loop with custom max:**
+Process:
+1. Fetches review comments from the PR
+2. Analyzes and proposes fixes
+3. Shows plan for approval
+4. Applies approved fixes
+5. Validates (build, lint, tests)
+6. Detects pattern gaps for CLAUDE.md updates
 
-```bash
-.ralph/ralph.sh issue-123 20
-```
+## Guardrails
 
-**Interactive mode (see output live):**
+Ralph follows strict guardrails (9-series numbering for priority):
 
-```bash
-.ralph/ralph.sh issue-123 -i
-```
-
-**With git worktree (work in separate directory):**
-
-```bash
-.ralph/ralph.sh issue-123 -w
-```
-
-**Combined options:**
-
-```bash
-.ralph/ralph.sh issue-123 20 -i -w
-```
-
-## PRD Format
-
-```json
-{
-  "branchName": "feat/feature-name",
-  "stories": [
-    {
-      "id": "001",
-      "title": "Story title",
-      "acceptanceCriteria": [
-        "AC 1",
-        "AC 2"
-      ],
-      "priority": 1,
-      "passes": false,
-      "notes": "Optional notes"
-    }
-  ]
-}
-```
-
-## Rules
-
-- Stories are implemented in priority order (lowest number first)
-- Only ONE story per iteration
-- Commits use conventional format (no story IDs)
-- Progress is appended after each story
-- `passes: true` marks a story as complete
+- **Single sources of truth** - No migrations or backwards compatibility adapters
+- **Search before implementing** - Never assume functionality is missing
+- **One task per iteration** - Fresh context prevents drift
+- **Validation required** - Never commit failing code
+- **Follow existing patterns** - CLAUDE.md conventions over new ones
+- **WHY over WHAT** - Documentation captures reasoning
 
 ## Folder Structure
 
 ```
-.ralph/
-├── prompt.md           # Implementation prompt
-├── prompt-plan.md      # Planning prompt
-├── ralph.sh            # Implementation loop runner
-├── ralph-once.sh       # Single implementation iteration
-├── ralph-plan.sh       # Planning mode (creates PRDs)
-├── prd.json            # Sample PRD template
-├── progress.txt        # Sample progress template
-└── implementations/    # Feature implementations (not committed)
-    └── feat-xxx/
-        ├── prd.json
-        └── progress.txt
+repo/
+├── loop.sh                 # Main orchestration script
+├── PROMPT_plan.md          # Full planning prompt
+├── PROMPT_plan_work.md     # Work-scoped planning prompt
+├── PROMPT_build.md         # Build mode prompt
+├── IMPLEMENTATION_PLAN.md  # Generated task list (gitignored)
+├── CLAUDE.md               # Project conventions
+├── specs/                  # Feature specifications
+│   ├── user-auth.md
+│   └── analytics.md
+└── .claude/
+    └── commands/           # Claude Code slash commands
+        ├── spec-interview.md
+        └── fix-code-review.md
+```
+
+## Workflow Example
+
+```bash
+# 1. Interview for new feature
+/spec-interview user-dashboard
+
+# 2. Plan the implementation
+pnpm ralph:plan-work "user dashboard"
+
+# 3. Review the generated plan
+cat IMPLEMENTATION_PLAN.md
+
+# 4. Build iteratively
+pnpm ralph:build      # Run once, review
+pnpm ralph:build      # Run again
+pnpm ralph:build:auto # Or let it run autonomously
+
+# 5. PR is created automatically as final task
 ```

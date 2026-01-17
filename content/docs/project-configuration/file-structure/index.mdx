@@ -15,7 +15,9 @@ repo/
 ├── config/        # Environment & app configuration
 ├── locales/       # Internationalization
 ├── prisma/        # Database schema & migrations
-└── public/        # Static assets
+├── public/        # Static assets
+├── content/       # MDX content (blog posts)
+└── src/test/      # Test utilities and setup
 ```
 
 | Folder        | Purpose                                           |
@@ -29,6 +31,51 @@ repo/
 | `locales/`    | Centralized internationalization strings          |
 | `prisma/`     | Database schema and migrations                    |
 | `public/`     | Static assets (images, fonts, etc.)               |
+| `content/`    | MDX content for blog posts                        |
+| `src/test/`   | Test setup and mocks                              |
+
+## Content Directory
+
+The `content/` directory holds MDX content processed by [Velite](https://velite.js.org/):
+
+```
+content/
+└── blog/                    # Blog posts (MDX)
+    ├── hello-world.mdx
+    └── another-post.mdx
+```
+
+Velite compiles MDX to `.velite/` at build time. Import content using the path alias:
+
+```ts
+import { posts } from "#site/content";
+```
+
+Configuration is in `velite.config.ts`. See [Blog](/features/blog) for details.
+
+## Test Structure
+
+Test utilities live in `src/test/`:
+
+```
+src/test/
+├── setup.ts           # Global mocks (next/navigation, next/headers)
+└── prisma-mock.ts     # Prisma mock singleton
+```
+
+Test files are colocated with source files:
+
+```
+src/lib/
+├── utils.ts
+└── utils.test.ts      # Tests next to source
+
+src/components/ui/
+├── badge.tsx
+└── badge.test.tsx
+```
+
+Configuration is in `vitest.config.mts`. See [Testing](/features/testing) for details.
 
 ## App Router Structure
 
