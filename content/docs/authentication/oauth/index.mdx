@@ -88,50 +88,7 @@ Usage in login/signup forms:
 
 ## Conditional OAuth Buttons
 
-OAuth buttons only appear when their respective environment variables are configured. This prevents showing non-functional auth options to users.
-
-**Server-side detection** in `lib/auth.ts`:
-
-```typescript
-export type OAuthProvider = "github" | "twitter";
-
-export function getAvailableOAuthProviders(): OAuthProvider[] {
-  const providers: OAuthProvider[] = [];
-  if (env.oauth.github.clientId && env.oauth.github.clientSecret) {
-    providers.push("github");
-  }
-  if (env.oauth.twitter.clientId && env.oauth.twitter.clientSecret) {
-    providers.push("twitter");
-  }
-  return providers;
-}
-```
-
-**Usage in login/signup pages**:
-
-```typescript
-// app/(auth)/login/page.tsx
-import { getAvailableOAuthProviders } from "@/lib/auth";
-
-export default async function LoginPage() {
-  const availableProviders = getAvailableOAuthProviders();
-
-  return (
-    <Login availableProviders={availableProviders} />
-  );
-}
-```
-
-**Component receives available providers**:
-
-```typescript
-<SocialAuthButtons
-  mode="signin"
-  availableProviders={availableProviders}
-/>
-```
-
-The SIWE (wallet) button always appears regardless of OAuth configuration.
+OAuth buttons only appear when their respective environment variables are configured. This prevents showing non-functional auth options to users. The SIWE (wallet) button always appears regardless of OAuth configuration.
 
 ## Adding More Providers
 

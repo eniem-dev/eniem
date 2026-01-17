@@ -63,27 +63,7 @@ export function getPublishedPosts() {
 
 ## Callout Component
 
-Use callouts in your MDX content to highlight important information:
-
-```mdx
-<Callout type="info">
-This is an info callout for important information.
-</Callout>
-
-<Callout type="tip">
-This is a tip callout for helpful advice.
-</Callout>
-
-<Callout type="warning">
-This is a warning callout for potential issues.
-</Callout>
-
-<Callout type="danger">
-This is a danger callout for critical warnings.
-</Callout>
-```
-
-Available types: `info`, `tip`, `warning`, `danger`
+Use callouts in your MDX content to highlight important information. Available types: `info`, `tip`, `warning`, `danger`.
 
 ## Configuration
 
@@ -121,32 +101,6 @@ Velite compiles content to `.velite/` at build time. The `#site/content` path al
 
 ```ts
 import { posts } from "#site/content";
-```
-
-## Feature Structure
-
-```
-features/blog/
-├── index.ts                    # Public exports
-├── blog.model.ts               # Type definitions
-├── blog.utils.ts               # getPublishedPosts()
-└── components/
-    ├── callout.tsx             # Callout component for MDX
-    ├── pagination.tsx          # Pagination navigation
-    ├── post-card.tsx           # Post list card
-    ├── post-content.tsx        # MDX renderer
-    └── post-header.tsx         # Post page header
-```
-
-## Importing Blog Components
-
-```ts
-import {
-  PostCard,
-  PostContent,
-  Pagination,
-  getPublishedPosts
-} from "@/features/blog";
 ```
 
 ## SEO
