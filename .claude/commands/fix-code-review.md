@@ -22,20 +22,40 @@ Example: `/fix-code-review https://github.com/eniem-dev/eniem-boilerplate/pull/1
 6. **Validate**: Run build/lint to ensure fixes don't break anything
 7. **Summarize**: Show what was fixed
 
-## Step 1: Fetch Comments
+## Step 1: Fetch All Comments
 
-Use gh CLI to fetch PR review comments:
+GitHub PRs have 3 types of comments - fetch ALL of them:
 
 ```bash
-gh pr view <pr-number> --json reviews,comments --repo <owner/repo>
+# 1. Review comments (line-specific feedback on the diff) - MOST IMPORTANT
 gh api repos/<owner>/<repo>/pulls/<pr-number>/comments
+
+# 2. Reviews with their body comments (approve/request changes summary)
+gh pr view <pr-number> --json reviews --repo <owner/repo>
+
+# 3. Issue comments (general conversation, not tied to code lines)
+gh pr view <pr-number> --json comments --repo <owner/repo>
 ```
 
+**Important**: `gh pr view --json comments` returns conversation comments, NOT the line-specific review comments. You MUST use the API endpoint to get line-specific feedback.
+
 Parse the response to extract:
-- File path
-- Line number (or line range)
-- Comment body (the feedback to address)
-- Author
+
+**From review comments (API):**
+- `path` - File path
+- `line` or `original_line` - Line number
+- `body` - Comment body (the feedback to address)
+- `user.login` - Author
+- `diff_hunk` - Context of the code being commented on
+
+**From reviews:**
+- `body` - Review summary comment
+- `state` - APPROVED, CHANGES_REQUESTED, COMMENTED
+- `author.login` - Reviewer
+
+**From issue comments:**
+- `body` - General feedback
+- `author.login` - Commenter
 
 ## Step 2: Build Fix Plan
 
