@@ -28,6 +28,7 @@ export const routes = {
     forgotPassword: "/forgot-password",
   },
 
+  blog: "/blog",
   dashboard: "/dashboard",
   legal: {
     termsOfService: "/terms-of-service",
