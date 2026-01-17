@@ -1,0 +1,220 @@
+---
+title: "Testing"
+description: "Unit testing with Vitest, React Testing Library, and Prisma mocking."
+---
+
+The project uses [Vitest](https://vitest.dev/) for unit testing with React Testing Library for component tests and mocked Prisma for database isolation.
+
+## Running Tests
+
+```bash
+# Run all tests once
+pnpm test
+
+# Run in watch mode during development
+pnpm test:watch
+
+# Generate coverage report
+pnpm test:coverage
+```
+
+## Test File Conventions
+
+Tests are colocated with source files using the `.test.ts` or `.test.tsx` suffix:
+
+```
+src/
+├── lib/
+│   ├── utils.ts
+│   └── utils.test.ts      # Unit tests for utils
+├── components/
+│   └── ui/
+│       ├── badge.tsx
+│       └── badge.test.tsx # Component tests
+└── features/
+    └── billing/
+        ├── billing.service.ts
+        └── billing.service.test.ts
+```
+
+## Writing Unit Tests
+
+Test utility functions directly:
+
+```ts
+// lib/utils.test.ts
+import { describe, it, expect } from "vitest";
+import { cn } from "./utils";
+
+describe("cn", () => {
+  it("merges class names", () => {
+    expect(cn("foo", "bar")).toBe("foo bar");
+  });
+
+  it("handles conditional classes", () => {
+    expect(cn("base", false && "hidden", true && "visible")).toBe("base visible");
+  });
+
+  it("handles undefined values", () => {
+    expect(cn("base", undefined)).toBe("base");
+  });
+});
+```
+
+## Writing Component Tests
+
+Use React Testing Library for component tests:
+
+```tsx
+// components/ui/badge.test.tsx
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { Badge } from "./badge";
+
+describe("Badge", () => {
+  it("renders children", () => {
+    render(<Badge>Test</Badge>);
+    expect(screen.getByText("Test")).toBeInTheDocument();
+  });
+
+  it("applies variant classes", () => {
+    render(<Badge variant="secondary">Secondary</Badge>);
+    const badge = screen.getByText("Secondary");
+    expect(badge).toHaveClass("bg-secondary");
+  });
+
+  it("accepts custom className", () => {
+    render(<Badge className="custom-class">Custom</Badge>);
+    expect(screen.getByText("Custom")).toHaveClass("custom-class");
+  });
+});
+```
+
+## Mocking Prisma
+
+Use the Prisma mock for database operations:
+
+```ts
+// Import the mock
+import { prismaMock } from "@/test/prisma-mock";
+
+describe("UserService", () => {
+  it("creates a user", async () => {
+    const mockUser = { id: "1", email: "test@example.com", name: "Test" };
+    prismaMock.user.create.mockResolvedValue(mockUser);
+
+    const result = await createUser({ email: "test@example.com", name: "Test" });
+
+    expect(prismaMock.user.create).toHaveBeenCalledWith({
+      data: { email: "test@example.com", name: "Test" },
+    });
+    expect(result).toEqual(mockUser);
+  });
+
+  it("finds user by email", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+
+    const result = await findUserByEmail("notfound@example.com");
+
+    expect(result).toBeNull();
+  });
+});
+```
+
+The mock is automatically reset between tests via `beforeEach` in `src/test/prisma-mock.ts`.
+
+## Test Setup
+
+The test setup file (`src/test/setup.ts`) provides common mocks:
+
+### Next.js Navigation
+
+```ts
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => "/",
+  useSearchParams: () => new URLSearchParams(),
+  useParams: () => ({}),
+  redirect: vi.fn(),
+  notFound: vi.fn(),
+}));
+```
+
+### Next.js Headers
+
+```ts
+vi.mock("next/headers", () => ({
+  headers: vi.fn(() => new Headers()),
+  cookies: vi.fn(() => ({
+    get: vi.fn(),
+    set: vi.fn(),
+    delete: vi.fn(),
+    has: vi.fn(),
+    getAll: vi.fn(() => []),
+  })),
+}));
+```
+
+## Configuration
+
+Vitest is configured in `vitest.config.mts`:
+
+```ts
+import react from "@vitejs/plugin-react";
+import { fileURLToPath, URL } from "url";
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    globals: true,
+    environment: "happy-dom",
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
+    exclude: ["node_modules", ".next"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "json", "html"],
+    },
+  },
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "#site/content": fileURLToPath(new URL("./.velite", import.meta.url)),
+    },
+  },
+});
+```
+
+Key settings:
+- **globals: true** - No need to import `describe`, `it`, `expect`
+- **environment: happy-dom** - Fast DOM implementation for component tests
+- **setupFiles** - Runs before each test file
+
+## Test Structure
+
+```
+src/test/
+├── setup.ts           # Global test setup and mocks
+└── prisma-mock.ts     # Prisma mock singleton
+```
+
+## Best Practices
+
+1. **Test behavior, not implementation** - Focus on what the code does, not how
+2. **Use descriptive test names** - `it("returns null when user not found")`
+3. **Arrange-Act-Assert** - Structure tests clearly
+4. **Mock at boundaries** - Database, external APIs, not internal modules
+5. **Keep tests fast** - Use mocks to avoid slow operations
+
+## Related
+
+- [Error Handling](/features/error-handling) - Testing error classes
+- [Server Utilities](/features/server-utilities) - Testing server actions

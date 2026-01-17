@@ -145,6 +145,55 @@ Specify the implementation folder to work on:
 - Progress is appended after each story
 - `passes: true` marks a story as complete
 
+## Claude Commands
+
+Ralph includes Claude Code slash commands for common workflows:
+
+### `/spec-interview`
+
+Interactively create a feature specification with guided questions:
+
+```bash
+/spec-interview analytics-dashboard
+```
+
+The interview process covers:
+1. **Problem Definition**: What problem are we solving?
+2. **User Context**: Who is the target user?
+3. **Requirements**: Must-have vs nice-to-have features
+4. **Acceptance Criteria**: What defines success?
+5. **Edge Cases**: Error states and boundary conditions
+6. **Technical Hints**: Files to modify, patterns to follow
+7. **Test Requirements**: Derived from acceptance criteria
+
+Output is saved to `specs/<feature-name>.md`.
+
+### `/fix-code-review`
+
+Automatically address GitHub PR review comments:
+
+```bash
+/fix-code-review https://github.com/owner/repo/pull/123
+```
+
+Process:
+1. Fetches all review comments from the PR
+2. Analyzes each comment and proposes fixes
+3. Shows a fix plan for approval
+4. Applies approved fixes
+5. Runs validation (build, lint, tests)
+6. Detects pattern gaps and suggests CLAUDE.md updates
+
+## Completion Signaling
+
+The build loop detects completion via a special marker. When all tasks are done, Claude outputs:
+
+```
+<complete>DONE</complete>
+```
+
+This signals `loop.sh` to stop iterating and exit successfully.
+
 ## Folder Structure
 
 ```
@@ -160,4 +209,9 @@ Specify the implementation folder to work on:
     └── feat-xxx/
         ├── prd.json
         └── progress.txt
+
+.claude/
+└── commands/           # Claude Code slash commands
+    ├── spec-interview.md
+    └── fix-code-review.md
 ```
