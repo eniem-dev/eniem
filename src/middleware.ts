@@ -11,7 +11,7 @@ const LANDING_MODE_ALLOWED_ROUTES = [
   routes.legal.privacy,
 ];
 
-// Public routes when NOT in landing mode
+// Public routes when NOT in landing mode (exact match)
 const PUBLIC_ROUTES = [
   routes.home,
   routes.homeRedirect,
@@ -23,6 +23,9 @@ const PUBLIC_ROUTES = [
   routes.legal.termsOfService,
   routes.legal.privacy,
 ];
+
+// Public route prefixes (matches route and all sub-paths)
+const PUBLIC_ROUTE_PREFIXES = [routes.blog];
 
 const AUTH_API_PREFIX = "/api/auth";
 
@@ -69,9 +72,12 @@ async function handleAccess(
 async function handleAuthentication(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
-  const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(AUTH_API_PREFIX)
-  );
+  const isPublicRoute =
+    PUBLIC_ROUTES.includes(pathname) ||
+    PUBLIC_ROUTE_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    ) ||
+    pathname.startsWith(AUTH_API_PREFIX);
 
   if (isPublicRoute) return NextResponse.next();
 

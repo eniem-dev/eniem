@@ -22,8 +22,13 @@ import {
   hasPlanSelection,
   appendPlanSelectionToUrl,
 } from "@/lib/plan-selection";
+import type { OAuthProvider } from "@/lib/auth";
 
-export default function Login() {
+interface LoginProps {
+  availableProviders?: OAuthProvider[];
+}
+
+export default function Login({ availableProviders }: LoginProps) {
   const searchParams = useSearchParams();
   const isFromSignup = searchParams.get("verified") === "pending";
   const emailFromSignup = searchParams.get("email") || "";
@@ -156,7 +161,7 @@ export default function Login() {
         )}
       </form>
 
-      <SocialAuthButtons mode="signin" disabled={loading} callbackURL={callbackURL} />
+      <SocialAuthButtons mode="signin" disabled={loading} callbackURL={callbackURL} availableProviders={availableProviders} />
 
       <p className="text-center text-sm mt-4">
         {locales.LoginForm.dontHaveAccount}{" "}

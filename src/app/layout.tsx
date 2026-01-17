@@ -1,6 +1,7 @@
 import "./globals.css";
 
 import { AnalyticsScript } from "@/components/analytics/analytics-script";
+import { PoweredByBadge } from "@/components/powered-by-badge";
 import { Providers } from "@/components/providers/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
@@ -23,6 +24,7 @@ export default async function RootLayout({
           <AnalyticsScript />
           <Toaster richColors position="top-center" />
           {children}
+          <PoweredByBadge />
         </Providers>
       </body>
     </html>

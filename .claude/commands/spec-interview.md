@@ -20,7 +20,9 @@ Example: `/spec-interview analytics-dashboard`
 4. **Requirements Gathering**: Identify specific requirements
 5. **Acceptance Criteria**: Define what success looks like
 6. **Edge Cases**: Explore error states and edge cases
-7. **Write Spec**: Create `specs/<feature-name>.md`
+7. **Technical Hints**: Identify files, patterns, dependencies
+8. **Test Requirements**: Derive test cases from acceptance criteria
+9. **Write Spec**: Create `specs/<feature-name>.md`
 
 ## Interview Questions (use AskUserQuestionTool)
 
@@ -52,6 +54,17 @@ Ask questions ONE AT A TIME. Adapt based on answers.
 - How will we know it's working correctly?
 - What are the success scenarios?
 - What are the failure scenarios?
+
+**Technical Hints** (explore codebase to answer these)
+- Which existing files will need modification?
+- Are there similar patterns in the codebase to follow?
+- Does this depend on other specs/features?
+- What new files will need to be created?
+
+**Test Requirements** (derive from acceptance criteria)
+- What unit tests are needed?
+- What integration tests are needed?
+- Are there edge cases that need specific tests?
 
 ## Output Format
 
@@ -92,6 +105,17 @@ After interview, create `specs/<feature-name>.md`:
 
 ## Out of Scope
 - Thing explicitly not included
+
+## Technical Hints
+- **Files to modify**: `src/lib/...`, `src/components/...`
+- **Files to create**: `src/features/<feature>/...`
+- **Patterns to follow**: See `src/features/settings/` for similar structure
+- **Dependencies**: Requires `specs/other-spec.md` (if applicable)
+
+## Test Requirements
+- [ ] Test: [derived from acceptance criterion 1]
+- [ ] Test: [derived from acceptance criterion 2]
+- [ ] Test: [edge case test]
 ```
 
 ## Guardrails
@@ -101,3 +125,5 @@ After interview, create `specs/<feature-name>.md`:
 - Keep questions focused and concise
 - Summarize understanding before writing spec
 - The spec captures WHAT and WHY, not HOW
+- Explore the codebase to fill Technical Hints section
+- Derive Test Requirements directly from Acceptance Criteria

@@ -65,4 +65,10 @@ The loop will restart with fresh context for the next task.
 
 - Task completed and committed → Exit normally
 - Validation failing after 3 attempts → Exit with error, do NOT commit
-- No tasks remaining in plan → Exit with completion message
+- No tasks remaining in plan → Output `<complete>DONE</complete>` and exit
+
+IMPORTANT: When ALL tasks in the plan are complete, you MUST output exactly:
+```
+<complete>DONE</complete>
+```
+This signals the loop to stop. Do NOT continue iterating when there's nothing left to do.

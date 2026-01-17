@@ -2,6 +2,7 @@ import Signup from "@/features/authentication/components/signup";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { Suspense } from "react";
+import { getAvailableOAuthProviders } from "@/lib/auth";
 
 export const metadata = createMetadata({
   ...getDefaultMetadata(),
@@ -10,9 +11,11 @@ export const metadata = createMetadata({
 });
 
 export default function SignupPage() {
+  const availableProviders = getAvailableOAuthProviders();
+
   return (
     <Suspense>
-      <Signup />
+      <Signup availableProviders={availableProviders} />
     </Suspense>
   );
 }
