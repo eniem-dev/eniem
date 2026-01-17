@@ -37,6 +37,8 @@ print_usage() {
   echo "  - CLAUDE.md with project conventions"
 }
 
+LAST_OUTPUT=""
+
 run_claude() {
   local prompt_file="$1"
   local work_scope="$2"
@@ -49,12 +51,18 @@ run_claude() {
   fi
 
   if $INTERACTIVE; then
-    # Interactive: run with --print-prompt so user sees Claude working
-    echo "$prompt_content" | claude --dangerously-skip-permissions
+    # Interactive: capture output while displaying
+    LAST_OUTPUT=$(echo "$prompt_content" | claude --dangerously-skip-permissions | tee /dev/tty)
   else
-    # Non-interactive: pipe mode
-    echo "$prompt_content" | claude --dangerously-skip-permissions -p
+    # Non-interactive: pipe mode, capture output
+    LAST_OUTPUT=$(echo "$prompt_content" | claude --dangerously-skip-permissions -p)
+    echo "$LAST_OUTPUT"
   fi
+}
+
+# Check if Claude signaled completion
+is_complete() {
+  echo "$LAST_OUTPUT" | grep -q "<complete>DONE</complete>"
 }
 
 check_requirements() {
@@ -136,7 +144,9 @@ case "${1:-}" in
         exit 1
       fi
 
-      if grep -q "No tasks remaining" "$SCRIPT_DIR/IMPLEMENTATION_PLAN.md" 2>/dev/null; then
+      # Check for completion marker
+      if is_complete; then
+        echo ""
         echo -e "${GREEN}=== All Tasks Complete ===${NC}"
         exit 0
       fi
