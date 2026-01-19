@@ -1,0 +1,104 @@
+{
+  "$schema": "./products.schema.json",
+  "products": [
+    {
+      "slug": "eniem",
+      "name": "ENIEM",
+      "description": "ENIEM product",
+      "type": "one_time",
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 100,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "ENIEM",
+        "subtitle": "One-time product",
+        "badge": null,
+        "features": [],
+        "highlighted": false,
+        "cta": "Buy Now"
+      },
+      "polarProductId": "4d5c4e71-2041-496b-b8cc-f72443e34f48"
+    },
+    {
+      "slug": "eniem-github",
+      "name": "ENIEM GitHub",
+      "description": "ENIEM GitHub product",
+      "type": "one_time",
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 100,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "ENIEM GitHub",
+        "subtitle": "One-time product",
+        "badge": null,
+        "features": [],
+        "highlighted": false,
+        "cta": "Buy Now"
+      },
+      "polarProductId": "fbd24ddc-323c-468e-aeca-ef0898acc547"
+    },
+    {
+      "slug": "pro-monthly",
+      "name": "Pro Monthly",
+      "description": "Full access to all features, billed monthly",
+      "type": "subscription",
+      "recurringInterval": "month",
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 1900,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "Basic Plan",
+        "subtitle": "Billed monthly",
+        "badge": null,
+        "features": [
+          "Your first feature benefit",
+          "Your second feature benefit",
+          "Your third feature benefit"
+        ],
+        "highlighted": false,
+        "cta": "Get Started"
+      },
+      "polarProductId": "d221378e-c19a-4f5e-9efb-52d06dcda288"
+    },
+    {
+      "slug": "pro-yearly",
+      "name": "Pro Yearly",
+      "description": "Full access to all features, billed yearly",
+      "type": "subscription",
+      "recurringInterval": "year",
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 19000,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "Pro Plan",
+        "subtitle": "Billed yearly",
+        "badge": "Best Value",
+        "features": [
+          "Your first feature benefit",
+          "Your second feature benefit",
+          "Your third feature benefit",
+          "Additional yearly benefit"
+        ],
+        "highlighted": true,
+        "cta": "Get Started"
+      },
+      "polarProductId": "3c3e4211-ef96-4861-a939-7bbd8d3c629b"
+    }
+  ]
+}

@@ -15,3 +15,13 @@ export {
 
 // Queries
 export { getSubscriptionQuery } from "./queries/subscription.query";
+
+// Generated Products
+export type { ProductDisplay, GeneratedProduct } from "./products.generated";
+export {
+  sandboxProducts,
+  productionProducts,
+  getProducts,
+  getCheckoutProducts,
+  getDisplayProducts,
+} from "./products.generated";

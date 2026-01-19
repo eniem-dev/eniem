@@ -1,0 +1,60 @@
+{
+  "$schema": "./products.schema.json",
+  "products": [
+    {
+      "slug": "pro-monthly",
+      "name": "Pro Monthly",
+      "description": "Full access to all features, billed monthly",
+      "type": "subscription",
+      "recurringInterval": "month",
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 1900,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "Basic Plan",
+        "subtitle": "Billed monthly",
+        "badge": null,
+        "features": [
+          "Your first feature benefit",
+          "Your second feature benefit",
+          "Your third feature benefit"
+        ],
+        "highlighted": false,
+        "cta": "Get Started"
+      },
+      "polarProductId": null
+    },
+    {
+      "slug": "pro-yearly",
+      "name": "Pro Yearly",
+      "description": "Full access to all features, billed yearly",
+      "type": "subscription",
+      "recurringInterval": "year",
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 19000,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "Pro Plan",
+        "subtitle": "Billed yearly",
+        "badge": "Best Value",
+        "features": [
+          "Your first feature benefit",
+          "Your second feature benefit",
+          "Your third feature benefit",
+          "Additional yearly benefit"
+        ],
+        "highlighted": true,
+        "cta": "Get Started"
+      },
+      "polarProductId": null
+    }
+  ]
+}
