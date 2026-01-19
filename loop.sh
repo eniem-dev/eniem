@@ -51,8 +51,12 @@ run_claude() {
   fi
 
   if $INTERACTIVE; then
-    # Interactive: capture output while displaying
-    LAST_OUTPUT=$(echo "$prompt_content" | claude --dangerously-skip-permissions | tee /dev/tty)
+    # Interactive: use script to preserve TTY for full UI while capturing output
+    local tmp_output
+    tmp_output=$(mktemp)
+    script -q "$tmp_output" claude --dangerously-skip-permissions "$prompt_content"
+    LAST_OUTPUT=$(cat "$tmp_output")
+    rm -f "$tmp_output"
   else
     # Non-interactive: pipe mode, capture output
     LAST_OUTPUT=$(echo "$prompt_content" | claude --dangerously-skip-permissions -p)
