@@ -239,7 +239,7 @@ function updateJsonConfig(products: Product[]) {
 }
 
 function generateTypeScript(sandboxProducts: Product[], productionProducts: Product[]) {
-  const formatProductTs = (p: Product) => {
+  const formatProductToTypeScript = (p: Product) => {
     const price = formatPrice(p.prices[0]);
     const period = formatPeriod(p);
     return `  {
@@ -283,11 +283,11 @@ export interface GeneratedProduct {
 }
 
 export const sandboxProducts: GeneratedProduct[] = [
-${sandboxProducts.map(formatProductTs).join(",\n")}
+${sandboxProducts.map(formatProductToTypeScript).join(",\n")}
 ] as const;
 
 export const productionProducts: GeneratedProduct[] = [
-${productionProducts.map(formatProductTs).join(",\n")}
+${productionProducts.map(formatProductToTypeScript).join(",\n")}
 ] as const;
 
 export function getProducts(env: "sandbox" | "production"): GeneratedProduct[] {
