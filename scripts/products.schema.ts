@@ -26,6 +26,7 @@ const priceSchema = z.discriminatedUnion("amountType", [
 ]);
 
 // Display schema for pricing UI
+// Note: price and period are calculated from prices array, not stored in JSON
 const displaySchema = z.object({
   title: z.string().min(1),
   subtitle: z.string().optional(),
@@ -81,3 +82,27 @@ export type FreePrice = z.infer<typeof freePriceSchema>;
 export type ProductDisplay = z.infer<typeof displaySchema>;
 export type Product = z.infer<typeof productSchema>;
 export type ProductConfig = z.infer<typeof productConfigSchema>;
+
+// Helper to format cents to display price
+export function formatPrice(price: Price): string {
+  if (price.amountType === "free") return "$0";
+  if (price.amountType === "custom") {
+    const preset = price.presetAmount ?? price.minimumAmount ?? 0;
+    return `$${Math.floor(preset / 100)}+`;
+  }
+  // Fixed price
+  const dollars = price.amount / 100;
+  return dollars % 1 === 0 ? `$${dollars}` : `$${dollars.toFixed(2)}`;
+}
+
+// Helper to get period string from product
+export function formatPeriod(product: Product): string | undefined {
+  if (product.type !== "subscription" || !product.recurringInterval) {
+    return undefined;
+  }
+  const count = product.recurringIntervalCount ?? 1;
+  if (count === 1) {
+    return `/${product.recurringInterval}`;
+  }
+  return `/${count} ${product.recurringInterval}s`;
+}

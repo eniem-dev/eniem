@@ -29,8 +29,8 @@ export default function PricingPage() {
           <PricingCard
             key={product.slug}
             name={product.display.title}
-            price="$XX"
-            period={product.type === "subscription" ? "/month" : ""}
+            price={product.display.price}
+            period={product.display.period ?? ""}
             billing={product.display.subtitle ?? ""}
             features={product.display.features}
             slug={product.slug}

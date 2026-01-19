@@ -17,6 +17,7 @@
           "amount": 1900,              // Cents. Min 50 ($0.50), max 99999999 ($999,999.99)
           "currency": "usd"            // Only "usd" supported
         }
+        // NOTE: price string ($19) and period (/month) are auto-calculated from this
       ],
       "display": {
         "title": "Pro",                // Card title
@@ -79,7 +80,7 @@
           "amountType": "custom",      // Pay-what-you-want pricing
           "minimumAmount": 500,        // Optional min ($5.00)
           "maximumAmount": 10000,      // Optional max ($100.00)
-          "presetAmount": 1000,        // Optional default suggestion ($10.00)
+          "presetAmount": 1000,        // Optional default suggestion ($10.00) - used for display price
           "currency": "usd"
         }
       ],

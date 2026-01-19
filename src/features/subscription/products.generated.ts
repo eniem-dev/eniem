@@ -4,6 +4,8 @@
 export interface ProductDisplay {
   title: string;
   subtitle?: string;
+  price: string;
+  period?: string;
   badge: string | null;
   features: string[];
   highlighted: boolean;
@@ -27,6 +29,8 @@ export const sandboxProducts: GeneratedProduct[] = [
     display: {
       title: "ENIEM",
       subtitle: "One-time product",
+      price: "$1",
+      period: undefined,
       badge: null,
       features: [],
       highlighted: false,
@@ -41,6 +45,8 @@ export const sandboxProducts: GeneratedProduct[] = [
     display: {
       title: "ENIEM GitHub",
       subtitle: "One-time product",
+      price: "$1",
+      period: undefined,
       badge: null,
       features: [],
       highlighted: false,
@@ -55,6 +61,8 @@ export const sandboxProducts: GeneratedProduct[] = [
     display: {
       title: "Basic Plan",
       subtitle: "Billed monthly",
+      price: "$19",
+      period: "/month",
       badge: null,
       features: ["Your first feature benefit","Your second feature benefit","Your third feature benefit"],
       highlighted: false,
@@ -69,6 +77,8 @@ export const sandboxProducts: GeneratedProduct[] = [
     display: {
       title: "Pro Plan",
       subtitle: "Billed yearly",
+      price: "$190",
+      period: "/year",
       badge: "Best Value",
       features: ["Your first feature benefit","Your second feature benefit","Your third feature benefit","Additional yearly benefit"],
       highlighted: true,
@@ -86,6 +96,8 @@ export const productionProducts: GeneratedProduct[] = [
     display: {
       title: "Basic Plan",
       subtitle: "Billed monthly",
+      price: "$19",
+      period: "/month",
       badge: null,
       features: ["Your first feature benefit","Your second feature benefit","Your third feature benefit"],
       highlighted: false,
@@ -100,6 +112,8 @@ export const productionProducts: GeneratedProduct[] = [
     display: {
       title: "Pro Plan",
       subtitle: "Billed yearly",
+      price: "$190",
+      period: "/year",
       badge: "Best Value",
       features: ["Your first feature benefit","Your second feature benefit","Your third feature benefit","Additional yearly benefit"],
       highlighted: true,
