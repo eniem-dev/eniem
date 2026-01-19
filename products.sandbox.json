@@ -7,7 +7,14 @@
       "description": "Full access to all features, billed monthly",
       "type": "subscription",
       "recurringInterval": "month",
-      "prices": [{ "amountType": "fixed", "amount": 1900, "currency": "usd" }],
+      "recurringIntervalCount": 1,
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 1900,
+          "currency": "usd"
+        }
+      ],
       "display": {
         "title": "Pro",
         "subtitle": "Billed monthly",
@@ -21,7 +28,7 @@
         "highlighted": false,
         "cta": "Get Started"
       },
-      "polarProductId": null
+      "polarProductId": "b11de49b-1588-4283-be99-e8369899d7d1"
     },
     {
       "slug": "pro-yearly",
@@ -29,7 +36,14 @@
       "description": "Full access to all features, billed yearly",
       "type": "subscription",
       "recurringInterval": "year",
-      "prices": [{ "amountType": "fixed", "amount": 19000, "currency": "usd" }],
+      "recurringIntervalCount": 1,
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 19000,
+          "currency": "usd"
+        }
+      ],
       "display": {
         "title": "Pro",
         "subtitle": "Billed yearly",
@@ -44,14 +58,21 @@
         "highlighted": true,
         "cta": "Get Started"
       },
-      "polarProductId": null
+      "polarProductId": "114d3505-22e6-4718-89a2-560bba9b7d40"
     },
     {
       "slug": "lifetime",
       "name": "Lifetime Access",
       "description": "One-time payment for forever access",
       "type": "one_time",
-      "prices": [{ "amountType": "fixed", "amount": 29900, "currency": "usd" }],
+      "recurringIntervalCount": 1,
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 29900,
+          "currency": "usd"
+        }
+      ],
       "display": {
         "title": "Lifetime",
         "subtitle": "Pay once, own forever",
@@ -65,7 +86,7 @@
         "highlighted": false,
         "cta": "Buy Now"
       },
-      "polarProductId": null
+      "polarProductId": "201a345e-0b86-4602-8583-d87a83a2b18e"
     }
   ]
 }

@@ -23,7 +23,7 @@ export interface GeneratedProduct {
 export const sandboxProducts: GeneratedProduct[] = [
   {
     slug: "pro-monthly",
-    productId: null,
+    productId: "b11de49b-1588-4283-be99-e8369899d7d1",
     name: "Pro Monthly",
     type: "subscription",
     display: {
@@ -39,7 +39,7 @@ export const sandboxProducts: GeneratedProduct[] = [
   },
   {
     slug: "pro-yearly",
-    productId: null,
+    productId: "114d3505-22e6-4718-89a2-560bba9b7d40",
     name: "Pro Yearly",
     type: "subscription",
     display: {
@@ -55,7 +55,7 @@ export const sandboxProducts: GeneratedProduct[] = [
   },
   {
     slug: "lifetime",
-    productId: null,
+    productId: "201a345e-0b86-4602-8583-d87a83a2b18e",
     name: "Lifetime Access",
     type: "one_time",
     display: {

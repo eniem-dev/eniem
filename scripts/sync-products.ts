@@ -5,14 +5,19 @@
  * Syncs products from JSON config to Polar API and generates TypeScript exports.
  *
  * Usage:
- *   pnpm products:sync              # Sync based on POLAR_SERVER env
- *   pnpm products:sync --env=sandbox
- *   pnpm products:sync --env=production
- *   pnpm products:sync --dry-run    # Preview without making changes
+ *   pnpm products:sync <access_token> <organization_id> [options]
+ *
+ * Options:
+ *   --env=sandbox|production  Target environment (default: sandbox)
+ *   --dry-run                 Preview without making changes
+ *
+ * Example:
+ *   pnpm products:sync pol_xxx org_xxx --env=sandbox
  */
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Polar } from "@polar-sh/sdk";
 import {
   productConfigSchema,
@@ -24,35 +29,33 @@ import {
 
 // Parse CLI args
 const args = process.argv.slice(2);
+const positionalArgs = args.filter((a) => !a.startsWith("--"));
+const polarAccessToken = positionalArgs[0];
+const polarOrganizationId = positionalArgs[1];
 const dryRun = args.includes("--dry-run");
 const envArg = args.find((a) => a.startsWith("--env="))?.split("=")[1] as
   | "sandbox"
   | "production"
   | undefined;
+const polarServer = envArg || "sandbox";
 
-// Load environment
-const polarServer = envArg || process.env.POLAR_SERVER || "sandbox";
-const polarAccessToken = process.env.POLAR_ACCESS_TOKEN;
-const polarOrganizationId = process.env.POLAR_ORGANIZATION_ID;
-
-if (!polarAccessToken) {
-  console.error("Error: POLAR_ACCESS_TOKEN is required");
-  process.exit(1);
-}
-
-if (!polarOrganizationId) {
-  console.error("Error: POLAR_ORGANIZATION_ID is required");
+// Validate required args
+if (!polarAccessToken || !polarOrganizationId) {
+  console.error("Usage: pnpm products:sync <access_token> <organization_id> [--env=sandbox|production] [--dry-run]");
+  console.error("\nExample:");
+  console.error("  pnpm products:sync pol_xxx org_xxx --env=sandbox");
   process.exit(1);
 }
 
 // Initialize Polar client
 const polarClient = new Polar({
   accessToken: polarAccessToken,
-  server: polarServer as "sandbox" | "production",
+  server: polarServer,
 });
 
 // File paths
-const projectRoot = path.resolve(import.meta.dirname, "..");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(__dirname, "..");
 const jsonPath = path.join(projectRoot, `products.${polarServer}.json`);
 const generatedPath = path.join(projectRoot, "src/features/subscription/products.generated.ts");
 
@@ -93,7 +96,6 @@ async function fetchExistingProducts(): Promise<Map<string, { id: string; name: 
     });
 
     for (const product of response.result.items) {
-      // Match by slug in metadata or by product ID
       const slug = (product.metadata as Record<string, string>)?.slug;
       if (slug) {
         products.set(slug, { id: product.id, name: product.name });
@@ -114,42 +116,29 @@ async function fetchExistingProducts(): Promise<Map<string, { id: string; name: 
 
 function buildPolarProductPayload(product: Product) {
   const price = product.prices[0];
-  const basePayload = {
-    name: product.name,
-    description: product.description,
-    metadata: { slug: product.slug },
-    organizationId: polarOrganizationId,
-    prices:
-      price.amountType === "fixed"
-        ? [
-            {
-              amountType: "fixed" as const,
-              priceAmount: price.amount,
-              priceCurrency: price.currency,
-            },
-          ]
-        : price.amountType === "custom"
-          ? [
-              {
-                amountType: "custom" as const,
-                minimumAmount: price.minimumAmount,
-                maximumAmount: price.maximumAmount,
-                presetAmount: price.presetAmount,
-                priceCurrency: price.currency,
-              },
-            ]
-          : [{ amountType: "free" as const }],
-  };
+
+  const prices = price.amountType === "fixed"
+    ? [{ amountType: "fixed" as const, priceAmount: price.amount, priceCurrency: price.currency }]
+    : price.amountType === "custom"
+      ? [{ amountType: "custom" as const, minimumAmount: price.minimumAmount, maximumAmount: price.maximumAmount, presetAmount: price.presetAmount, priceCurrency: price.currency }]
+      : [{ amountType: "free" as const }];
 
   if (product.type === "subscription" && product.recurringInterval) {
     return {
-      ...basePayload,
+      name: product.name,
+      description: product.description,
+      metadata: { slug: product.slug },
+      prices,
       recurringInterval: product.recurringInterval,
-      recurringIntervalCount: product.recurringIntervalCount ?? 1,
     };
   }
 
-  return basePayload;
+  return {
+    name: product.name,
+    description: product.description,
+    metadata: { slug: product.slug },
+    prices,
+  };
 }
 
 async function syncProducts(
@@ -177,7 +166,6 @@ async function syncProducts(
 
     try {
       if (polarId) {
-        // Update existing product
         const payload = buildPolarProductPayload(product);
         await polarClient.products.update({
           id: polarId,
@@ -187,11 +175,8 @@ async function syncProducts(
         stats.updated++;
         updatedProducts.push({ ...product, polarProductId: polarId });
       } else {
-        // Create new product
         const payload = buildPolarProductPayload(product);
-        const result = await polarClient.products.create({
-          body: payload,
-        });
+        const result = await polarClient.products.create(payload);
         console.log(`Created: ${product.slug} (${result.id})`);
         stats.created++;
         updatedProducts.push({ ...product, polarProductId: result.id });
@@ -216,7 +201,6 @@ async function syncProducts(
         display: {
           title: name,
           subtitle: "TODO: Add subtitle",
-          price: "$0",
           badge: null,
           features: [],
           highlighted: false,
@@ -350,7 +334,6 @@ async function main() {
   if (!dryRun) {
     console.log("Generating TypeScript exports...");
 
-    // Load both configs for generation
     let sandboxProducts: Product[] = [];
     let productionProducts: Product[] = [];
 
