@@ -4,6 +4,7 @@ import {
   createPolarClient,
   productToPolarCreate,
   createPolarProduct,
+  checkProductExists,
   _parseEnvContent,
   type PolarCredentials,
 } from "../polar.js";
@@ -14,14 +15,15 @@ vi.mock("fs/promises", () => ({
   readFile: vi.fn(),
 }));
 
-// Create a mock create function that can be controlled per test
+// Create mock functions that can be controlled per test
 const mockProductsCreate = vi.fn();
+const mockProductsGet = vi.fn();
 
 // Mock @polar-sh/sdk with a proper class constructor
 vi.mock("@polar-sh/sdk", () => {
   return {
     Polar: class MockPolar {
-      products = { create: mockProductsCreate };
+      products = { create: mockProductsCreate, get: mockProductsGet };
       constructor(public options: { accessToken: string; server: string }) {
         // Store options for test assertions
       }
@@ -67,6 +69,7 @@ describe("polar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockProductsCreate.mockReset();
+    mockProductsGet.mockReset();
   });
 
   describe("_parseEnvContent", () => {
@@ -427,6 +430,75 @@ POLAR_ACCESS_TOKEN=
           ],
         })
       );
+    });
+  });
+
+  describe("checkProductExists", () => {
+    it("returns exists: true when product exists", async () => {
+      mockProductsGet.mockResolvedValue({ id: "pol_abc123", name: "Pro" });
+
+      const result = await checkProductExists(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.exists).toBe(true);
+      expect(mockProductsGet).toHaveBeenCalledWith({ id: "pol_abc123" });
+    });
+
+    it("returns exists: false when product not found (404)", async () => {
+      mockProductsGet.mockRejectedValue(new Error("404 Not Found"));
+
+      const result = await checkProductExists(
+        validCredentials,
+        "pol_nonexistent",
+        "sandbox"
+      );
+
+      expect(result.exists).toBe(false);
+      expect("error" in result).toBe(false);
+    });
+
+    it("returns exists: false with error on network failure", async () => {
+      mockProductsGet.mockRejectedValue(new Error("Network connection failed"));
+
+      const result = await checkProductExists(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.exists).toBe(false);
+      expect("error" in result).toBe(true);
+      if ("error" in result) {
+        expect(result.error).toContain("Failed to verify product existence");
+        expect(result.error).toContain("Network connection failed");
+      }
+    });
+
+    it("returns exists: false with error on 401 unauthorized", async () => {
+      mockProductsGet.mockRejectedValue(new Error("401 Unauthorized"));
+
+      const result = await checkProductExists(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.exists).toBe(false);
+      expect("error" in result).toBe(true);
+      if ("error" in result) {
+        expect(result.error).toContain("Failed to verify product existence");
+      }
+    });
+
+    it("uses correct environment when checking", async () => {
+      mockProductsGet.mockResolvedValue({ id: "pol_prod123", name: "Pro" });
+
+      await checkProductExists(validCredentials, "pol_prod123", "production");
+
+      expect(mockProductsGet).toHaveBeenCalledWith({ id: "pol_prod123" });
     });
   });
 });

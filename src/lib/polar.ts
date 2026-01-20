@@ -34,6 +34,11 @@ export interface CreateProductError {
   error: string;
 }
 
+export type CheckProductExistsResult =
+  | { exists: true }
+  | { exists: false }
+  | { exists: false; error: string };
+
 export type PolarEnvironment = "sandbox" | "production";
 
 // ============================================================================
@@ -279,6 +284,42 @@ export async function createPolarProduct(
     return {
       success: false,
       error: `Failed to create product on Polar: ${errorMessage}`,
+    };
+  }
+}
+
+// ============================================================================
+// Product Verification
+// ============================================================================
+
+/**
+ * Checks if a product exists on Polar by its ID.
+ * Returns { exists: true } if the product exists.
+ * Returns { exists: false } if the product does not exist (404).
+ * Returns { exists: false, error: string } if there was an error checking.
+ */
+export async function checkProductExists(
+  credentials: PolarCredentials,
+  productId: string,
+  environment: PolarEnvironment
+): Promise<CheckProductExistsResult> {
+  try {
+    const client = createPolarClient(credentials.accessToken, environment);
+    await client.products.get({ id: productId });
+    return { exists: true };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    // 404 means the product doesn't exist (expected case)
+    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+      return { exists: false };
+    }
+
+    // Other errors indicate a failure to check
+    return {
+      exists: false,
+      error: `Failed to verify product existence: ${errorMessage}`,
     };
   }
 }
