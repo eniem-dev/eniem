@@ -1,0 +1,454 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  loadPolarCredentials,
+  createPolarClient,
+  productToPolarCreate,
+  createPolarProduct,
+  _parseEnvContent,
+  type PolarCredentials,
+} from "../polar.js";
+import type { Product } from "../products.js";
+
+// Mock fs/promises
+vi.mock("fs/promises", () => ({
+  readFile: vi.fn(),
+}));
+
+// Create a mock create function that can be controlled per test
+const mockProductsCreate = vi.fn();
+
+// Mock @polar-sh/sdk with a proper class constructor
+vi.mock("@polar-sh/sdk", () => {
+  return {
+    Polar: class MockPolar {
+      products = { create: mockProductsCreate };
+      constructor(public options: { accessToken: string; server: string }) {
+        // Store options for test assertions
+      }
+    },
+  };
+});
+
+import { readFile } from "fs/promises";
+import { Polar } from "@polar-sh/sdk";
+
+const mockReadFile = vi.mocked(readFile);
+
+// Test fixtures
+const validProduct: Product = {
+  slug: "pro-monthly",
+  name: "Pro Monthly",
+  description: "Full access to all Pro features",
+  type: "subscription",
+  recurringInterval: "month",
+  prices: [
+    {
+      amountType: "fixed",
+      priceAmount: 1900,
+      priceCurrency: "usd",
+    },
+  ],
+  display: {
+    title: "Pro",
+    subtitle: "Billed monthly",
+    badge: null,
+    features: ["Unlimited projects", "Priority support", "API access"],
+    highlighted: false,
+    cta: "Get Started",
+  },
+  polarProductId: null,
+};
+
+const validCredentials: PolarCredentials = {
+  accessToken: "polar_test_token_123",
+  organizationId: "org_test_123",
+};
+
+describe("polar", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockProductsCreate.mockReset();
+  });
+
+  describe("_parseEnvContent", () => {
+    it("parses basic key=value pairs", () => {
+      const content = "KEY=value\nANOTHER=test";
+      const result = _parseEnvContent(content);
+      expect(result).toEqual({
+        KEY: "value",
+        ANOTHER: "test",
+      });
+    });
+
+    it("ignores comments", () => {
+      const content = "# This is a comment\nKEY=value\n# Another comment";
+      const result = _parseEnvContent(content);
+      expect(result).toEqual({ KEY: "value" });
+    });
+
+    it("ignores empty lines", () => {
+      const content = "KEY=value\n\n\nANOTHER=test";
+      const result = _parseEnvContent(content);
+      expect(result).toEqual({
+        KEY: "value",
+        ANOTHER: "test",
+      });
+    });
+
+    it("removes surrounding double quotes", () => {
+      const content = 'KEY="quoted value"';
+      const result = _parseEnvContent(content);
+      expect(result).toEqual({ KEY: "quoted value" });
+    });
+
+    it("removes surrounding single quotes", () => {
+      const content = "KEY='quoted value'";
+      const result = _parseEnvContent(content);
+      expect(result).toEqual({ KEY: "quoted value" });
+    });
+
+    it("handles values with equals signs", () => {
+      const content = "KEY=value=with=equals";
+      const result = _parseEnvContent(content);
+      expect(result).toEqual({ KEY: "value=with=equals" });
+    });
+
+    it("trims whitespace around keys and values", () => {
+      const content = "  KEY  =  value  ";
+      const result = _parseEnvContent(content);
+      expect(result).toEqual({ KEY: "value" });
+    });
+  });
+
+  describe("loadPolarCredentials", () => {
+    it("returns credentials when .env has valid values", async () => {
+      const envContent = `
+POLAR_ACCESS_TOKEN=polar_test_token
+POLAR_ORGANIZATION_ID=org_123
+`;
+      mockReadFile.mockResolvedValue(envContent);
+
+      const result = await loadPolarCredentials("/project");
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.credentials.accessToken).toBe("polar_test_token");
+        expect(result.credentials.organizationId).toBe("org_123");
+      }
+    });
+
+    it("returns missing fields when access token is placeholder", async () => {
+      const envContent = `
+POLAR_ACCESS_TOKEN=polar_xx
+POLAR_ORGANIZATION_ID=org_123
+`;
+      mockReadFile.mockResolvedValue(envContent);
+
+      const result = await loadPolarCredentials("/project");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.missingFields).toContain("accessToken");
+      }
+    });
+
+    it("returns missing fields when organization ID is missing", async () => {
+      const envContent = `
+POLAR_ACCESS_TOKEN=polar_test_token
+`;
+      mockReadFile.mockResolvedValue(envContent);
+
+      const result = await loadPolarCredentials("/project");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.missingFields).toContain("organizationId");
+      }
+    });
+
+    it("returns both fields missing when .env file does not exist", async () => {
+      const error = new Error("ENOENT") as NodeJS.ErrnoException;
+      error.code = "ENOENT";
+      mockReadFile.mockRejectedValue(error);
+
+      const result = await loadPolarCredentials("/project");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.missingFields).toContain("accessToken");
+        expect(result.missingFields).toContain("organizationId");
+      }
+    });
+
+    it("returns missing fields when access token is empty", async () => {
+      const envContent = `
+POLAR_ACCESS_TOKEN=
+POLAR_ORGANIZATION_ID=org_123
+`;
+      mockReadFile.mockResolvedValue(envContent);
+
+      const result = await loadPolarCredentials("/project");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.missingFields).toContain("accessToken");
+      }
+    });
+  });
+
+  describe("createPolarClient", () => {
+    it("creates client with sandbox environment", () => {
+      const client = createPolarClient("token123", "sandbox");
+
+      expect(client).toBeInstanceOf(Polar);
+      // The mock class stores options, so we can access them
+      expect((client as unknown as { options: { accessToken: string; server: string } }).options).toEqual({
+        accessToken: "token123",
+        server: "sandbox",
+      });
+    });
+
+    it("creates client with production environment", () => {
+      const client = createPolarClient("token123", "production");
+
+      expect(client).toBeInstanceOf(Polar);
+      expect((client as unknown as { options: { accessToken: string; server: string } }).options).toEqual({
+        accessToken: "token123",
+        server: "production",
+      });
+    });
+  });
+
+  describe("productToPolarCreate", () => {
+    it("converts subscription product with fixed price", () => {
+      const result = productToPolarCreate(validProduct, "org_123");
+
+      expect(result.name).toBe("Pro Monthly");
+      expect(result.description).toBe("Full access to all Pro features");
+      expect(result.recurringInterval).toBe("month");
+      expect(result.organizationId).toBe("org_123");
+      expect(result.prices).toEqual([
+        {
+          amountType: "fixed",
+          priceAmount: 1900,
+          priceCurrency: "usd",
+        },
+      ]);
+      expect(result.metadata).toEqual({
+        slug: "pro-monthly",
+        source: "eniem-cli",
+      });
+    });
+
+    it("converts one_time product (no recurring interval)", () => {
+      const oneTimeProduct: Product = {
+        ...validProduct,
+        type: "one_time",
+        recurringInterval: undefined,
+      };
+
+      const result = productToPolarCreate(oneTimeProduct, "org_123");
+
+      expect(result.recurringInterval).toBeNull();
+    });
+
+    it("converts free product", () => {
+      const freeProduct: Product = {
+        ...validProduct,
+        type: "free",
+        prices: [{ amountType: "free" }],
+      };
+
+      const result = productToPolarCreate(freeProduct, "org_123");
+
+      expect(result.prices).toEqual([{ amountType: "free" }]);
+    });
+
+    it("converts custom price product", () => {
+      const customProduct: Product = {
+        ...validProduct,
+        prices: [
+          {
+            amountType: "custom",
+            priceAmount: 500,
+            priceCurrency: "usd",
+          },
+        ],
+      };
+
+      const result = productToPolarCreate(customProduct, "org_123");
+
+      expect(result.prices).toEqual([
+        {
+          amountType: "custom",
+          priceCurrency: "usd",
+          minimumAmount: 500,
+          presetAmount: 500,
+        },
+      ]);
+    });
+
+    it("converts yearly subscription", () => {
+      const yearlyProduct: Product = {
+        ...validProduct,
+        recurringInterval: "year",
+      };
+
+      const result = productToPolarCreate(yearlyProduct, "org_123");
+
+      expect(result.recurringInterval).toBe("year");
+    });
+
+    it("converts weekly subscription to monthly (Polar limitation)", () => {
+      const weeklyProduct: Product = {
+        ...validProduct,
+        recurringInterval: "week",
+      };
+
+      const result = productToPolarCreate(weeklyProduct, "org_123");
+
+      expect(result.recurringInterval).toBe("month");
+    });
+
+    it("converts daily subscription to monthly (Polar limitation)", () => {
+      const dailyProduct: Product = {
+        ...validProduct,
+        recurringInterval: "day",
+      };
+
+      const result = productToPolarCreate(dailyProduct, "org_123");
+
+      expect(result.recurringInterval).toBe("month");
+    });
+
+    it("handles missing description", () => {
+      const noDescProduct: Product = {
+        ...validProduct,
+        description: undefined,
+      };
+
+      const result = productToPolarCreate(noDescProduct, "org_123");
+
+      expect(result.description).toBeNull();
+    });
+  });
+
+  describe("createPolarProduct", () => {
+    it("returns polarProductId on success", async () => {
+      mockProductsCreate.mockResolvedValue({ id: "pol_abc123" });
+
+      const result = await createPolarProduct(
+        validCredentials,
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.polarProductId).toBe("pol_abc123");
+      }
+    });
+
+    it("returns error on 401 unauthorized", async () => {
+      mockProductsCreate.mockRejectedValue(new Error("401 Unauthorized"));
+
+      const result = await createPolarProduct(
+        validCredentials,
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Invalid Polar access token");
+      }
+    });
+
+    it("returns error on 403 forbidden", async () => {
+      mockProductsCreate.mockRejectedValue(new Error("403 Forbidden"));
+
+      const result = await createPolarProduct(
+        validCredentials,
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Access denied");
+      }
+    });
+
+    it("returns error on 404 not found", async () => {
+      mockProductsCreate.mockRejectedValue(new Error("404 Not Found"));
+
+      const result = await createPolarProduct(
+        validCredentials,
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Organization not found");
+      }
+    });
+
+    it("returns error on validation failure", async () => {
+      mockProductsCreate.mockRejectedValue(
+        new Error("422 validation error: name required")
+      );
+
+      const result = await createPolarProduct(
+        validCredentials,
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Validation error");
+      }
+    });
+
+    it("returns generic error for unknown failures", async () => {
+      mockProductsCreate.mockRejectedValue(
+        new Error("Network connection failed")
+      );
+
+      const result = await createPolarProduct(
+        validCredentials,
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Failed to create product on Polar");
+        expect(result.error).toContain("Network connection failed");
+      }
+    });
+
+    it("calls create with correct product data", async () => {
+      mockProductsCreate.mockResolvedValue({ id: "pol_test_123" });
+
+      await createPolarProduct(validCredentials, validProduct, "sandbox");
+
+      expect(mockProductsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Pro Monthly",
+          description: "Full access to all Pro features",
+          recurringInterval: "month",
+          organizationId: validCredentials.organizationId,
+          prices: [
+            {
+              amountType: "fixed",
+              priceAmount: 1900,
+              priceCurrency: "usd",
+            },
+          ],
+        })
+      );
+    });
+  });
+});
