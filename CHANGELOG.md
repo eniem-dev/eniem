@@ -1,3 +1,20 @@
+# [0.4.0](https://github.com/eniem-dev/eniem-cli/compare/v0.3.0...v0.4.0) (2026-01-20)
+
+
+### Bug Fixes
+
+* exclude products.tsx from coverage and improve tests ([736ccda](https://github.com/eniem-dev/eniem-cli/commit/736ccdae4a7ff44044adae9e61803137f310dcf9))
+* improve products command with multiple bug fixes ([28badab](https://github.com/eniem-dev/eniem-cli/commit/28badab616146ece8052177dd0ade4f636289456))
+
+
+### Features
+
+* add @polar-sh/sdk and dotenv dependencies ([c75cc8f](https://github.com/eniem-dev/eniem-cli/commit/c75cc8ff00fa7152f1f598cf90ff4467664caaa5))
+* add polar.ts with Polar API client wrapper ([c3c52a2](https://github.com/eniem-dev/eniem-cli/commit/c3c52a2058ade8e9290647f61b3cf24157d527ff))
+* add products.ts with Product schema and file utilities ([30866cb](https://github.com/eniem-dev/eniem-cli/commit/30866cbec0823d979386d64b8d0070f341c20591))
+* add ProductsCommand component and integrate with CLI ([4e4e12e](https://github.com/eniem-dev/eniem-cli/commit/4e4e12e5b061be2c0c794ab4fe5c57a961cf7a1c))
+* generate products.generated.ts after product creation ([0eb5247](https://github.com/eniem-dev/eniem-cli/commit/0eb5247664ed2875fb6f6ea23de4f63c4c95a97d))
+
 # [0.3.0](https://github.com/eniem-dev/eniem-cli/compare/v0.2.8...v0.3.0) (2026-01-20)
 
 
