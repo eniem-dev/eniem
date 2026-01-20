@@ -11,10 +11,16 @@ vi.mock("fs/promises", () => ({
 
 // Mock @polar-sh/sdk
 const mockProductsCreate = vi.fn();
+const mockProductsGet = vi.fn();
+const mockProductsUpdate = vi.fn();
 vi.mock("@polar-sh/sdk", () => {
   return {
     Polar: class MockPolar {
-      products = { create: mockProductsCreate };
+      products = {
+        create: mockProductsCreate,
+        get: mockProductsGet,
+        update: mockProductsUpdate,
+      };
       constructor(public options: { accessToken: string; server: string }) {}
     },
   };
@@ -51,7 +57,11 @@ describe("ProductsCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockProductsCreate.mockReset();
+    mockProductsGet.mockReset();
+    mockProductsUpdate.mockReset();
     mockWriteFile.mockResolvedValue(undefined);
+    // Default: products exist on Polar
+    mockProductsGet.mockResolvedValue({ id: "polar_123" });
   });
 
   describe("Initial Loading", () => {
@@ -168,7 +178,7 @@ describe("ProductsCommand", () => {
   });
 
   describe("Credential Loading", () => {
-    it("loads credentials and proceeds to product name input", async () => {
+    it("loads credentials and proceeds to menu", async () => {
       mockReadFile
         .mockResolvedValueOnce("[]")
         .mockResolvedValueOnce(validEnvFile);
@@ -179,7 +189,8 @@ describe("ProductsCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(lastFrame()).toContain("Product Name");
+      expect(lastFrame()).toContain("Products Manager");
+      expect(lastFrame()).toContain("What would you like to do?");
     });
 
     it("prompts for access token when missing from .env", async () => {
@@ -196,7 +207,7 @@ describe("ProductsCommand", () => {
       expect(lastFrame()).toContain("Polar Access Token");
     });
 
-    it("proceeds to product name when access token is present", async () => {
+    it("proceeds to menu when access token is present", async () => {
       mockReadFile
         .mockResolvedValueOnce(JSON.stringify({ products: [] }))
         .mockResolvedValueOnce("POLAR_ACCESS_TOKEN=polar_test_token");
@@ -207,7 +218,8 @@ describe("ProductsCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(lastFrame()).toContain("Product Name");
+      expect(lastFrame()).toContain("Products Manager");
+      expect(lastFrame()).toContain("What would you like to do?");
     });
 
     it("prompts for access token when .env has placeholder value", async () => {
@@ -241,8 +253,8 @@ describe("ProductsCommand", () => {
     });
   });
 
-  describe("Wizard Steps Display", () => {
-    it("shows product name input after credentials loaded", async () => {
+  describe("Menu Display", () => {
+    it("shows menu with options after credentials loaded", async () => {
       mockReadFile
         .mockResolvedValueOnce("[]")
         .mockResolvedValueOnce(validEnvFile);
@@ -253,8 +265,8 @@ describe("ProductsCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(lastFrame()).toContain("Product Name");
-      expect(lastFrame()).toContain("Pro Monthly");
+      expect(lastFrame()).toContain("What would you like to do?");
+      expect(lastFrame()).toContain("Add new product");
     });
 
     it("shows masked input for access token", async () => {
@@ -270,6 +282,42 @@ describe("ProductsCommand", () => {
 
       expect(lastFrame()).toContain("Polar Access Token");
       expect(lastFrame()).toContain("polar_...");
+    });
+
+    it("shows all menu options when products exist", async () => {
+      const productsWithExisting = JSON.stringify({
+        $schema: "./products.schema.json",
+        products: [existingProduct],
+      });
+      mockReadFile
+        .mockResolvedValueOnce(productsWithExisting)
+        .mockResolvedValueOnce(validEnvFile);
+
+      const { lastFrame } = render(
+        <ProductsCommand env="sandbox" projectDir="/test/project" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(lastFrame()).toContain("Add new product");
+      expect(lastFrame()).toContain("Remove products");
+      expect(lastFrame()).toContain("Sync products");
+      expect(lastFrame()).toContain("Regenerate TypeScript");
+    });
+
+    it("shows only Add option when no products exist", async () => {
+      mockReadFile
+        .mockResolvedValueOnce("[]")
+        .mockResolvedValueOnce(validEnvFile);
+
+      const { lastFrame } = render(
+        <ProductsCommand env="sandbox" projectDir="/test/project" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(lastFrame()).toContain("Add new product");
+      expect(lastFrame()).toContain("No products found");
     });
   });
 
@@ -289,7 +337,8 @@ describe("ProductsCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(lastFrame()).toContain("Product Name");
+      expect(lastFrame()).toContain("Products Manager");
+      expect(lastFrame()).toContain("What would you like to do?");
     });
 
     it("handles products file as direct array", async () => {
@@ -303,7 +352,8 @@ describe("ProductsCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(lastFrame()).toContain("Product Name");
+      expect(lastFrame()).toContain("Products Manager");
+      expect(lastFrame()).toContain("What would you like to do?");
     });
 
     it("handles products file with existing products", async () => {
@@ -321,7 +371,8 @@ describe("ProductsCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(lastFrame()).toContain("Product Name");
+      expect(lastFrame()).toContain("Products Manager");
+      expect(lastFrame()).toContain("Existing Product");
     });
   });
 });
