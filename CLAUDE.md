@@ -30,19 +30,24 @@ node bin/eniem-cli.js [project-name]
 ### Ralph Workflow (AI-driven feature implementation)
 
 ```bash
-# Plan a new feature (creates PRD)
-pnpm feature:create
+# Create a spec for a new feature (interview-based)
+/spec-interview <feature-name>
 
-# Implement a feature
-pnpm feature:implement -- <feature-name>
-pnpm feature:implement -- <feature-name> -w      # with worktree
-pnpm feature:implement -- <feature-name> 20 -i   # 20 iterations, interactive
+# Generate implementation plan from all specs
+pnpm ralph:plan
 
-# Single implementation iteration
-pnpm feature:implement-once -- <feature-name>
+# Generate scoped implementation plan
+pnpm ralph:plan-work "description of work"
 
-# List available implementations
-pnpm feature:list
+# Build one task from the plan
+pnpm ralph:build
+
+# Build autonomously (10 iterations)
+pnpm ralph:build:auto
+
+# Interactive mode (add -i flag)
+./loop.sh plan -i
+./loop.sh build 5 -i
 ```
 
 ## Architecture

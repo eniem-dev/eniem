@@ -3,6 +3,5 @@ plan.md
 node_modules
 dist
 bin
-.ralph/implementations
-.ralph/.last-output
 coverage
+IMPLEMENTATION_PLAN.md
