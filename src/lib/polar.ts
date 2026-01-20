@@ -39,6 +39,14 @@ export type CheckProductExistsResult =
   | { exists: false }
   | { exists: false; error: string };
 
+export type UpdateProductResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export type ArchiveProductResult =
+  | { success: true }
+  | { success: false; error: string };
+
 export type PolarEnvironment = "sandbox" | "production";
 
 // ============================================================================
@@ -284,6 +292,144 @@ export async function createPolarProduct(
     return {
       success: false,
       error: `Failed to create product on Polar: ${errorMessage}`,
+    };
+  }
+}
+
+// ============================================================================
+// Product Update
+// ============================================================================
+
+/**
+ * Converts a local Product to the Polar API ProductUpdate format.
+ * Only includes fields that should be updated - not the full product.
+ */
+export function productToPolarUpdate(product: Product): {
+  name: string;
+  description: string | null;
+  metadata: { slug: string; source: string };
+} {
+  return {
+    name: product.name,
+    description: product.description ?? null,
+    metadata: {
+      slug: product.slug,
+      source: "eniem-cli",
+    },
+  };
+}
+
+/**
+ * Updates an existing product on the Polar API.
+ * Returns success on update, or an error message on failure.
+ */
+export async function updatePolarProduct(
+  credentials: PolarCredentials,
+  productId: string,
+  product: Product,
+  environment: PolarEnvironment
+): Promise<UpdateProductResult> {
+  try {
+    const client = createPolarClient(credentials.accessToken, environment);
+    const updateData = productToPolarUpdate(product);
+
+    await client.products.update({
+      id: productId,
+      productUpdate: updateData,
+    });
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    // Check for common error patterns
+    if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+      return {
+        success: false,
+        error: "Invalid Polar access token. Please check your credentials.",
+      };
+    }
+
+    if (errorMessage.includes("403") || errorMessage.includes("Forbidden")) {
+      return {
+        success: false,
+        error:
+          "Access denied. Please check your token permissions.",
+      };
+    }
+
+    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+      return {
+        success: false,
+        error: "Product not found. It may have been deleted.",
+      };
+    }
+
+    if (errorMessage.includes("422") || errorMessage.includes("validation")) {
+      return {
+        success: false,
+        error: `Validation error: ${errorMessage}`,
+      };
+    }
+
+    return {
+      success: false,
+      error: `Failed to update product on Polar: ${errorMessage}`,
+    };
+  }
+}
+
+/**
+ * Archives a product on the Polar API.
+ * Polar doesn't support deleting products, only archiving them.
+ * Archived products won't be available for purchase but existing
+ * customers retain access.
+ */
+export async function archivePolarProduct(
+  credentials: PolarCredentials,
+  productId: string,
+  environment: PolarEnvironment
+): Promise<ArchiveProductResult> {
+  try {
+    const client = createPolarClient(credentials.accessToken, environment);
+
+    await client.products.update({
+      id: productId,
+      productUpdate: { isArchived: true },
+    });
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    // Check for common error patterns
+    if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+      return {
+        success: false,
+        error: "Invalid Polar access token. Please check your credentials.",
+      };
+    }
+
+    if (errorMessage.includes("403") || errorMessage.includes("Forbidden")) {
+      return {
+        success: false,
+        error:
+          "Access denied. Please check your token permissions.",
+      };
+    }
+
+    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+      return {
+        success: false,
+        error: "Product not found. It may have already been deleted.",
+      };
+    }
+
+    return {
+      success: false,
+      error: `Failed to archive product on Polar: ${errorMessage}`,
     };
   }
 }
