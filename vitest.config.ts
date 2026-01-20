@@ -17,6 +17,8 @@ export default defineConfig({
         "src/config/types.ts",
         "src/steps/AuthSetup.tsx",
         "src/steps/Web3Setup.tsx",
+        // Interactive CLI wizards - better suited for E2E testing
+        "src/commands/products.tsx",
       ],
       thresholds: {
         statements: 70,

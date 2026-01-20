@@ -52,11 +52,18 @@ run_claude() {
 
   if $INTERACTIVE; then
     # Interactive: use script to preserve TTY for full UI while capturing output
-    local tmp_output
+    local tmp_output tmp_prompt
     tmp_output=$(mktemp)
-    script -q "$tmp_output" claude --dangerously-skip-permissions "$prompt_content"
+    tmp_prompt=$(mktemp)
+    printf '%s' "$prompt_content" > "$tmp_prompt"
+    # OS-specific script syntax: Linux uses -c, macOS/BSD puts command after file
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      script -q "$tmp_output" bash -c "claude --dangerously-skip-permissions < '$tmp_prompt'"
+    else
+      script -q -c "claude --dangerously-skip-permissions < '$tmp_prompt'" "$tmp_output"
+    fi
     LAST_OUTPUT=$(cat "$tmp_output")
-    rm -f "$tmp_output"
+    rm -f "$tmp_output" "$tmp_prompt"
   else
     # Non-interactive: pipe mode, capture output
     LAST_OUTPUT=$(echo "$prompt_content" | claude --dangerously-skip-permissions -p)
