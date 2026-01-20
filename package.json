@@ -29,10 +29,10 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "feature:create": ".ralph/ralph-plan.sh",
-    "feature:implement": ".ralph/ralph.sh",
-    "feature:implement-once": ".ralph/ralph-once.sh",
-    "feature:list": "ls -1 .ralph/implementations/ 2>/dev/null || echo 'No implementations'"
+    "ralph:plan": "./loop.sh plan",
+    "ralph:plan-work": "./loop.sh plan-work",
+    "ralph:build": "./loop.sh build",
+    "ralph:build:auto": "./loop.sh build 10"
   },
   "dependencies": {
     "execa": "^9.5.2",
