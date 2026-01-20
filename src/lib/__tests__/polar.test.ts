@@ -44,8 +44,8 @@ const validProduct: Product = {
   prices: [
     {
       amountType: "fixed",
-      priceAmount: 1900,
-      priceCurrency: "usd",
+      amount: 1900,
+      currency: "usd",
     },
   ],
   display: {
@@ -61,7 +61,6 @@ const validProduct: Product = {
 
 const validCredentials: PolarCredentials = {
   accessToken: "polar_test_token_123",
-  organizationId: "org_test_123",
 };
 
 describe("polar", () => {
@@ -121,10 +120,9 @@ describe("polar", () => {
   });
 
   describe("loadPolarCredentials", () => {
-    it("returns credentials when .env has valid values", async () => {
+    it("returns credentials when .env has valid access token", async () => {
       const envContent = `
 POLAR_ACCESS_TOKEN=polar_test_token
-POLAR_ORGANIZATION_ID=org_123
 `;
       mockReadFile.mockResolvedValue(envContent);
 
@@ -133,14 +131,12 @@ POLAR_ORGANIZATION_ID=org_123
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.credentials.accessToken).toBe("polar_test_token");
-        expect(result.credentials.organizationId).toBe("org_123");
       }
     });
 
     it("returns missing fields when access token is placeholder", async () => {
       const envContent = `
 POLAR_ACCESS_TOKEN=polar_xx
-POLAR_ORGANIZATION_ID=org_123
 `;
       mockReadFile.mockResolvedValue(envContent);
 
@@ -152,21 +148,7 @@ POLAR_ORGANIZATION_ID=org_123
       }
     });
 
-    it("returns missing fields when organization ID is missing", async () => {
-      const envContent = `
-POLAR_ACCESS_TOKEN=polar_test_token
-`;
-      mockReadFile.mockResolvedValue(envContent);
-
-      const result = await loadPolarCredentials("/project");
-
-      expect(result.success).toBe(false);
-      if (!result.success) {
-        expect(result.missingFields).toContain("organizationId");
-      }
-    });
-
-    it("returns both fields missing when .env file does not exist", async () => {
+    it("returns missing fields when .env file does not exist", async () => {
       const error = new Error("ENOENT") as NodeJS.ErrnoException;
       error.code = "ENOENT";
       mockReadFile.mockRejectedValue(error);
@@ -176,14 +158,12 @@ POLAR_ACCESS_TOKEN=polar_test_token
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.missingFields).toContain("accessToken");
-        expect(result.missingFields).toContain("organizationId");
       }
     });
 
     it("returns missing fields when access token is empty", async () => {
       const envContent = `
 POLAR_ACCESS_TOKEN=
-POLAR_ORGANIZATION_ID=org_123
 `;
       mockReadFile.mockResolvedValue(envContent);
 
@@ -221,12 +201,11 @@ POLAR_ORGANIZATION_ID=org_123
 
   describe("productToPolarCreate", () => {
     it("converts subscription product with fixed price", () => {
-      const result = productToPolarCreate(validProduct, "org_123");
+      const result = productToPolarCreate(validProduct);
 
       expect(result.name).toBe("Pro Monthly");
       expect(result.description).toBe("Full access to all Pro features");
       expect(result.recurringInterval).toBe("month");
-      expect(result.organizationId).toBe("org_123");
       expect(result.prices).toEqual([
         {
           amountType: "fixed",
@@ -247,7 +226,7 @@ POLAR_ORGANIZATION_ID=org_123
         recurringInterval: undefined,
       };
 
-      const result = productToPolarCreate(oneTimeProduct, "org_123");
+      const result = productToPolarCreate(oneTimeProduct);
 
       expect(result.recurringInterval).toBeNull();
     });
@@ -259,7 +238,7 @@ POLAR_ORGANIZATION_ID=org_123
         prices: [{ amountType: "free" }],
       };
 
-      const result = productToPolarCreate(freeProduct, "org_123");
+      const result = productToPolarCreate(freeProduct);
 
       expect(result.prices).toEqual([{ amountType: "free" }]);
     });
@@ -270,13 +249,13 @@ POLAR_ORGANIZATION_ID=org_123
         prices: [
           {
             amountType: "custom",
-            priceAmount: 500,
-            priceCurrency: "usd",
+            amount: 500,
+            currency: "usd",
           },
         ],
       };
 
-      const result = productToPolarCreate(customProduct, "org_123");
+      const result = productToPolarCreate(customProduct);
 
       expect(result.prices).toEqual([
         {
@@ -294,7 +273,7 @@ POLAR_ORGANIZATION_ID=org_123
         recurringInterval: "year",
       };
 
-      const result = productToPolarCreate(yearlyProduct, "org_123");
+      const result = productToPolarCreate(yearlyProduct);
 
       expect(result.recurringInterval).toBe("year");
     });
@@ -305,7 +284,7 @@ POLAR_ORGANIZATION_ID=org_123
         recurringInterval: "week",
       };
 
-      const result = productToPolarCreate(weeklyProduct, "org_123");
+      const result = productToPolarCreate(weeklyProduct);
 
       expect(result.recurringInterval).toBe("month");
     });
@@ -316,7 +295,7 @@ POLAR_ORGANIZATION_ID=org_123
         recurringInterval: "day",
       };
 
-      const result = productToPolarCreate(dailyProduct, "org_123");
+      const result = productToPolarCreate(dailyProduct);
 
       expect(result.recurringInterval).toBe("month");
     });
@@ -327,7 +306,7 @@ POLAR_ORGANIZATION_ID=org_123
         description: undefined,
       };
 
-      const result = productToPolarCreate(noDescProduct, "org_123");
+      const result = productToPolarCreate(noDescProduct);
 
       expect(result.description).toBeNull();
     });
@@ -439,7 +418,6 @@ POLAR_ORGANIZATION_ID=org_123
           name: "Pro Monthly",
           description: "Full access to all Pro features",
           recurringInterval: "month",
-          organizationId: validCredentials.organizationId,
           prices: [
             {
               amountType: "fixed",

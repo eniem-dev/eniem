@@ -12,7 +12,6 @@ import type { Product } from "./products.js";
 
 export interface PolarCredentials {
   accessToken: string;
-  organizationId: string;
 }
 
 export interface LoadCredentialsResult {
@@ -22,7 +21,7 @@ export interface LoadCredentialsResult {
 
 export interface LoadCredentialsError {
   success: false;
-  missingFields: ("accessToken" | "organizationId")[];
+  missingFields: ("accessToken")[];
 }
 
 export interface CreateProductResult {
@@ -42,48 +41,50 @@ export type PolarEnvironment = "sandbox" | "production";
 // ============================================================================
 
 /**
- * Loads Polar credentials from .env file in the project directory.
+ * Loads Polar credentials from .env or .env.local file in the project directory.
+ * Tries .env.local first, then falls back to .env.
  * Returns which fields are missing if not all required credentials are present.
  */
 export async function loadPolarCredentials(
   projectDir: string
 ): Promise<LoadCredentialsResult | LoadCredentialsError> {
-  const envPath = join(projectDir, ".env");
+  // Try .env.local first, then .env
+  const envFiles = [".env.local", ".env"];
+  let envContent: string | null = null;
 
-  try {
-    // Try to read .env file
-    const envContent = await readFile(envPath, "utf-8");
-
-    // Parse environment variables from .env content
-    const parsed = parseEnvContent(envContent);
-
-    const accessToken = parsed.POLAR_ACCESS_TOKEN;
-    const organizationId = parsed.POLAR_ORGANIZATION_ID;
-
-    const missingFields: ("accessToken" | "organizationId")[] = [];
-
-    if (!accessToken || accessToken === "polar_xx") {
-      missingFields.push("accessToken");
+  for (const envFile of envFiles) {
+    try {
+      envContent = await readFile(join(projectDir, envFile), "utf-8");
+      break;
+    } catch {
+      // Try next file
     }
-    if (!organizationId) {
-      missingFields.push("organizationId");
-    }
+  }
 
-    if (missingFields.length > 0) {
-      return { success: false, missingFields };
-    }
-
-    return {
-      success: true,
-      credentials: { accessToken, organizationId },
-    };
-  } catch {
-    // .env file not found or unreadable - both fields missing
+  if (!envContent) {
+    // No env file found
     return {
       success: false,
-      missingFields: ["accessToken", "organizationId"],
+      missingFields: ["accessToken"],
     };
   }
+
+  // Parse environment variables from .env content
+  const parsed = parseEnvContent(envContent);
+
+  const accessToken = parsed.POLAR_ACCESS_TOKEN;
+
+  if (!accessToken || accessToken === "polar_xx") {
+    return {
+      success: false,
+      missingFields: ["accessToken"],
+    };
+  }
+
+  return {
+    success: true,
+    credentials: { accessToken },
+  };
 }
 
 /**
@@ -132,17 +133,12 @@ export function loadCredentialsFromEnv(): PolarCredentials | null {
   dotenvConfig();
 
   const accessToken = process.env.POLAR_ACCESS_TOKEN;
-  const organizationId = process.env.POLAR_ORGANIZATION_ID;
 
-  if (
-    !accessToken ||
-    accessToken === "polar_xx" ||
-    !organizationId
-  ) {
+  if (!accessToken || accessToken === "polar_xx") {
     return null;
   }
 
-  return { accessToken, organizationId };
+  return { accessToken };
 }
 
 // ============================================================================
@@ -164,10 +160,10 @@ export function createPolarClient(
 
 /**
  * Converts a local Product to the Polar API ProductCreate format.
+ * Note: organizationId is not included - Polar infers it from the token.
  */
 export function productToPolarCreate(
-  product: Product,
-  organizationId: string
+  product: Product
 ): ProductCreate {
   // Map local price to Polar price format
   const price = product.prices[0];
@@ -175,11 +171,11 @@ export function productToPolarCreate(
 
   if (!price || price.amountType === "free") {
     polarPrices = [{ amountType: "free" }];
-  } else if (price.amountType === "fixed" && price.priceAmount !== undefined) {
+  } else if (price.amountType === "fixed" && price.amount !== undefined) {
     polarPrices = [
       {
         amountType: "fixed",
-        priceAmount: price.priceAmount,
+        priceAmount: price.amount,
         priceCurrency: "usd",
       },
     ];
@@ -188,8 +184,8 @@ export function productToPolarCreate(
       {
         amountType: "custom",
         priceCurrency: "usd",
-        minimumAmount: price.priceAmount ?? 50, // Default to 50 cents minimum
-        presetAmount: price.priceAmount ?? 1000, // Default to $10
+        minimumAmount: price.amount ?? 50, // Default to 50 cents minimum
+        presetAmount: price.amount ?? 1000, // Default to $10
       },
     ];
   } else {
@@ -220,7 +216,6 @@ export function productToPolarCreate(
     description: product.description ?? null,
     recurringInterval,
     prices: polarPrices,
-    organizationId,
     metadata: {
       slug: product.slug,
       source: "eniem-cli",
@@ -239,7 +234,7 @@ export async function createPolarProduct(
 ): Promise<CreateProductResult | CreateProductError> {
   try {
     const client = createPolarClient(credentials.accessToken, environment);
-    const createData = productToPolarCreate(product, credentials.organizationId);
+    const createData = productToPolarCreate(product);
 
     const result: PolarProduct = await client.products.create(createData);
 

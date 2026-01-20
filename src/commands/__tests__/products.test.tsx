@@ -127,9 +127,9 @@ describe("ProductsCommand", () => {
     expect(lastFrame()).toContain("Polar Access Token");
   });
 
-  it("prompts for organization ID when missing from .env", async () => {
+  it("proceeds to product name when access token is present", async () => {
     mockReadFile
-      .mockResolvedValueOnce("[]")
+      .mockResolvedValueOnce(JSON.stringify({ products: [] }))
       .mockResolvedValueOnce("POLAR_ACCESS_TOKEN=polar_test_token");
 
     const { lastFrame } = render(
@@ -138,11 +138,7 @@ describe("ProductsCommand", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // Should prompt for access token first (since only org ID is missing,
-    // but our logic checks access token first)
-    // Actually, when access token is present but org is missing,
-    // it goes to prompt_organization_id
-    expect(lastFrame()).toContain("Organization ID");
+    expect(lastFrame()).toContain("Product Name");
   });
 
   it("shows production environment in header", () => {

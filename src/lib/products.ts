@@ -8,8 +8,8 @@ import { join } from "path";
 
 export const priceSchema = z.object({
   amountType: z.enum(["fixed", "custom", "free"]),
-  priceAmount: z.number().int().nonnegative().optional(),
-  priceCurrency: z.literal("usd").optional(),
+  amount: z.number().int().nonnegative().optional(),
+  currency: z.literal("usd").optional(),
 });
 
 export type Price = z.infer<typeof priceSchema>;
@@ -47,6 +47,7 @@ export const productSchema = z.object({
     .optional(),
   type: z.enum(["subscription", "one_time", "free"]),
   recurringInterval: z.enum(["day", "week", "month", "year"]).optional(),
+  recurringIntervalCount: z.number().int().positive().optional(),
   prices: z.array(priceSchema),
   display: displaySchema,
   polarProductId: z.string().nullable().optional(),
@@ -138,7 +139,8 @@ export interface ReadProductsError {
 }
 
 /**
- * Reads products from the products.{env}.json file
+ * Reads products from the products.{env}.json file.
+ * Supports both direct array format and object with $schema/products properties.
  */
 export async function readProductsFile(
   projectDir: string,
@@ -150,18 +152,23 @@ export async function readProductsFile(
     const content = await readFile(filePath, "utf-8");
     const data = JSON.parse(content);
 
-    // Validate that it's an array
-    if (!Array.isArray(data)) {
+    // Support both formats: direct array or { $schema, products: [] }
+    let productsArray: unknown[];
+    if (Array.isArray(data)) {
+      productsArray = data;
+    } else if (data && typeof data === "object" && Array.isArray(data.products)) {
+      productsArray = data.products;
+    } else {
       return {
         success: false,
-        error: `products.${env}.json must contain an array of products`,
+        error: `products.${env}.json must contain an array of products (either directly or in a "products" property)`,
       };
     }
 
     // Parse each product
     const products: Product[] = [];
-    for (let i = 0; i < data.length; i++) {
-      const result = productSchema.safeParse(data[i]);
+    for (let i = 0; i < productsArray.length; i++) {
+      const result = productSchema.safeParse(productsArray[i]);
       if (!result.success) {
         return {
           success: false,
@@ -205,7 +212,8 @@ export interface WriteProductsResult {
 }
 
 /**
- * Writes products to the products.{env}.json file
+ * Writes products to the products.{env}.json file.
+ * Preserves the $schema wrapper if the file originally had that format.
  */
 export async function writeProductsFile(
   projectDir: string,
@@ -215,7 +223,27 @@ export async function writeProductsFile(
   const filePath = join(projectDir, `products.${env}.json`);
 
   try {
-    const content = JSON.stringify(products, null, 2) + "\n";
+    // Check if file exists and has $schema wrapper
+    let useWrapper = false;
+    let schema: string | undefined;
+    try {
+      const existingContent = await readFile(filePath, "utf-8");
+      const existingData = JSON.parse(existingContent);
+      if (existingData && typeof existingData === "object" && !Array.isArray(existingData)) {
+        useWrapper = true;
+        schema = existingData.$schema;
+      }
+    } catch {
+      // File doesn't exist or is invalid - use wrapper by default
+      useWrapper = true;
+      schema = "./products.schema.json";
+    }
+
+    const output = useWrapper
+      ? { $schema: schema, products }
+      : products;
+
+    const content = JSON.stringify(output, null, 2) + "\n";
     await writeFile(filePath, content, "utf-8");
     return { success: true, path: filePath };
   } catch (error) {

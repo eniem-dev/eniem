@@ -1,5 +1,5 @@
 import { Box, Text } from "ink";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   TextInput,
   Select,
@@ -36,7 +36,6 @@ type WizardStep =
   | "init"
   | "load_credentials"
   | "prompt_access_token"
-  | "prompt_organization_id"
   | "product_name"
   | "product_slug"
   | "product_type"
@@ -100,11 +99,6 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   // Data state
   const [products, setProducts] = useState<Product[]>([]);
   const [credentials, setCredentials] = useState<PolarCredentials | null>(null);
-  const [inputAccessToken, setInputAccessToken] = useState("");
-  const [inputOrganizationId, setInputOrganizationId] = useState("");
-  const [missingCredentialFields, setMissingCredentialFields] = useState<
-    ("accessToken" | "organizationId")[]
-  >([]);
 
   // Product draft state
   const [draft, setDraft] = useState<ProductDraft>({
@@ -133,6 +127,12 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   const [createdYearlyProduct, setCreatedYearlyProduct] = useState<Product | null>(null);
   const [polarSyncSuccess, setPolarSyncSuccess] = useState<boolean | null>(null);
   const [yearlyPolarSyncSuccess, setYearlyPolarSyncSuccess] = useState<boolean | null>(null);
+  const [polarSyncError, setPolarSyncError] = useState<string | null>(null);
+  const [yearlyPolarSyncError, setYearlyPolarSyncError] = useState<string | null>(null);
+
+  // Refs to prevent duplicate effect runs
+  const isCreatingRef = useRef(false);
+  const isCreatingYearlyRef = useRef(false);
 
   // Initialize: Read products file
   useEffect(() => {
@@ -160,12 +160,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
           setCredentials(result.credentials);
           setStep("product_name");
         } else {
-          setMissingCredentialFields(result.missingFields);
-          if (result.missingFields.includes("accessToken")) {
-            setStep("prompt_access_token");
-          } else {
-            setStep("prompt_organization_id");
-          }
+          setStep("prompt_access_token");
         }
       };
       load();
@@ -180,19 +175,20 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
       description: d.description,
       type: d.type,
       recurringInterval: d.type === "subscription" ? d.recurringInterval : undefined,
+      recurringIntervalCount: d.type === "subscription" ? 1 : undefined,
       prices: [
         d.priceType === "free"
           ? { amountType: "free" as const }
           : d.priceType === "custom"
           ? {
               amountType: "custom" as const,
-              priceAmount: d.priceAmountCents,
-              priceCurrency: "usd" as const,
+              amount: d.priceAmountCents,
+              currency: "usd" as const,
             }
           : {
               amountType: "fixed" as const,
-              priceAmount: d.priceAmountCents,
-              priceCurrency: "usd" as const,
+              amount: d.priceAmountCents,
+              currency: "usd" as const,
             },
       ],
       display: {
@@ -209,7 +205,8 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
 
   // Create product (sync to Polar, save to JSON)
   useEffect(() => {
-    if (step === "creating" && credentials) {
+    if (step === "creating" && credentials && !isCreatingRef.current) {
+      isCreatingRef.current = true;
       const create = async () => {
         const product = buildProduct(draft);
 
@@ -220,38 +217,42 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
           setPolarSyncSuccess(true);
         } else {
           setPolarSyncSuccess(false);
-          // Continue anyway - save product to JSON without polarProductId
+          setPolarSyncError(polarResult.error);
         }
 
-        // Save to JSON
-        const updatedProducts = [...products, product];
-        const writeResult = await writeProductsFile(projectDir, env, updatedProducts);
-        if (!writeResult.success) {
-          setError(writeResult.error ?? "Failed to save product");
-          setStep("error");
-          return;
-        }
+        // Save to JSON - use functional update to get latest products
+        setProducts((currentProducts) => {
+          const updatedProducts = [...currentProducts, product];
+          writeProductsFile(projectDir, env, updatedProducts).then((writeResult) => {
+            if (!writeResult.success) {
+              setError(writeResult.error ?? "Failed to save product");
+              setStep("error");
+              return;
+            }
 
-        setProducts(updatedProducts);
-        setCreatedProduct(product);
+            setCreatedProduct(product);
 
-        // Check if monthly subscription - ask about yearly
-        if (
-          draft.type === "subscription" &&
-          draft.recurringInterval === "month"
-        ) {
-          setStep("ask_yearly");
-        } else {
-          setStep("complete");
-        }
+            // Check if monthly subscription - ask about yearly
+            if (
+              draft.type === "subscription" &&
+              draft.recurringInterval === "month"
+            ) {
+              setStep("ask_yearly");
+            } else {
+              setStep("complete");
+            }
+          });
+          return updatedProducts;
+        });
       };
       create();
     }
-  }, [step, credentials, draft, products, projectDir, env]);
+  }, [step, credentials, draft, projectDir, env]);
 
   // Create yearly product
   useEffect(() => {
-    if (step === "creating_yearly" && credentials && yearlyDraft) {
+    if (step === "creating_yearly" && credentials && yearlyDraft && !isCreatingYearlyRef.current) {
+      isCreatingYearlyRef.current = true;
       const create = async () => {
         const product = buildProduct(yearlyDraft);
 
@@ -262,24 +263,28 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
           setYearlyPolarSyncSuccess(true);
         } else {
           setYearlyPolarSyncSuccess(false);
+          setYearlyPolarSyncError(polarResult.error);
         }
 
-        // Save to JSON
-        const updatedProducts = [...products, product];
-        const writeResult = await writeProductsFile(projectDir, env, updatedProducts);
-        if (!writeResult.success) {
-          setError(writeResult.error ?? "Failed to save yearly product");
-          setStep("error");
-          return;
-        }
+        // Save to JSON - use functional update to get latest products
+        setProducts((currentProducts) => {
+          const updatedProducts = [...currentProducts, product];
+          writeProductsFile(projectDir, env, updatedProducts).then((writeResult) => {
+            if (!writeResult.success) {
+              setError(writeResult.error ?? "Failed to save yearly product");
+              setStep("error");
+              return;
+            }
 
-        setProducts(updatedProducts);
-        setCreatedYearlyProduct(product);
-        setStep("complete");
+            setCreatedYearlyProduct(product);
+            setStep("complete");
+          });
+          return updatedProducts;
+        });
       };
       create();
     }
-  }, [step, credentials, yearlyDraft, products, projectDir, env]);
+  }, [step, credentials, yearlyDraft, projectDir, env]);
 
   // Handle step transitions
   const handleAccessTokenSubmit = (value: string) => {
@@ -287,36 +292,9 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
       setInputError("Access token is required");
       return;
     }
-    setInputAccessToken(value.trim());
     setInputValue("");
     setInputError(undefined);
-
-    if (missingCredentialFields.includes("organizationId")) {
-      setStep("prompt_organization_id");
-    } else {
-      // We have orgId from .env, just need access token
-      setCredentials({
-        accessToken: value.trim(),
-        organizationId: inputOrganizationId,
-      });
-      setStep("product_name");
-    }
-  };
-
-  const handleOrganizationIdSubmit = (value: string) => {
-    if (!value.trim()) {
-      setInputError("Organization ID is required");
-      return;
-    }
-    setInputOrganizationId(value.trim());
-    setInputValue("");
-    setInputError(undefined);
-
-    // Now we have both credentials
-    setCredentials({
-      accessToken: inputAccessToken || "", // Will be empty if it was in .env
-      organizationId: value.trim(),
-    });
+    setCredentials({ accessToken: value.trim() });
     setStep("product_name");
   };
 
@@ -662,17 +640,6 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
         />
       )}
 
-      {step === "prompt_organization_id" && (
-        <TextInput
-          label="Polar Organization ID"
-          value={inputValue}
-          onChange={setInputValue}
-          onSubmit={handleOrganizationIdSubmit}
-          placeholder="Enter your organization ID"
-          error={inputError}
-        />
-      )}
-
       {step === "product_name" && (
         <TextInput
           label="Product Name"
@@ -826,6 +793,11 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
               ? `Product created and synced to Polar`
               : `Product saved locally (Polar sync failed)`}
           </StatusMessage>
+          {polarSyncError && (
+            <Box marginTop={1}>
+              <Text dimColor>Error: {polarSyncError}</Text>
+            </Box>
+          )}
           <Box marginTop={1}>
             <Confirm
               label="Create yearly version? (10x monthly = 2 months free)"
@@ -976,6 +948,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
                     ? `  Polar ID: ${createdProduct.polarProductId}`
                     : "  Polar: Not synced (saved locally only)"}
                 </Text>
+                {polarSyncError && <Text dimColor>  Error: {polarSyncError}</Text>}
               </Box>
             )}
             {createdYearlyProduct && (
@@ -988,6 +961,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
                     ? `  Polar ID: ${createdYearlyProduct.polarProductId}`
                     : "  Polar: Not synced (saved locally only)"}
                 </Text>
+                {yearlyPolarSyncError && <Text dimColor>  Error: {yearlyPolarSyncError}</Text>}
               </Box>
             )}
           </Box>

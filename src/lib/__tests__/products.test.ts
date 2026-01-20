@@ -38,8 +38,8 @@ const validProduct: Product = {
   prices: [
     {
       amountType: "fixed",
-      priceAmount: 1900,
-      priceCurrency: "usd",
+      amount: 1900,
+      currency: "usd",
     },
   ],
   display: {
@@ -335,7 +335,7 @@ describe("products", () => {
       }
     });
 
-    it("returns error for non-array JSON", async () => {
+    it("returns error for non-array JSON without products property", async () => {
       mockReadFile.mockResolvedValue(JSON.stringify({ not: "array" }));
 
       const result = await readProductsFile("/project", "sandbox");
@@ -343,6 +343,20 @@ describe("products", () => {
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("must contain an array");
+      }
+    });
+
+    it("reads products from object with products array", async () => {
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({ $schema: "./products.schema.json", products: [validProduct] })
+      );
+
+      const result = await readProductsFile("/project", "sandbox");
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.products).toHaveLength(1);
+        expect(result.products[0]?.slug).toBe("pro-monthly");
       }
     });
 
@@ -372,7 +386,11 @@ describe("products", () => {
   });
 
   describe("writeProductsFile", () => {
-    it("writes products to file", async () => {
+    it("writes products with $schema wrapper for new files", async () => {
+      // File doesn't exist (ENOENT), so use wrapper by default
+      const error = new Error("ENOENT") as NodeJS.ErrnoException;
+      error.code = "ENOENT";
+      mockReadFile.mockRejectedValue(error);
       mockWriteFile.mockResolvedValue(undefined);
 
       const result = await writeProductsFile("/project", "sandbox", [
@@ -383,12 +401,51 @@ describe("products", () => {
       expect(result.path).toBe("/project/products.sandbox.json");
       expect(mockWriteFile).toHaveBeenCalledWith(
         "/project/products.sandbox.json",
-        expect.stringContaining('"slug": "pro-monthly"'),
+        expect.stringContaining('"$schema"'),
+        "utf-8"
+      );
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        "/project/products.sandbox.json",
+        expect.stringContaining('"products"'),
         "utf-8"
       );
     });
 
+    it("preserves $schema wrapper when file has wrapper", async () => {
+      mockReadFile.mockResolvedValue(
+        JSON.stringify({ $schema: "./custom.schema.json", products: [] })
+      );
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const result = await writeProductsFile("/project", "sandbox", [
+        validProduct,
+      ]);
+
+      expect(result.success).toBe(true);
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        "/project/products.sandbox.json",
+        expect.stringContaining('"$schema": "./custom.schema.json"'),
+        "utf-8"
+      );
+    });
+
+    it("writes direct array when file was array format", async () => {
+      mockReadFile.mockResolvedValue(JSON.stringify([validProduct]));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const result = await writeProductsFile("/project", "sandbox", [
+        validProduct,
+      ]);
+
+      expect(result.success).toBe(true);
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent.trim().startsWith("[")); // Direct array format
+    });
+
     it("returns error on write failure", async () => {
+      const error = new Error("ENOENT") as NodeJS.ErrnoException;
+      error.code = "ENOENT";
+      mockReadFile.mockRejectedValue(error);
       mockWriteFile.mockRejectedValue(new Error("Permission denied"));
 
       const result = await writeProductsFile("/project", "sandbox", [
@@ -400,6 +457,9 @@ describe("products", () => {
     });
 
     it("handles production environment", async () => {
+      const error = new Error("ENOENT") as NodeJS.ErrnoException;
+      error.code = "ENOENT";
+      mockReadFile.mockRejectedValue(error);
       mockWriteFile.mockResolvedValue(undefined);
 
       const result = await writeProductsFile("/project", "production", [
