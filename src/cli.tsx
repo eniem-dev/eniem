@@ -4,6 +4,8 @@ import { createRequire } from "module";
 import meow from "meow";
 import { ConfigProvider, type AppConfig } from "./config/index.js";
 import { Wizard } from "./Wizard.js";
+import { ProductsCommand } from "./commands/products.js";
+import type { PolarEnvironment } from "./lib/polar.js";
 
 // Handle unhandled promise rejections globally
 process.on("unhandledRejection", (reason) => {
@@ -26,15 +28,22 @@ const cli = meow(
   `
   Usage
     $ eniem-cli [project-name]
+    $ eniem-cli products [--env=sandbox|production]
+
+  Commands
+    products       Create a new Polar product interactively
 
   Options
     --git-host     SSH host alias for git clone (default: github.com)
+    --env          Environment for products command (default: sandbox)
     --help, -h     Show this help message
     --version, -v  Show version number
 
   Examples
     $ eniem-cli my-app
     $ eniem-cli --git-host 0xtiby my-app
+    $ eniem-cli products
+    $ eniem-cli products --env=production
 `,
   {
     importMeta: import.meta,
@@ -42,6 +51,7 @@ const cli = meow(
     autoVersion: true,
     flags: {
       gitHost: { type: "string", default: "github.com" },
+      env: { type: "string", default: "sandbox" },
       help: { type: "boolean", shortFlag: "h" },
       version: { type: "boolean", shortFlag: "v" },
     },
@@ -82,6 +92,30 @@ const App = ({ initialProjectName, gitHost }: AppProps) => {
   );
 };
 
-const projectName = cli.input[0];
+const command = cli.input[0];
 const gitHost = cli.flags.gitHost;
-render(<App initialProjectName={projectName} gitHost={gitHost} />);
+const envFlag = cli.flags.env;
+
+// Validate env flag
+const validEnvs = ["sandbox", "production"];
+if (!validEnvs.includes(envFlag)) {
+  console.error(`\x1b[31m✗ Invalid environment: ${envFlag}\x1b[0m`);
+  console.error(`  Valid options: sandbox, production`);
+  process.exit(1);
+}
+const env = envFlag as PolarEnvironment;
+
+// Check if this is the products command
+if (command === "products") {
+  const projectDir = process.cwd();
+  render(
+    <Box flexDirection="column">
+      <Header />
+      <ProductsCommand env={env} projectDir={projectDir} />
+    </Box>
+  );
+} else {
+  // Default: Run the main wizard
+  const projectName = command;
+  render(<App initialProjectName={projectName} gitHost={gitHost} />);
+}
