@@ -46,6 +46,12 @@ type WizardStep =
   | "init"
   | "load_credentials"
   | "prompt_access_token"
+  // Production mode: sandbox-to-production sync
+  | "ask_sandbox_sync"
+  | "loading_sandbox_products"
+  | "select_sandbox_products"
+  | "confirm_sandbox_sync"
+  | "syncing_sandbox_to_prod"
   // Menu steps
   | "checking_sync_status"
   | "show_menu"
@@ -168,7 +174,11 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     successes: string[];
     failures: { slug: string; error: string }[];
   }>({ successes: [], failures: [] });
-  const [lastOperation, setLastOperation] = useState<"add" | "remove" | "sync" | "regenerate" | null>(null);
+  const [lastOperation, setLastOperation] = useState<"add" | "remove" | "sync" | "regenerate" | "sandbox_sync" | null>(null);
+
+  // Sandbox-to-production sync state
+  const [sandboxProducts, setSandboxProducts] = useState<Product[]>([]);
+  const [askedSandboxSync, setAskedSandboxSync] = useState(false);
 
   // Refs to prevent duplicate effect runs
   const isCreatingRef = useRef(false);
@@ -177,6 +187,8 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   const isRemovingRef = useRef(false);
   const isSyncingRef = useRef(false);
   const isRegeneratingRef = useRef(false);
+  const isLoadingSandboxRef = useRef(false);
+  const isSyncingSandboxRef = useRef(false);
 
   // Initialize: Read products file
   useEffect(() => {
@@ -195,6 +207,32 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     }
   }, [step, projectDir, env]);
 
+  // Load sandbox products for sandbox-to-production sync
+  useEffect(() => {
+    if (step === "loading_sandbox_products" && !isLoadingSandboxRef.current) {
+      isLoadingSandboxRef.current = true;
+      const load = async () => {
+        const result = await readProductsFile(projectDir, "sandbox");
+        if (!result.success) {
+          // No sandbox products or error - proceed to normal menu
+          isLoadingSandboxRef.current = false;
+          setStep("checking_sync_status");
+          return;
+        }
+        if (result.products.length === 0) {
+          // No sandbox products to sync
+          isLoadingSandboxRef.current = false;
+          setStep("checking_sync_status");
+          return;
+        }
+        setSandboxProducts(result.products);
+        isLoadingSandboxRef.current = false;
+        setStep("select_sandbox_products");
+      };
+      load();
+    }
+  }, [step, projectDir]);
+
   // Load credentials
   useEffect(() => {
     if (step === "load_credentials") {
@@ -202,14 +240,20 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
         const result = await loadPolarCredentials(projectDir);
         if (result.success) {
           setCredentials(result.credentials);
-          setStep("checking_sync_status");
+          // In production mode, ask about sandbox sync first (if not already asked)
+          if (env === "production" && !askedSandboxSync) {
+            setAskedSandboxSync(true);
+            setStep("ask_sandbox_sync");
+          } else {
+            setStep("checking_sync_status");
+          }
         } else {
           setStep("prompt_access_token");
         }
       };
       load();
     }
-  }, [step, projectDir]);
+  }, [step, projectDir, env, askedSandboxSync]);
 
   // Check sync status for all products
   useEffect(() => {
@@ -417,7 +461,13 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     setInputValue("");
     setInputError(undefined);
     setCredentials({ accessToken: value.trim() });
-    setStep("checking_sync_status");
+    // In production mode, ask about sandbox sync first (if not already asked)
+    if (env === "production" && !askedSandboxSync) {
+      setAskedSandboxSync(true);
+      setStep("ask_sandbox_sync");
+    } else {
+      setStep("checking_sync_status");
+    }
   };
 
   const handleProductNameSubmit = (value: string) => {
@@ -827,6 +877,35 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     setStep("checking_sync_status");
   };
 
+  // Sandbox-to-production sync handlers
+  const handleSandboxSyncPrompt = (wantsSync: boolean) => {
+    if (!wantsSync) {
+      // User declined - proceed to normal production menu
+      setStep("checking_sync_status");
+      return;
+    }
+    // Load sandbox products
+    setStep("loading_sandbox_products");
+  };
+
+  const handleSandboxProductSelect = (slugs: string[]) => {
+    if (slugs.length === 0) {
+      // No products selected - proceed to normal menu
+      setStep("checking_sync_status");
+      return;
+    }
+    setSelectedSlugs(slugs);
+    setStep("confirm_sandbox_sync");
+  };
+
+  const handleSandboxSyncConfirm = (confirmed: boolean) => {
+    if (!confirmed) {
+      setStep("checking_sync_status");
+      return;
+    }
+    setStep("syncing_sandbox_to_prod");
+  };
+
   // Remove operation effect
   useEffect(() => {
     if (step === "removing" && credentials && !isRemovingRef.current) {
@@ -972,10 +1051,71 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     }
   }, [step, projectDir]);
 
+  // Sandbox-to-production sync effect
+  useEffect(() => {
+    if (step === "syncing_sandbox_to_prod" && credentials && !isSyncingSandboxRef.current) {
+      isSyncingSandboxRef.current = true;
+      const syncSandboxToProd = async () => {
+        const successes: string[] = [];
+        const failures: { slug: string; error: string }[] = [];
+        const newProducts: Product[] = [];
+
+        for (const slug of selectedSlugs) {
+          const sandboxProduct = sandboxProducts.find((p) => p.slug === slug);
+          if (!sandboxProduct) {
+            failures.push({ slug, error: "Product not found in sandbox" });
+            continue;
+          }
+
+          // Create a copy without polarProductId (new product in production)
+          const productForProd: Product = {
+            ...sandboxProduct,
+            polarProductId: null,
+          };
+
+          // Create on Polar production
+          const createResult = await createPolarProduct(credentials, productForProd, "production");
+          if (createResult.success) {
+            productForProd.polarProductId = createResult.polarProductId;
+            newProducts.push(productForProd);
+            successes.push(slug);
+          } else {
+            failures.push({ slug, error: createResult.error });
+          }
+        }
+
+        // Add new products to production file
+        if (newProducts.length > 0) {
+          const updatedProducts = [...products, ...newProducts];
+          const writeResult = await writeProductsFile(projectDir, "production", updatedProducts);
+          if (!writeResult.success) {
+            setError(writeResult.error ?? "Failed to save products to production file");
+            setStep("error");
+            isSyncingSandboxRef.current = false;
+            return;
+          }
+          setProducts(updatedProducts);
+
+          // Regenerate TypeScript
+          await generateProductsTs(projectDir);
+        }
+
+        setLastOperation("sandbox_sync");
+        setOperationResults({ successes, failures });
+        isSyncingSandboxRef.current = false;
+        setStep("operation_complete");
+      };
+      syncSandboxToProd();
+    }
+  }, [step, credentials, selectedSlugs, sandboxProducts, products, projectDir]);
+
   // Determine the header title based on step
   const getHeaderTitle = () => {
     if (step === "show_menu" || step === "checking_sync_status") {
       return `Products Manager (${env})`;
+    }
+    if (step === "ask_sandbox_sync" || step === "loading_sandbox_products" || step === "select_sandbox_products" || step === "confirm_sandbox_sync" || step === "syncing_sandbox_to_prod") {
+      return `Sandbox → Production Sync`;
     }
     if (step.startsWith("select_for_remove") || step === "confirm_remove" || step === "removing") {
       return `Remove Products (${env})`;
@@ -1002,6 +1142,68 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
       {step === "load_credentials" && <Spinner label="Loading Polar credentials..." />}
 
       {step === "checking_sync_status" && <Spinner label="Checking product sync status..." />}
+
+      {step === "ask_sandbox_sync" && (
+        <Box flexDirection="column">
+          <Text>You are running in production mode.</Text>
+          <Box marginTop={1}>
+            <Confirm
+              label="Would you like to sync sandbox products to production?"
+              onConfirm={handleSandboxSyncPrompt}
+              defaultValue={true}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "loading_sandbox_products" && <Spinner label="Loading sandbox products..." />}
+
+      {step === "select_sandbox_products" && (
+        <Box flexDirection="column">
+          {sandboxProducts.length === 0 ? (
+            <Box flexDirection="column">
+              <Text>No sandbox products found to sync.</Text>
+              <Box marginTop={1}>
+                <Text dimColor>Continuing to production menu...</Text>
+              </Box>
+            </Box>
+          ) : (
+            <MultiSelect
+              label="Select sandbox products to create in production"
+              items={sandboxProducts.map((p) => ({ label: `${p.name} (${p.slug})`, value: p.slug }))}
+              onSubmit={handleSandboxProductSelect}
+            />
+          )}
+        </Box>
+      )}
+
+      {step === "confirm_sandbox_sync" && (
+        <Box flexDirection="column">
+          <Text>
+            You are about to create {selectedSlugs.length} product{selectedSlugs.length !== 1 ? "s" : ""} in production:
+          </Text>
+          <Box flexDirection="column" marginLeft={2} marginTop={1}>
+            {selectedSlugs.map((slug) => {
+              const product = sandboxProducts.find((p) => p.slug === slug);
+              return (
+                <Text key={slug}>- {product?.name ?? slug} ({slug})</Text>
+              );
+            })}
+          </Box>
+          <Box marginTop={1}>
+            <Text dimColor>These will be created as new products on Polar production.</Text>
+          </Box>
+          <Box marginTop={1}>
+            <Confirm
+              label="Continue with sandbox to production sync?"
+              onConfirm={handleSandboxSyncConfirm}
+              defaultValue={true}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "syncing_sandbox_to_prod" && <Spinner label="Creating products in production..." />}
 
       {step === "show_menu" && (
         <Box flexDirection="column">
@@ -1097,6 +1299,8 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
                   ? operationResults.successes[0]
                   : lastOperation === "add"
                   ? `Successfully created ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""}`
+                  : lastOperation === "sandbox_sync"
+                  ? `Successfully synced ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""} to production`
                   : `Successfully ${lastOperation === "remove" ? "removed" : "synced"} ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""}`}
               </StatusMessage>
               {lastOperation !== "regenerate" && (
@@ -1111,7 +1315,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
           {operationResults.failures.length > 0 && (
             <Box flexDirection="column" marginTop={1}>
               <StatusMessage status="error">
-                Failed to {lastOperation === "add" ? "sync" : lastOperation === "remove" ? "remove" : lastOperation === "sync" ? "sync" : "regenerate"} {operationResults.failures.length} item{operationResults.failures.length !== 1 ? "s" : ""}
+                Failed to {lastOperation === "add" ? "sync" : lastOperation === "remove" ? "remove" : lastOperation === "sync" ? "sync" : lastOperation === "sandbox_sync" ? "sync to production" : "regenerate"} {operationResults.failures.length} item{operationResults.failures.length !== 1 ? "s" : ""}
               </StatusMessage>
               <Box flexDirection="column" marginLeft={2}>
                 {operationResults.failures.map(({ slug, error }) => (
