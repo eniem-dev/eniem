@@ -14,19 +14,25 @@ import {
   generateYearlySlug,
   generateYearlyTitle,
   calculateYearlyPrice,
+  formatPrice,
+  formatPeriod,
+  generateProductsTs,
   type Product,
+  type Price,
 } from "../products.js";
 
 // Mock fs/promises
 vi.mock("fs/promises", () => ({
   readFile: vi.fn(),
   writeFile: vi.fn(),
+  mkdir: vi.fn(),
 }));
 
-import { readFile, writeFile } from "fs/promises";
+import { readFile, writeFile, mkdir } from "fs/promises";
 
 const mockReadFile = vi.mocked(readFile);
 const mockWriteFile = vi.mocked(writeFile);
+const mockMkdir = vi.mocked(mkdir);
 
 // Test fixtures
 const validProduct: Product = {
@@ -548,6 +554,245 @@ describe("products", () => {
 
     it("handles small amounts", () => {
       expect(calculateYearlyPrice(100)).toBe(1000);
+    });
+  });
+
+  describe("formatPrice", () => {
+    it("formats free price", () => {
+      const price: Price = { amountType: "free" };
+      expect(formatPrice(price)).toBe("$0");
+    });
+
+    it("formats fixed price (whole dollars)", () => {
+      const price: Price = { amountType: "fixed", amount: 1900, currency: "usd" };
+      expect(formatPrice(price)).toBe("$19");
+    });
+
+    it("formats fixed price (with cents)", () => {
+      const price: Price = { amountType: "fixed", amount: 1999, currency: "usd" };
+      expect(formatPrice(price)).toBe("$19.99");
+    });
+
+    it("formats custom price", () => {
+      const price: Price = { amountType: "custom", amount: 500, currency: "usd" };
+      expect(formatPrice(price)).toBe("$5+");
+    });
+
+    it("handles missing amount in custom price", () => {
+      const price: Price = { amountType: "custom", currency: "usd" };
+      expect(formatPrice(price)).toBe("$0+");
+    });
+
+    it("handles missing amount in fixed price", () => {
+      const price: Price = { amountType: "fixed", currency: "usd" };
+      expect(formatPrice(price)).toBe("$0");
+    });
+  });
+
+  describe("formatPeriod", () => {
+    it("returns undefined for non-subscription products", () => {
+      const product = { ...validProduct, type: "one_time" as const, recurringInterval: undefined };
+      expect(formatPeriod(product)).toBeUndefined();
+    });
+
+    it("formats monthly subscription", () => {
+      const product = { ...validProduct, type: "subscription" as const, recurringInterval: "month" as const };
+      expect(formatPeriod(product)).toBe("/month");
+    });
+
+    it("formats yearly subscription", () => {
+      const product = { ...validProduct, type: "subscription" as const, recurringInterval: "year" as const };
+      expect(formatPeriod(product)).toBe("/year");
+    });
+
+    it("formats weekly subscription", () => {
+      const product = { ...validProduct, type: "subscription" as const, recurringInterval: "week" as const };
+      expect(formatPeriod(product)).toBe("/week");
+    });
+
+    it("formats daily subscription", () => {
+      const product = { ...validProduct, type: "subscription" as const, recurringInterval: "day" as const };
+      expect(formatPeriod(product)).toBe("/day");
+    });
+
+    it("formats interval count > 1", () => {
+      const product = {
+        ...validProduct,
+        type: "subscription" as const,
+        recurringInterval: "month" as const,
+        recurringIntervalCount: 3,
+      };
+      expect(formatPeriod(product)).toBe("/3 months");
+    });
+
+    it("returns undefined for subscription without interval", () => {
+      const product = { ...validProduct, type: "subscription" as const, recurringInterval: undefined };
+      expect(formatPeriod(product)).toBeUndefined();
+    });
+  });
+
+  describe("generateProductsTs", () => {
+    beforeEach(() => {
+      mockMkdir.mockResolvedValue(undefined);
+    });
+
+    it("generates TypeScript file from sandbox and production products", async () => {
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([validProduct])) // sandbox
+        .mockResolvedValueOnce(JSON.stringify([validProduct])); // production
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const result = await generateProductsTs("/project");
+
+      expect(result.success).toBe(true);
+      expect(result.path).toBe("/project/src/features/subscription/products.generated.ts");
+      expect(mockMkdir).toHaveBeenCalledWith("/project/src/features/subscription", { recursive: true });
+    });
+
+    it("includes interfaces in generated file", async () => {
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([validProduct]))
+        .mockResolvedValueOnce(JSON.stringify([validProduct]));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      await generateProductsTs("/project");
+
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent).toContain("interface ProductDisplay");
+      expect(writtenContent).toContain("interface GeneratedProduct");
+    });
+
+    it("includes product arrays in generated file", async () => {
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([validProduct]))
+        .mockResolvedValueOnce(JSON.stringify([validProduct]));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      await generateProductsTs("/project");
+
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent).toContain("sandboxProducts");
+      expect(writtenContent).toContain("productionProducts");
+      expect(writtenContent).toContain("pro-monthly");
+    });
+
+    it("includes helper functions", async () => {
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([validProduct]))
+        .mockResolvedValueOnce(JSON.stringify([validProduct]));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      await generateProductsTs("/project");
+
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent).toContain("function getProducts");
+      expect(writtenContent).toContain("function getCheckoutProducts");
+      expect(writtenContent).toContain("function getDisplayProducts");
+    });
+
+    it("handles missing sandbox file", async () => {
+      const error = new Error("ENOENT") as NodeJS.ErrnoException;
+      error.code = "ENOENT";
+      mockReadFile
+        .mockRejectedValueOnce(error) // sandbox missing
+        .mockResolvedValueOnce(JSON.stringify([validProduct])); // production exists
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const result = await generateProductsTs("/project");
+
+      expect(result.success).toBe(true);
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent).toContain("sandboxProducts: GeneratedProduct[] = [");
+      expect(writtenContent).toContain("] as const;");
+    });
+
+    it("handles missing production file", async () => {
+      const error = new Error("ENOENT") as NodeJS.ErrnoException;
+      error.code = "ENOENT";
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([validProduct])) // sandbox exists
+        .mockRejectedValueOnce(error); // production missing
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const result = await generateProductsTs("/project");
+
+      expect(result.success).toBe(true);
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent).toContain("productionProducts: GeneratedProduct[] = [");
+      // Production should be empty when missing
+      expect(writtenContent).toMatch(/productionProducts: GeneratedProduct\[\] = \[\s*\] as const/);
+    });
+
+    it("returns error when both files are missing", async () => {
+      const error = new Error("ENOENT") as NodeJS.ErrnoException;
+      error.code = "ENOENT";
+      mockReadFile.mockRejectedValue(error);
+
+      const result = await generateProductsTs("/project");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("No products files found");
+    });
+
+    it("includes formatted price in output", async () => {
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([validProduct]))
+        .mockResolvedValueOnce(JSON.stringify([]));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      await generateProductsTs("/project");
+
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent).toContain('price: "$19"');
+    });
+
+    it("includes formatted period in output", async () => {
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([validProduct]))
+        .mockResolvedValueOnce(JSON.stringify([]));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      await generateProductsTs("/project");
+
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent).toContain('period: "/month"');
+    });
+
+    it("returns error on write failure", async () => {
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([validProduct]))
+        .mockResolvedValueOnce(JSON.stringify([]));
+      mockWriteFile.mockRejectedValue(new Error("Permission denied"));
+
+      const result = await generateProductsTs("/project");
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Failed to write");
+    });
+
+    it("includes polarProductId when present", async () => {
+      const productWithId = { ...validProduct, polarProductId: "polar_123" };
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([productWithId]))
+        .mockResolvedValueOnce(JSON.stringify([]));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      await generateProductsTs("/project");
+
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent).toContain('productId: "polar_123"');
+    });
+
+    it("includes null productId when polarProductId is missing", async () => {
+      mockReadFile
+        .mockResolvedValueOnce(JSON.stringify([validProduct]))
+        .mockResolvedValueOnce(JSON.stringify([]));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      await generateProductsTs("/project");
+
+      const writtenContent = (mockWriteFile.mock.calls[0] as unknown[])[1] as string;
+      expect(writtenContent).toContain("productId: null");
     });
   });
 });

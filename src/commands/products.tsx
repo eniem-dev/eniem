@@ -11,6 +11,7 @@ import {
 import {
   readProductsFile,
   writeProductsFile,
+  generateProductsTs,
   slugExists,
   toKebabCase,
   validateSlug,
@@ -130,6 +131,10 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   const [polarSyncError, setPolarSyncError] = useState<string | null>(null);
   const [yearlyPolarSyncError, setYearlyPolarSyncError] = useState<string | null>(null);
 
+  // TypeScript generation state
+  const [tsGenSuccess, setTsGenSuccess] = useState<boolean | null>(null);
+  const [tsGenError, setTsGenError] = useState<string | null>(null);
+
   // Refs to prevent duplicate effect runs
   const isCreatingRef = useRef(false);
   const isCreatingYearlyRef = useRef(false);
@@ -223,11 +228,20 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
         // Save to JSON - use functional update to get latest products
         setProducts((currentProducts) => {
           const updatedProducts = [...currentProducts, product];
-          writeProductsFile(projectDir, env, updatedProducts).then((writeResult) => {
+          writeProductsFile(projectDir, env, updatedProducts).then(async (writeResult) => {
             if (!writeResult.success) {
               setError(writeResult.error ?? "Failed to save product");
               setStep("error");
               return;
+            }
+
+            // Generate TypeScript exports
+            const tsResult = await generateProductsTs(projectDir);
+            if (tsResult.success) {
+              setTsGenSuccess(true);
+            } else {
+              setTsGenSuccess(false);
+              setTsGenError(tsResult.error ?? "Failed to generate TypeScript");
             }
 
             setCreatedProduct(product);
@@ -269,11 +283,20 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
         // Save to JSON - use functional update to get latest products
         setProducts((currentProducts) => {
           const updatedProducts = [...currentProducts, product];
-          writeProductsFile(projectDir, env, updatedProducts).then((writeResult) => {
+          writeProductsFile(projectDir, env, updatedProducts).then(async (writeResult) => {
             if (!writeResult.success) {
               setError(writeResult.error ?? "Failed to save yearly product");
               setStep("error");
               return;
+            }
+
+            // Generate TypeScript exports
+            const tsResult = await generateProductsTs(projectDir);
+            if (tsResult.success) {
+              setTsGenSuccess(true);
+            } else {
+              setTsGenSuccess(false);
+              setTsGenError(tsResult.error ?? "Failed to generate TypeScript");
             }
 
             setCreatedYearlyProduct(product);
@@ -965,8 +988,14 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
               </Box>
             )}
           </Box>
-          <Box marginTop={1}>
+          <Box marginTop={1} flexDirection="column">
             <Text dimColor>Products saved to products.{env}.json</Text>
+            {tsGenSuccess === true && (
+              <Text dimColor>TypeScript exports generated: src/features/subscription/products.generated.ts</Text>
+            )}
+            {tsGenSuccess === false && (
+              <Text color="yellow">Warning: TypeScript generation failed: {tsGenError}</Text>
+            )}
           </Box>
         </Box>
       )}
