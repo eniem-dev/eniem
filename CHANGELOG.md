@@ -1,3 +1,10 @@
+# [0.3.0](https://github.com/eniem-dev/eniem-cli/compare/v0.2.8...v0.3.0) (2026-01-20)
+
+
+### Features
+
+* replace .ralph with specs-based workflow ([e1ff2c8](https://github.com/eniem-dev/eniem-cli/commit/e1ff2c86798393248a6a4823b475aede926592da))
+
 ## [0.2.8](https://github.com/eniem-dev/eniem-cli/compare/v0.2.7...v0.2.8) (2026-01-15)
 
 
