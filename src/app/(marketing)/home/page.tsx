@@ -8,6 +8,8 @@ import { headers } from "next/headers";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { HomePageContent } from "@/components/home-page-content";
+import { getDisplayProducts } from "@/features/subscription";
+import { env } from "@/config";
 
 export const metadata = createMetadata({
   ...getDefaultMetadata(),
@@ -23,5 +25,8 @@ export default async function HomePage() {
   if (!session) {
     redirect(routes.home);
   }
-  return <HomePageContent />;
+
+  const products = getDisplayProducts(env.payment.polarServer);
+
+  return <HomePageContent products={products} />;
 }

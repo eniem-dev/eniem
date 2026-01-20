@@ -596,35 +596,6 @@ export const locales = {
     notFound: "Post Not Found",
   },
 
-  PricingCard: {
-    proMonthly: {
-      name: "Basic Plan",
-      price: "$XX",
-      period: "/month",
-      billing: "Billed monthly",
-      cta: "Get Started",
-      features: [
-        "Your first feature benefit",
-        "Your second feature benefit",
-        "Your third feature benefit",
-      ],
-    },
-    proYearly: {
-      name: "Pro Plan",
-      price: "$XX",
-      period: "/year",
-      billing: "Billed yearly",
-      badge: "Best Value",
-      cta: "Get Started",
-      features: [
-        "Your first feature benefit",
-        "Your second feature benefit",
-        "Your third feature benefit",
-        "Additional yearly benefit",
-      ],
-    },
-  },
-
   PoweredByBadge: {
     text: "Powered by eniem.dev",
   },

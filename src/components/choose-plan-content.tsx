@@ -10,8 +10,13 @@ import {
   getPlanSelectionFromSearchParams,
   hasPlanSelection,
 } from "@/lib/plan-selection";
+import type { GeneratedProduct } from "@/features/subscription";
 
-export function ChoosePlanContent() {
+interface ChoosePlanContentProps {
+  products: GeneratedProduct[];
+}
+
+export function ChoosePlanContent({ products }: ChoosePlanContentProps) {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const hasTriggeredCheckout = useRef(false);
@@ -55,27 +60,20 @@ export function ChoosePlanContent() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mt-12">
-        <PricingCard
-          name={locales.PricingCard.proMonthly.name}
-          price={locales.PricingCard.proMonthly.price}
-          period={locales.PricingCard.proMonthly.period}
-          billing={locales.PricingCard.proMonthly.billing}
-          features={locales.PricingCard.proMonthly.features}
-          slug="pro-monthly"
-          ctaLabel={locales.PricingCard.proMonthly.cta}
-        />
-
-        <PricingCard
-          name={locales.PricingCard.proYearly.name}
-          price={locales.PricingCard.proYearly.price}
-          period={locales.PricingCard.proYearly.period}
-          billing={locales.PricingCard.proYearly.billing}
-          features={locales.PricingCard.proYearly.features}
-          slug="pro-yearly"
-          badge={locales.PricingCard.proYearly.badge}
-          highlighted
-          ctaLabel={locales.PricingCard.proYearly.cta}
-        />
+        {products.map((product) => (
+          <PricingCard
+            key={product.slug}
+            name={product.display.title}
+            price={product.display.price}
+            period={product.display.period ?? ""}
+            billing={product.display.subtitle ?? ""}
+            features={product.display.features}
+            slug={product.slug}
+            badge={product.display.badge ?? undefined}
+            highlighted={product.display.highlighted}
+            ctaLabel={product.display.cta}
+          />
+        ))}
       </div>
     </div>
   );

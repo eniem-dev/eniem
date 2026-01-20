@@ -55,8 +55,9 @@ export const env = {
 
   payment: {
     polarAccessToken: process.env.POLAR_ACCESS_TOKEN,
-    polarServer: process.env.POLAR_SERVER || "sandbox",
+    polarServer: (process.env.POLAR_SERVER || "sandbox") as "sandbox" | "production",
     polarWebhookSecret: process.env.POLAR_WEBHOOK_SECRET || "",
+    polarOrganizationId: process.env.POLAR_ORGANIZATION_ID,
   },
 
   // Email Configuration (Resend)

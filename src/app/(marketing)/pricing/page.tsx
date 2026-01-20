@@ -1,6 +1,8 @@
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { PricingCard } from "@/components/pricing-card";
+import { getDisplayProducts } from "@/features/subscription";
+import { env } from "@/config";
 
 export const metadata = createMetadata({
   ...getDefaultMetadata(),
@@ -9,6 +11,8 @@ export const metadata = createMetadata({
 });
 
 export default function PricingPage() {
+  const products = getDisplayProducts(env.payment.polarServer);
+
   return (
     <div className="container mx-auto px-4 py-16">
       <div className="text-center mb-16">
@@ -21,27 +25,20 @@ export default function PricingPage() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mt-12">
-        <PricingCard
-          name={locales.PricingCard.proMonthly.name}
-          price={locales.PricingCard.proMonthly.price}
-          period={locales.PricingCard.proMonthly.period}
-          billing={locales.PricingCard.proMonthly.billing}
-          features={locales.PricingCard.proMonthly.features}
-          slug="pro-monthly"
-          ctaLabel={locales.PricingCard.proMonthly.cta}
-        />
-
-        <PricingCard
-          name={locales.PricingCard.proYearly.name}
-          price={locales.PricingCard.proYearly.price}
-          period={locales.PricingCard.proYearly.period}
-          billing={locales.PricingCard.proYearly.billing}
-          features={locales.PricingCard.proYearly.features}
-          slug="pro-yearly"
-          badge={locales.PricingCard.proYearly.badge}
-          highlighted
-          ctaLabel={locales.PricingCard.proYearly.cta}
-        />
+        {products.map((product) => (
+          <PricingCard
+            key={product.slug}
+            name={product.display.title}
+            price={product.display.price}
+            period={product.display.period ?? ""}
+            billing={product.display.subtitle ?? ""}
+            features={product.display.features}
+            slug={product.slug}
+            badge={product.display.badge ?? undefined}
+            highlighted={product.display.highlighted}
+            ctaLabel={product.display.cta}
+          />
+        ))}
       </div>
     </div>
   );

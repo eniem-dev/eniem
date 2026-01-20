@@ -2,6 +2,8 @@ import { ChoosePlanContent } from "@/components/choose-plan-content";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { Suspense } from "react";
+import { getDisplayProducts } from "@/features/subscription";
+import { env } from "@/config";
 
 export const metadata = createMetadata({
   ...getDefaultMetadata(),
@@ -10,9 +12,11 @@ export const metadata = createMetadata({
 });
 
 export default function ChoosePlanPage() {
+  const products = getDisplayProducts(env.payment.polarServer);
+
   return (
     <Suspense>
-      <ChoosePlanContent />
+      <ChoosePlanContent products={products} />
     </Suspense>
   );
 }

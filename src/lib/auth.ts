@@ -15,7 +15,7 @@ import { logger } from "./logger";
 import { env } from "@/config";
 import { prisma } from "./db";
 import { polarClient } from "./polar";
-import { syncSubscription } from "@/features/subscription";
+import { syncSubscription, getCheckoutProducts } from "@/features/subscription";
 import { AUTH_CONSTANTS } from "./auth.constants";
 
 export { AUTH_CONSTANTS };
@@ -179,24 +179,7 @@ export const auth = betterAuth({
       createCustomerOnSignUp: true,
       use: [
         checkout({
-          products: [
-            {
-              productId: "4d5c4e71-2041-496b-b8cc-f72443e34f48",
-              slug: "eniem", // Custom slug for easy reference in Checkout URL, e.g. /checkout/eniem
-            },
-            {
-              productId: "fbd24ddc-323c-468e-aeca-ef0898acc547",
-              slug: "eniem-github", // Custom slug for easy reference in Checkout URL, e.g. /checkout/eniem
-            },
-            {
-              productId: "d221378e-c19a-4f5e-9efb-52d06dcda288",
-              slug: "pro-monthly",
-            },
-            {
-              productId: "3c3e4211-ef96-4861-a939-7bbd8d3c629b",
-              slug: "pro-yearly",
-            },
-          ],
+          products: getCheckoutProducts(env.payment.polarServer),
           successUrl: "/success?checkout_id={CHECKOUT_ID}",
           authenticatedUsersOnly: true,
         }),
