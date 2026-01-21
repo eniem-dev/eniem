@@ -88,19 +88,19 @@ Create comprehensive single-page documentation for the `eniem products` CLI comm
 
 - [x] Add FAQ section: 3-5 common questions with concise answers (e.g., "Can I skip sandbox?", "How do I update a product?", "Where are products stored?")
 
-- [ ] Add Video Walkthrough placeholder: section with "Coming soon" note and embedded video placeholder markup
+- [x] Add Video Walkthrough placeholder: section with "Coming soon" note and embedded video placeholder markup
 
 ### Phase 9: Integration and Finalization
 
 - [x] Update `content/docs/guides/meta.json`: add "cli" entry to pages array (position after "setup-subscriptions" for logical flow)
 
-- [ ] Review and verify all internal links work (Prerequisites links to Installation, references to setup-subscriptions)
+- [x] Review and verify all internal links work (Prerequisites links to Installation, references to setup-subscriptions)
 
-- [ ] Verify documentation follows existing guide patterns (frontmatter format, heading hierarchy, code block styling from ralph/index.mdx)
+- [x] Verify documentation follows existing guide patterns (frontmatter format, heading hierarchy, code block styling from ralph/index.mdx)
 
 ### Phase 10: Completion
 
-- [ ] Create pull request with title "docs: add CLI products command documentation" and description summarizing coverage of all Must Have requirements from spec
+- [x] Create pull request with title "docs: add CLI products command documentation" and description summarizing coverage of all Must Have requirements from spec
 
 ---
 
