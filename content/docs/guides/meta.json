@@ -4,6 +4,7 @@
     "enable-landing-mode",
     "setup-oauth",
     "setup-subscriptions",
+    "cli",
     "sell-code-via-github",
     "add-web3-auth",
     "customize-seo",
