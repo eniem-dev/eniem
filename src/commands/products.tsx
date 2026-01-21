@@ -37,6 +37,7 @@ import {
   listPolarProducts,
   type PolarCredentials,
   type PolarEnvironment,
+  type PolarProductInfo,
 } from "../lib/polar.js";
 
 // ============================================================================
@@ -192,7 +193,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   const [askedSandboxSync, setAskedSandboxSync] = useState(false);
 
   // Polar cleanup state
-  const [orphanedPolarProducts, setOrphanedPolarProducts] = useState<Array<{ id: string; name: string; isArchived: boolean; slug?: string }>>([]);
+  const [orphanedPolarProducts, setOrphanedPolarProducts] = useState<PolarProductInfo[]>([]);
   const [selectedPolarProductIds, setSelectedPolarProductIds] = useState<string[]>([]);
   const [cleanupAction, setCleanupAction] = useState<"archive" | "import" | null>(null);
 
@@ -1271,13 +1272,43 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
               failures.push({ slug: polarProduct.name, error: result.error });
             }
           } else if (cleanupAction === "import") {
-            // Create minimal local product entry
+            // Create local product entry with all available info from Polar
             const slug = polarProduct.slug || toKebabCase(polarProduct.name);
+
+            // Determine product type based on Polar data
+            const productType: "subscription" | "one_time" | "free" = polarProduct.isRecurring
+              ? "subscription"
+              : polarProduct.prices[0]?.amountType === "free"
+              ? "free"
+              : "one_time";
+
+            // Convert Polar prices to local format
+            const prices: Product["prices"] = polarProduct.prices.map((p) => {
+              if (p.amountType === "free") {
+                return { amountType: "free" as const };
+              } else if (p.amountType === "custom") {
+                return {
+                  amountType: "custom" as const,
+                  amount: p.priceAmount ?? undefined,
+                  currency: "usd" as const,
+                };
+              } else {
+                return {
+                  amountType: "fixed" as const,
+                  amount: p.priceAmount ?? undefined,
+                  currency: "usd" as const,
+                };
+              }
+            });
+
             const newProduct: Product = {
               slug,
               name: polarProduct.name,
-              type: "one_time",
-              prices: [{ amountType: "free" }],
+              description: polarProduct.description ?? undefined,
+              type: productType,
+              recurringInterval: polarProduct.recurringInterval ?? undefined,
+              recurringIntervalCount: polarProduct.isRecurring ? 1 : undefined,
+              prices,
               display: {
                 title: polarProduct.name,
                 badge: null,
@@ -1555,13 +1586,35 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
         <Box flexDirection="column">
           <Text>Found {orphanedPolarProducts.length} product{orphanedPolarProducts.length !== 1 ? "s" : ""} on Polar that are not in your local file:</Text>
           <Box flexDirection="column" marginLeft={2} marginTop={1} marginBottom={1}>
-            {orphanedPolarProducts.map((p) => (
-              <Text key={p.id} dimColor>- {p.name}</Text>
-            ))}
+            {orphanedPolarProducts.map((p) => {
+              const price = p.prices[0];
+              const priceStr = price?.amountType === "free"
+                ? "Free"
+                : price?.amountType === "custom"
+                ? `$${((price.priceAmount ?? 0) / 100).toFixed(0)}+`
+                : price?.priceAmount
+                ? `$${(price.priceAmount / 100).toFixed(price.priceAmount % 100 === 0 ? 0 : 2)}`
+                : "Free";
+              const typeStr = p.isRecurring ? `/${p.recurringInterval}` : "";
+              return (
+                <Text key={p.id} dimColor>- {p.name} ({priceStr}{typeStr})</Text>
+              );
+            })}
           </Box>
           <MultiSelect
             label="Select products to clean up"
-            items={orphanedPolarProducts.map((p) => ({ label: p.name, value: p.id }))}
+            items={orphanedPolarProducts.map((p) => {
+              const price = p.prices[0];
+              const priceStr = price?.amountType === "free"
+                ? "Free"
+                : price?.amountType === "custom"
+                ? `$${((price.priceAmount ?? 0) / 100).toFixed(0)}+`
+                : price?.priceAmount
+                ? `$${(price.priceAmount / 100).toFixed(price.priceAmount % 100 === 0 ? 0 : 2)}`
+                : "Free";
+              const typeStr = p.isRecurring ? `/${p.recurringInterval}` : "";
+              return { label: `${p.name} (${priceStr}${typeStr})`, value: p.id };
+            })}
             onSubmit={handleCleanupSelect}
           />
         </Box>

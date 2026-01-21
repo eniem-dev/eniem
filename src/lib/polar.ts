@@ -52,8 +52,23 @@ export type UnarchiveProductResult =
   | { success: true }
   | { success: false; error: string };
 
+export interface PolarProductInfo {
+  id: string;
+  name: string;
+  description: string | null;
+  isArchived: boolean;
+  slug?: string;
+  isRecurring: boolean;
+  recurringInterval: "month" | "year" | null;
+  prices: Array<{
+    amountType: "free" | "fixed" | "custom";
+    priceAmount: number | null;
+    priceCurrency: string | null;
+  }>;
+}
+
 export type ListPolarProductsResult =
-  | { success: true; products: Array<{ id: string; name: string; isArchived: boolean; slug?: string }> }
+  | { success: true; products: PolarProductInfo[] }
   | { success: false; error: string };
 
 export type PolarEnvironment = "sandbox" | "production";
@@ -525,7 +540,7 @@ export async function unarchivePolarProduct(
 
 /**
  * Lists all products from Polar for the organization.
- * Returns products with their ID, name, archived status, and slug from metadata.
+ * Returns products with full details including price, description, and recurring info.
  */
 export async function listPolarProducts(
   credentials: PolarCredentials,
@@ -535,7 +550,7 @@ export async function listPolarProducts(
     const client = createPolarClient(credentials.accessToken, environment);
 
     // Fetch all products (including archived)
-    const allProducts: Array<{ id: string; name: string; isArchived: boolean; slug?: string }> = [];
+    const allProducts: PolarProductInfo[] = [];
     let page = 1;
     const limit = 100;
 
@@ -546,11 +561,43 @@ export async function listPolarProducts(
         const slug = product.metadata && typeof product.metadata === "object"
           ? (product.metadata as Record<string, unknown>).slug as string | undefined
           : undefined;
+
+        // Extract price information
+        const prices: PolarProductInfo["prices"] = [];
+        if (product.prices && Array.isArray(product.prices)) {
+          for (const price of product.prices) {
+            if (price.amountType === "free") {
+              prices.push({ amountType: "free", priceAmount: null, priceCurrency: null });
+            } else if (price.amountType === "fixed") {
+              prices.push({
+                amountType: "fixed",
+                priceAmount: price.priceAmount ?? null,
+                priceCurrency: price.priceCurrency ?? "usd",
+              });
+            } else if (price.amountType === "custom") {
+              prices.push({
+                amountType: "custom",
+                priceAmount: price.minimumAmount ?? null,
+                priceCurrency: price.priceCurrency ?? "usd",
+              });
+            }
+          }
+        }
+
+        // Default to free if no prices
+        if (prices.length === 0) {
+          prices.push({ amountType: "free", priceAmount: null, priceCurrency: null });
+        }
+
         allProducts.push({
           id: product.id,
           name: product.name,
+          description: product.description ?? null,
           isArchived: product.isArchived ?? false,
           slug,
+          isRecurring: product.isRecurring ?? false,
+          recurringInterval: product.recurringInterval ?? null,
+          prices,
         });
       }
 
