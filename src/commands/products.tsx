@@ -186,11 +186,12 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     successes: string[];
     failures: { slug: string; error: string }[];
   }>({ successes: [], failures: [] });
-  const [lastOperation, setLastOperation] = useState<"add" | "remove" | "sync" | "regenerate" | "sandbox_sync" | "unarchive" | "cleanup" | null>(null);
+  const [lastOperation, setLastOperation] = useState<"add" | "remove" | "sync" | "regenerate" | "sandbox_sync" | "unarchive" | "cleanup" | "sync_from_sandbox" | null>(null);
 
   // Sandbox-to-production sync state
   const [sandboxProducts, setSandboxProducts] = useState<Product[]>([]);
   const [askedSandboxSync, setAskedSandboxSync] = useState(false);
+  const [sandboxHasProducts, setSandboxHasProducts] = useState(false);
 
   // Polar cleanup state
   const [orphanedPolarProducts, setOrphanedPolarProducts] = useState<PolarProductInfo[]>([]);
@@ -319,13 +320,21 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
           }
         }
 
+        // In production mode with no products, check if sandbox has products
+        if (env === "production" && products.length === 0) {
+          const sandboxResult = await readProductsFile(projectDir, "sandbox");
+          setSandboxHasProducts(sandboxResult.success && sandboxResult.products.length > 0);
+        } else {
+          setSandboxHasProducts(false);
+        }
+
         setSyncStatus(new Map(newSyncStatus));
         isCheckingSyncRef.current = false;
         setStep("show_menu");
       };
       checkSync();
     }
-  }, [step, credentials, products, env]);
+  }, [step, credentials, products, env, projectDir]);
 
   // Helper to build Product from draft
   const buildProduct = (d: ProductDraft): Product => {
@@ -833,7 +842,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   };
 
   // Menu operation handlers
-  const handleOperationSelect = (operation: "add" | "remove" | "sync" | "regenerate" | "unarchive" | "cleanup") => {
+  const handleOperationSelect = (operation: "add" | "remove" | "sync" | "regenerate" | "unarchive" | "cleanup" | "sync_from_sandbox") => {
     setLastOperation(operation);
     setOperationResults({ successes: [], failures: [] });
 
@@ -871,6 +880,9 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
         break;
       case "cleanup":
         setStep("loading_polar_products");
+        break;
+      case "sync_from_sandbox":
+        setStep("loading_sandbox_products");
         break;
     }
   };
@@ -1468,6 +1480,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
             onSelect={handleOperationSelect}
             hasProducts={products.length > 0}
             hasArchivedProducts={hasArchivedProducts}
+            showSyncFromSandbox={sandboxHasProducts}
           />
         </Box>
       )}

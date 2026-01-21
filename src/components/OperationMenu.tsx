@@ -2,7 +2,7 @@ import { Box, Text } from "ink";
 import SelectInput from "ink-select-input";
 import React from "react";
 
-type Operation = "add" | "remove" | "sync" | "regenerate" | "unarchive" | "cleanup";
+type Operation = "add" | "remove" | "sync" | "regenerate" | "unarchive" | "cleanup" | "sync_from_sandbox";
 
 interface SelectOption {
   label: string;
@@ -13,21 +13,28 @@ interface OperationMenuProps {
   onSelect: (operation: Operation) => void;
   hasProducts: boolean;
   hasArchivedProducts?: boolean;
+  showSyncFromSandbox?: boolean;
 }
 
 export const OperationMenu = ({
   onSelect,
   hasProducts,
   hasArchivedProducts = false,
+  showSyncFromSandbox = false,
 }: OperationMenuProps) => {
   const handleSelect = (item: SelectOption) => {
     onSelect(item.value);
   };
 
   // Build options dynamically based on state
-  const options: SelectOption[] = [
-    { label: "Add new product", value: "add" },
-  ];
+  const options: SelectOption[] = [];
+
+  // Show sync from sandbox option prominently when available
+  if (showSyncFromSandbox) {
+    options.push({ label: "Sync products from sandbox", value: "sync_from_sandbox" });
+  }
+
+  options.push({ label: "Add new product", value: "add" });
 
   if (hasProducts) {
     options.push(
@@ -45,9 +52,14 @@ export const OperationMenu = ({
 
   return (
     <Box flexDirection="column">
-      {!hasProducts && (
+      {!hasProducts && !showSyncFromSandbox && (
         <Box marginBottom={1}>
           <Text color="yellow">No products found.</Text>
+        </Box>
+      )}
+      {!hasProducts && showSyncFromSandbox && (
+        <Box marginBottom={1}>
+          <Text color="yellow">No products found. Sandbox products are available to sync.</Text>
         </Box>
       )}
       <Text bold color="blue">
