@@ -5,6 +5,7 @@ import {
   productSchemaWithValidation,
   toKebabCase,
   slugExists,
+  removeProduct,
   validateSlug,
   validateProduct,
   readProductsFile,
@@ -258,6 +259,46 @@ describe("products", () => {
 
     it("returns false for empty array", () => {
       expect(slugExists([], "pro-monthly")).toBe(false);
+    });
+  });
+
+  describe("removeProduct", () => {
+    const basicProduct: Product = {
+      ...validProduct,
+      slug: "basic",
+      name: "Basic",
+    };
+    const products: Product[] = [validProduct, basicProduct];
+
+    it("removes product by slug", () => {
+      const result = removeProduct(products, "pro-monthly");
+      expect(result).toHaveLength(1);
+      expect(result[0]?.slug).toBe("basic");
+    });
+
+    it("returns new array without mutating original", () => {
+      const original = [...products];
+      const result = removeProduct(products, "pro-monthly");
+      expect(products).toHaveLength(2);
+      expect(products).toEqual(original);
+      expect(result).not.toBe(products);
+    });
+
+    it("returns same content array when slug does not exist", () => {
+      const result = removeProduct(products, "nonexistent");
+      expect(result).toHaveLength(2);
+      expect(result[0]?.slug).toBe("pro-monthly");
+      expect(result[1]?.slug).toBe("basic");
+    });
+
+    it("returns empty array when removing from single-item array", () => {
+      const result = removeProduct([validProduct], "pro-monthly");
+      expect(result).toHaveLength(0);
+    });
+
+    it("returns empty array when input is empty", () => {
+      const result = removeProduct([], "pro-monthly");
+      expect(result).toHaveLength(0);
     });
   });
 

@@ -3,7 +3,11 @@ import {
   loadPolarCredentials,
   createPolarClient,
   productToPolarCreate,
+  productToPolarUpdate,
   createPolarProduct,
+  updatePolarProduct,
+  archivePolarProduct,
+  checkProductExists,
   _parseEnvContent,
   type PolarCredentials,
 } from "../polar.js";
@@ -14,14 +18,16 @@ vi.mock("fs/promises", () => ({
   readFile: vi.fn(),
 }));
 
-// Create a mock create function that can be controlled per test
+// Create mock functions that can be controlled per test
 const mockProductsCreate = vi.fn();
+const mockProductsGet = vi.fn();
+const mockProductsUpdate = vi.fn();
 
 // Mock @polar-sh/sdk with a proper class constructor
 vi.mock("@polar-sh/sdk", () => {
   return {
     Polar: class MockPolar {
-      products = { create: mockProductsCreate };
+      products = { create: mockProductsCreate, get: mockProductsGet, update: mockProductsUpdate };
       constructor(public options: { accessToken: string; server: string }) {
         // Store options for test assertions
       }
@@ -67,6 +73,8 @@ describe("polar", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockProductsCreate.mockReset();
+    mockProductsGet.mockReset();
+    mockProductsUpdate.mockReset();
   });
 
   describe("_parseEnvContent", () => {
@@ -427,6 +435,326 @@ POLAR_ACCESS_TOKEN=
           ],
         })
       );
+    });
+  });
+
+  describe("checkProductExists", () => {
+    it("returns exists: true when product exists", async () => {
+      mockProductsGet.mockResolvedValue({ id: "pol_abc123", name: "Pro" });
+
+      const result = await checkProductExists(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.exists).toBe(true);
+      expect(mockProductsGet).toHaveBeenCalledWith({ id: "pol_abc123" });
+    });
+
+    it("returns exists: false when product not found (404)", async () => {
+      mockProductsGet.mockRejectedValue(new Error("404 Not Found"));
+
+      const result = await checkProductExists(
+        validCredentials,
+        "pol_nonexistent",
+        "sandbox"
+      );
+
+      expect(result.exists).toBe(false);
+      expect("error" in result).toBe(false);
+    });
+
+    it("returns exists: false with error on network failure", async () => {
+      mockProductsGet.mockRejectedValue(new Error("Network connection failed"));
+
+      const result = await checkProductExists(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.exists).toBe(false);
+      expect("error" in result).toBe(true);
+      if ("error" in result) {
+        expect(result.error).toContain("Failed to verify product existence");
+        expect(result.error).toContain("Network connection failed");
+      }
+    });
+
+    it("returns exists: false with error on 401 unauthorized", async () => {
+      mockProductsGet.mockRejectedValue(new Error("401 Unauthorized"));
+
+      const result = await checkProductExists(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.exists).toBe(false);
+      expect("error" in result).toBe(true);
+      if ("error" in result) {
+        expect(result.error).toContain("Failed to verify product existence");
+      }
+    });
+
+    it("uses correct environment when checking", async () => {
+      mockProductsGet.mockResolvedValue({ id: "pol_prod123", name: "Pro" });
+
+      await checkProductExists(validCredentials, "pol_prod123", "production");
+
+      expect(mockProductsGet).toHaveBeenCalledWith({ id: "pol_prod123" });
+    });
+  });
+
+  describe("productToPolarUpdate", () => {
+    it("maps product name and description", () => {
+      const result = productToPolarUpdate(validProduct);
+
+      expect(result.name).toBe("Pro Monthly");
+      expect(result.description).toBe("Full access to all Pro features");
+    });
+
+    it("includes metadata with slug and source", () => {
+      const result = productToPolarUpdate(validProduct);
+
+      expect(result.metadata).toEqual({
+        slug: "pro-monthly",
+        source: "eniem-cli",
+      });
+    });
+
+    it("handles missing description as null", () => {
+      const noDescProduct: Product = {
+        ...validProduct,
+        description: undefined,
+      };
+
+      const result = productToPolarUpdate(noDescProduct);
+
+      expect(result.description).toBeNull();
+    });
+  });
+
+  describe("updatePolarProduct", () => {
+    it("returns success: true when update succeeds", async () => {
+      mockProductsUpdate.mockResolvedValue({ id: "pol_abc123", name: "Pro Monthly" });
+
+      const result = await updatePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("calls update with correct product id and data", async () => {
+      mockProductsUpdate.mockResolvedValue({ id: "pol_abc123", name: "Pro Monthly" });
+
+      await updatePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        validProduct,
+        "sandbox"
+      );
+
+      expect(mockProductsUpdate).toHaveBeenCalledWith({
+        id: "pol_abc123",
+        productUpdate: expect.objectContaining({
+          name: "Pro Monthly",
+          description: "Full access to all Pro features",
+          metadata: {
+            slug: "pro-monthly",
+            source: "eniem-cli",
+          },
+        }),
+      });
+    });
+
+    it("returns error on 401 unauthorized", async () => {
+      mockProductsUpdate.mockRejectedValue(new Error("401 Unauthorized"));
+
+      const result = await updatePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Invalid Polar access token");
+      }
+    });
+
+    it("returns error on 403 forbidden", async () => {
+      mockProductsUpdate.mockRejectedValue(new Error("403 Forbidden"));
+
+      const result = await updatePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Access denied");
+      }
+    });
+
+    it("returns error on 404 not found", async () => {
+      mockProductsUpdate.mockRejectedValue(new Error("404 Not Found"));
+
+      const result = await updatePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Product not found");
+      }
+    });
+
+    it("returns error on validation failure", async () => {
+      mockProductsUpdate.mockRejectedValue(
+        new Error("422 validation error: name required")
+      );
+
+      const result = await updatePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Validation error");
+      }
+    });
+
+    it("returns generic error for unknown failures", async () => {
+      mockProductsUpdate.mockRejectedValue(
+        new Error("Network connection failed")
+      );
+
+      const result = await updatePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        validProduct,
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Failed to update product on Polar");
+        expect(result.error).toContain("Network connection failed");
+      }
+    });
+  });
+
+  describe("archivePolarProduct", () => {
+    it("returns success: true when archive succeeds", async () => {
+      mockProductsUpdate.mockResolvedValue({ id: "pol_abc123", isArchived: true });
+
+      const result = await archivePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("calls update with isArchived: true", async () => {
+      mockProductsUpdate.mockResolvedValue({ id: "pol_abc123", isArchived: true });
+
+      await archivePolarProduct(validCredentials, "pol_abc123", "sandbox");
+
+      expect(mockProductsUpdate).toHaveBeenCalledWith({
+        id: "pol_abc123",
+        productUpdate: { isArchived: true },
+      });
+    });
+
+    it("returns error on 401 unauthorized", async () => {
+      mockProductsUpdate.mockRejectedValue(new Error("401 Unauthorized"));
+
+      const result = await archivePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Invalid Polar access token");
+      }
+    });
+
+    it("returns error on 403 forbidden", async () => {
+      mockProductsUpdate.mockRejectedValue(new Error("403 Forbidden"));
+
+      const result = await archivePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Access denied");
+      }
+    });
+
+    it("returns error on 404 not found", async () => {
+      mockProductsUpdate.mockRejectedValue(new Error("404 Not Found"));
+
+      const result = await archivePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Product not found");
+      }
+    });
+
+    it("returns generic error for unknown failures", async () => {
+      mockProductsUpdate.mockRejectedValue(
+        new Error("Network connection failed")
+      );
+
+      const result = await archivePolarProduct(
+        validCredentials,
+        "pol_abc123",
+        "sandbox"
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("Failed to archive product on Polar");
+        expect(result.error).toContain("Network connection failed");
+      }
+    });
+
+    it("uses correct environment when archiving", async () => {
+      mockProductsUpdate.mockResolvedValue({ id: "pol_prod123", isArchived: true });
+
+      await archivePolarProduct(validCredentials, "pol_prod123", "production");
+
+      expect(mockProductsUpdate).toHaveBeenCalledWith({
+        id: "pol_prod123",
+        productUpdate: { isArchived: true },
+      });
     });
   });
 });

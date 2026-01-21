@@ -7,6 +7,10 @@ import {
   Spinner,
   SectionHeader,
   StatusMessage,
+  MultiSelect,
+  ProductList,
+  OperationMenu,
+  type SyncStatus,
 } from "../components/index.js";
 import {
   readProductsFile,
@@ -20,13 +24,20 @@ import {
   generateYearlySlug,
   generateYearlyTitle,
   calculateYearlyPrice,
+  removeProduct,
   type Product,
 } from "../lib/products.js";
 import {
   loadPolarCredentials,
   createPolarProduct,
+  checkProductExists,
+  updatePolarProduct,
+  archivePolarProduct,
+  unarchivePolarProduct,
+  listPolarProducts,
   type PolarCredentials,
   type PolarEnvironment,
+  type PolarProductInfo,
 } from "../lib/polar.js";
 
 // ============================================================================
@@ -34,9 +45,20 @@ import {
 // ============================================================================
 
 type WizardStep =
+  // Initial and credentials
   | "init"
   | "load_credentials"
   | "prompt_access_token"
+  // Production mode: sandbox-to-production sync
+  | "ask_sandbox_sync"
+  | "loading_sandbox_products"
+  | "select_sandbox_products"
+  | "confirm_sandbox_sync"
+  | "syncing_sandbox_to_prod"
+  // Menu steps
+  | "checking_sync_status"
+  | "show_menu"
+  // Add product steps (existing)
   | "product_name"
   | "product_slug"
   | "product_type"
@@ -64,12 +86,35 @@ type WizardStep =
   | "yearly_highlighted"
   | "yearly_cta"
   | "creating_yearly"
+  // Remove operation steps
+  | "select_for_remove"
+  | "confirm_remove"
+  | "removing"
+  // Sync operation steps
+  | "select_for_sync"
+  | "confirm_sync"
+  | "syncing"
+  // Regenerate operation steps
+  | "regenerating"
+  // Unarchive operation steps
+  | "select_for_unarchive"
+  | "confirm_unarchive"
+  | "unarchiving"
+  // Cleanup operation steps
+  | "loading_polar_products"
+  | "show_orphaned_products"
+  | "confirm_cleanup"
+  | "cleaning_up"
+  // Completion steps
+  | "operation_complete"
+  | "ask_continue"
   | "complete"
   | "error";
 
 interface ProductsCommandProps {
   env: PolarEnvironment;
   projectDir: string;
+  accessToken?: string;
 }
 
 interface ProductDraft {
@@ -92,7 +137,7 @@ interface ProductDraft {
 // Component
 // ============================================================================
 
-export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
+export const ProductsCommand = ({ env, projectDir, accessToken }: ProductsCommandProps) => {
   // Wizard state
   const [step, setStep] = useState<WizardStep>("init");
   const [error, setError] = useState<string | null>(null);
@@ -125,19 +170,47 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
 
   // Created products
   const [createdProduct, setCreatedProduct] = useState<Product | null>(null);
-  const [createdYearlyProduct, setCreatedYearlyProduct] = useState<Product | null>(null);
+  const [, setCreatedYearlyProduct] = useState<Product | null>(null);
   const [polarSyncSuccess, setPolarSyncSuccess] = useState<boolean | null>(null);
-  const [yearlyPolarSyncSuccess, setYearlyPolarSyncSuccess] = useState<boolean | null>(null);
+  const [, setYearlyPolarSyncSuccess] = useState<boolean | null>(null);
   const [polarSyncError, setPolarSyncError] = useState<string | null>(null);
-  const [yearlyPolarSyncError, setYearlyPolarSyncError] = useState<string | null>(null);
+  const [, setYearlyPolarSyncError] = useState<string | null>(null);
 
-  // TypeScript generation state
-  const [tsGenSuccess, setTsGenSuccess] = useState<boolean | null>(null);
-  const [tsGenError, setTsGenError] = useState<string | null>(null);
+  // TypeScript generation state (used in effects, results shown via operationResults)
+  const [, setTsGenSuccess] = useState<boolean | null>(null);
+  const [, setTsGenError] = useState<string | null>(null);
+
+  // Menu operation state
+  const [syncStatus, setSyncStatus] = useState<Map<string, SyncStatus>>(new Map());
+  const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
+  const [operationResults, setOperationResults] = useState<{
+    successes: string[];
+    failures: { slug: string; error: string }[];
+  }>({ successes: [], failures: [] });
+  const [lastOperation, setLastOperation] = useState<"add" | "remove" | "sync" | "regenerate" | "sandbox_sync" | "unarchive" | "cleanup" | "sync_from_sandbox" | null>(null);
+
+  // Sandbox-to-production sync state
+  const [sandboxProducts, setSandboxProducts] = useState<Product[]>([]);
+  const [askedSandboxSync, setAskedSandboxSync] = useState(false);
+  const [sandboxHasProducts, setSandboxHasProducts] = useState(false);
+
+  // Polar cleanup state
+  const [orphanedPolarProducts, setOrphanedPolarProducts] = useState<PolarProductInfo[]>([]);
+  const [selectedPolarProductIds, setSelectedPolarProductIds] = useState<string[]>([]);
+  const [cleanupAction, setCleanupAction] = useState<"archive" | "import" | null>(null);
 
   // Refs to prevent duplicate effect runs
   const isCreatingRef = useRef(false);
   const isCreatingYearlyRef = useRef(false);
+  const isCheckingSyncRef = useRef(false);
+  const isRemovingRef = useRef(false);
+  const isSyncingRef = useRef(false);
+  const isRegeneratingRef = useRef(false);
+  const isLoadingSandboxRef = useRef(false);
+  const isSyncingSandboxRef = useRef(false);
+  const isUnarchivingRef = useRef(false);
+  const isLoadingPolarProductsRef = useRef(false);
+  const isCleaningUpRef = useRef(false);
 
   // Initialize: Read products file
   useEffect(() => {
@@ -145,6 +218,17 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
       const init = async () => {
         const result = await readProductsFile(projectDir, env);
         if (!result.success) {
+          // In production mode, if file doesn't exist, check if we can offer sandbox sync
+          if (env === "production" && result.error.includes("not found")) {
+            // Check if sandbox file exists
+            const sandboxResult = await readProductsFile(projectDir, "sandbox");
+            if (sandboxResult.success && sandboxResult.products.length > 0) {
+              // Sandbox exists with products - offer to sync
+              setProducts([]);
+              setStep("load_credentials");
+              return;
+            }
+          }
           setError(result.error);
           setStep("error");
           return;
@@ -156,21 +240,116 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     }
   }, [step, projectDir, env]);
 
+  // Load sandbox products for sandbox-to-production sync
+  useEffect(() => {
+    if (step === "loading_sandbox_products" && !isLoadingSandboxRef.current) {
+      isLoadingSandboxRef.current = true;
+      const load = async () => {
+        const result = await readProductsFile(projectDir, "sandbox");
+        if (!result.success) {
+          // No sandbox products or error - proceed to normal menu
+          isLoadingSandboxRef.current = false;
+          setStep("checking_sync_status");
+          return;
+        }
+        if (result.products.length === 0) {
+          // No sandbox products to sync
+          isLoadingSandboxRef.current = false;
+          setStep("checking_sync_status");
+          return;
+        }
+        setSandboxProducts(result.products);
+        isLoadingSandboxRef.current = false;
+        setStep("select_sandbox_products");
+      };
+      load();
+    }
+  }, [step, projectDir]);
+
   // Load credentials
   useEffect(() => {
     if (step === "load_credentials") {
       const load = async () => {
+        // If access token was provided via CLI, use it directly
+        if (accessToken) {
+          setCredentials({ accessToken });
+          // In production mode, ask about sandbox sync first (if not already asked)
+          if (env === "production" && !askedSandboxSync) {
+            setAskedSandboxSync(true);
+            setStep("ask_sandbox_sync");
+          } else {
+            setStep("checking_sync_status");
+          }
+          return;
+        }
+
+        // Otherwise, try to load from .env file
         const result = await loadPolarCredentials(projectDir);
         if (result.success) {
           setCredentials(result.credentials);
-          setStep("product_name");
+          // In production mode, ask about sandbox sync first (if not already asked)
+          if (env === "production" && !askedSandboxSync) {
+            setAskedSandboxSync(true);
+            setStep("ask_sandbox_sync");
+          } else {
+            setStep("checking_sync_status");
+          }
         } else {
           setStep("prompt_access_token");
         }
       };
       load();
     }
-  }, [step, projectDir]);
+  }, [step, projectDir, env, askedSandboxSync, accessToken]);
+
+  // Check sync status for all products
+  useEffect(() => {
+    if (step === "checking_sync_status" && credentials && !isCheckingSyncRef.current) {
+      isCheckingSyncRef.current = true;
+      const checkSync = async () => {
+        const newSyncStatus = new Map<string, SyncStatus>();
+
+        // Mark all as checking initially
+        for (const product of products) {
+          newSyncStatus.set(product.slug, "checking");
+        }
+        setSyncStatus(new Map(newSyncStatus));
+
+        // Check each product with a polarProductId
+        for (const product of products) {
+          if (!product.polarProductId) {
+            newSyncStatus.set(product.slug, "not-synced");
+            continue;
+          }
+          const result = await checkProductExists(credentials, product.polarProductId, env);
+          if (result.exists) {
+            if (result.isArchived) {
+              newSyncStatus.set(product.slug, "archived");
+            } else {
+              newSyncStatus.set(product.slug, "synced");
+            }
+          } else if ("error" in result) {
+            newSyncStatus.set(product.slug, "error");
+          } else {
+            newSyncStatus.set(product.slug, "not-synced");
+          }
+        }
+
+        // In production mode with no products, check if sandbox has products
+        if (env === "production" && products.length === 0) {
+          const sandboxResult = await readProductsFile(projectDir, "sandbox");
+          setSandboxHasProducts(sandboxResult.success && sandboxResult.products.length > 0);
+        } else {
+          setSandboxHasProducts(false);
+        }
+
+        setSyncStatus(new Map(newSyncStatus));
+        isCheckingSyncRef.current = false;
+        setStep("show_menu");
+      };
+      checkSync();
+    }
+  }, [step, credentials, products, env, projectDir]);
 
   // Helper to build Product from draft
   const buildProduct = (d: ProductDraft): Product => {
@@ -300,14 +479,37 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
             }
 
             setCreatedYearlyProduct(product);
-            setStep("complete");
+
+            // Set up operation results for both products created
+            setLastOperation("add");
+            const successes: string[] = [];
+            const failures: { slug: string; error: string }[] = [];
+
+            // Monthly product
+            if (createdProduct) {
+              if (polarSyncSuccess) {
+                successes.push(createdProduct.slug);
+              } else {
+                failures.push({ slug: createdProduct.slug, error: polarSyncError ?? "Polar sync failed" });
+              }
+            }
+
+            // Yearly product
+            if (polarResult.success) {
+              successes.push(product.slug);
+            } else {
+              failures.push({ slug: product.slug, error: polarResult.error });
+            }
+
+            setOperationResults({ successes, failures });
+            setStep("operation_complete");
           });
           return updatedProducts;
         });
       };
       create();
     }
-  }, [step, credentials, yearlyDraft, projectDir, env]);
+  }, [step, credentials, yearlyDraft, projectDir, env, createdProduct, polarSyncSuccess, polarSyncError]);
 
   // Handle step transitions
   const handleAccessTokenSubmit = (value: string) => {
@@ -318,7 +520,13 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     setInputValue("");
     setInputError(undefined);
     setCredentials({ accessToken: value.trim() });
-    setStep("product_name");
+    // In production mode, ask about sandbox sync first (if not already asked)
+    if (env === "production" && !askedSandboxSync) {
+      setAskedSandboxSync(true);
+      setStep("ask_sandbox_sync");
+    } else {
+      setStep("checking_sync_status");
+    }
   };
 
   const handleProductNameSubmit = (value: string) => {
@@ -483,7 +691,13 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   // Yearly product handlers
   const handleAskYearlyConfirm = (confirmed: boolean) => {
     if (!confirmed) {
-      setStep("complete");
+      // Set up operation results for "add" to show the created product
+      setLastOperation("add");
+      setOperationResults({
+        successes: [createdProduct?.slug ?? "Product created"],
+        failures: polarSyncSuccess ? [] : [{ slug: createdProduct?.slug ?? "product", error: polarSyncError ?? "Polar sync failed" }],
+      });
+      setStep("operation_complete");
       return;
     }
     // Initialize yearly draft
@@ -642,14 +856,885 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     setStep("creating_yearly");
   };
 
+  // Menu operation handlers
+  const handleOperationSelect = (operation: "add" | "remove" | "sync" | "regenerate" | "unarchive" | "cleanup" | "sync_from_sandbox") => {
+    setLastOperation(operation);
+    setOperationResults({ successes: [], failures: [] });
+
+    switch (operation) {
+      case "add":
+        // Reset draft for new product
+        setDraft({
+          name: "",
+          slug: "",
+          type: "subscription",
+          priceType: "fixed",
+          displayTitle: "",
+          features: [],
+          badge: null,
+          highlighted: false,
+          cta: "Get Started",
+        });
+        setInputValue("");
+        setStep("product_name");
+        break;
+      case "remove":
+        setSelectedSlugs([]);
+        setStep("select_for_remove");
+        break;
+      case "sync":
+        setSelectedSlugs([]);
+        setStep("select_for_sync");
+        break;
+      case "regenerate":
+        setStep("regenerating");
+        break;
+      case "unarchive":
+        setSelectedSlugs([]);
+        setStep("select_for_unarchive");
+        break;
+      case "cleanup":
+        setStep("loading_polar_products");
+        break;
+      case "sync_from_sandbox":
+        setStep("loading_sandbox_products");
+        break;
+    }
+  };
+
+  const handleRemoveSelect = (slugs: string[]) => {
+    if (slugs.length === 0) {
+      setStep("show_menu");
+      return;
+    }
+    setSelectedSlugs(slugs);
+    setStep("confirm_remove");
+  };
+
+  const handleRemoveConfirm = (confirmed: boolean) => {
+    if (!confirmed) {
+      setStep("show_menu");
+      return;
+    }
+    setStep("removing");
+  };
+
+  const handleSyncSelect = (slugs: string[]) => {
+    if (slugs.length === 0) {
+      setStep("show_menu");
+      return;
+    }
+    setSelectedSlugs(slugs);
+    setStep("confirm_sync");
+  };
+
+  const handleSyncConfirm = (confirmed: boolean) => {
+    if (!confirmed) {
+      setStep("show_menu");
+      return;
+    }
+    setStep("syncing");
+  };
+
+  const handleContinueConfirm = (wantsContinue: boolean) => {
+    if (!wantsContinue) {
+      setStep("complete");
+      return;
+    }
+    // Reset for next operation
+    isCheckingSyncRef.current = false;
+    setStep("checking_sync_status");
+  };
+
+  // Sandbox-to-production sync handlers
+  const handleSandboxSyncPrompt = (wantsSync: boolean) => {
+    if (!wantsSync) {
+      // User declined - proceed to normal production menu
+      setStep("checking_sync_status");
+      return;
+    }
+    // Load sandbox products
+    setStep("loading_sandbox_products");
+  };
+
+  const handleSandboxProductSelect = (slugs: string[]) => {
+    if (slugs.length === 0) {
+      // No products selected - proceed to normal menu
+      setStep("checking_sync_status");
+      return;
+    }
+    setSelectedSlugs(slugs);
+    setStep("confirm_sandbox_sync");
+  };
+
+  const handleSandboxSyncConfirm = (confirmed: boolean) => {
+    if (!confirmed) {
+      setStep("checking_sync_status");
+      return;
+    }
+    setStep("syncing_sandbox_to_prod");
+  };
+
+  // Unarchive handlers
+  const handleUnarchiveSelect = (slugs: string[]) => {
+    if (slugs.length === 0) {
+      setStep("show_menu");
+      return;
+    }
+    setSelectedSlugs(slugs);
+    setStep("confirm_unarchive");
+  };
+
+  const handleUnarchiveConfirm = (confirmed: boolean) => {
+    if (!confirmed) {
+      setStep("show_menu");
+      return;
+    }
+    setStep("unarchiving");
+  };
+
+  // Cleanup handlers
+  const handleCleanupSelect = (productIds: string[]) => {
+    if (productIds.length === 0) {
+      setStep("show_menu");
+      return;
+    }
+    setSelectedPolarProductIds(productIds);
+    setStep("confirm_cleanup");
+  };
+
+  const handleCleanupActionSelect = (action: string) => {
+    setCleanupAction(action as "archive" | "import");
+    setStep("cleaning_up");
+  };
+
+  // Remove operation effect
+  useEffect(() => {
+    if (step === "removing" && credentials && !isRemovingRef.current) {
+      isRemovingRef.current = true;
+      const remove = async () => {
+        const successes: string[] = [];
+        const failures: { slug: string; error: string }[] = [];
+
+        let currentProducts = [...products];
+
+        for (const slug of selectedSlugs) {
+          const product = currentProducts.find((p) => p.slug === slug);
+          if (!product) {
+            failures.push({ slug, error: "Product not found" });
+            continue;
+          }
+
+          // Archive on Polar if it has a polarProductId
+          if (product.polarProductId) {
+            const archiveResult = await archivePolarProduct(
+              credentials,
+              product.polarProductId,
+              env
+            );
+            if (!archiveResult.success) {
+              failures.push({ slug, error: archiveResult.error });
+              continue;
+            }
+          }
+
+          // Remove from local array
+          currentProducts = removeProduct(currentProducts, slug);
+          successes.push(slug);
+        }
+
+        // Save to JSON
+        const writeResult = await writeProductsFile(projectDir, env, currentProducts);
+        if (!writeResult.success) {
+          setError(writeResult.error ?? "Failed to save products");
+          setStep("error");
+          isRemovingRef.current = false;
+          return;
+        }
+
+        // Regenerate TypeScript
+        await generateProductsTs(projectDir);
+
+        setProducts(currentProducts);
+        setOperationResults({ successes, failures });
+        isRemovingRef.current = false;
+        setStep("operation_complete");
+      };
+      remove();
+    }
+  }, [step, credentials, selectedSlugs, products, projectDir, env]);
+
+  // Sync operation effect
+  useEffect(() => {
+    if (step === "syncing" && credentials && !isSyncingRef.current) {
+      isSyncingRef.current = true;
+      const sync = async () => {
+        const successes: string[] = [];
+        const failures: { slug: string; error: string }[] = [];
+
+        const currentProducts = [...products];
+        let hasChanges = false;
+
+        for (const slug of selectedSlugs) {
+          const productIndex = currentProducts.findIndex((p) => p.slug === slug);
+          if (productIndex === -1) {
+            failures.push({ slug, error: "Product not found" });
+            continue;
+          }
+          const product = currentProducts[productIndex]!;
+
+          if (product.polarProductId) {
+            // Update existing product on Polar
+            const updateResult = await updatePolarProduct(
+              credentials,
+              product.polarProductId,
+              product,
+              env
+            );
+            if (updateResult.success) {
+              successes.push(slug);
+            } else {
+              failures.push({ slug, error: updateResult.error });
+            }
+          } else {
+            // Create new product on Polar
+            const createResult = await createPolarProduct(credentials, product, env);
+            if (createResult.success) {
+              currentProducts[productIndex] = {
+                ...product,
+                polarProductId: createResult.polarProductId,
+              };
+              hasChanges = true;
+              successes.push(slug);
+            } else {
+              failures.push({ slug, error: createResult.error });
+            }
+          }
+        }
+
+        // Save to JSON if any polarProductIds changed
+        if (hasChanges) {
+          const writeResult = await writeProductsFile(projectDir, env, currentProducts);
+          if (!writeResult.success) {
+            setError(writeResult.error ?? "Failed to save products");
+            setStep("error");
+            isSyncingRef.current = false;
+            return;
+          }
+          setProducts(currentProducts);
+        }
+
+        // Regenerate TypeScript
+        await generateProductsTs(projectDir);
+
+        setOperationResults({ successes, failures });
+        isSyncingRef.current = false;
+        setStep("operation_complete");
+      };
+      sync();
+    }
+  }, [step, credentials, selectedSlugs, products, projectDir, env]);
+
+  // Regenerate operation effect
+  useEffect(() => {
+    if (step === "regenerating" && !isRegeneratingRef.current) {
+      isRegeneratingRef.current = true;
+      const regenerate = async () => {
+        const result = await generateProductsTs(projectDir);
+        if (result.success) {
+          setOperationResults({ successes: ["TypeScript exports regenerated"], failures: [] });
+        } else {
+          setOperationResults({ successes: [], failures: [{ slug: "regenerate", error: result.error ?? "Unknown error" }] });
+        }
+        isRegeneratingRef.current = false;
+        setStep("operation_complete");
+      };
+      regenerate();
+    }
+  }, [step, projectDir]);
+
+  // Sandbox-to-production sync effect
+  useEffect(() => {
+    if (step === "syncing_sandbox_to_prod" && credentials && !isSyncingSandboxRef.current) {
+      isSyncingSandboxRef.current = true;
+      const syncSandboxToProd = async () => {
+        const successes: string[] = [];
+        const failures: { slug: string; error: string }[] = [];
+        const newProducts: Product[] = [];
+
+        for (const slug of selectedSlugs) {
+          const sandboxProduct = sandboxProducts.find((p) => p.slug === slug);
+          if (!sandboxProduct) {
+            failures.push({ slug, error: "Product not found in sandbox" });
+            continue;
+          }
+
+          // Create a copy without polarProductId (new product in production)
+          const productForProd: Product = {
+            ...sandboxProduct,
+            polarProductId: null,
+          };
+
+          // Create on Polar production
+          const createResult = await createPolarProduct(credentials, productForProd, "production");
+          if (createResult.success) {
+            productForProd.polarProductId = createResult.polarProductId;
+            successes.push(slug);
+          } else {
+            // Still save locally even if Polar sync fails
+            failures.push({ slug, error: `Polar sync failed: ${createResult.error}` });
+          }
+          // Always add to local products regardless of Polar result
+          newProducts.push(productForProd);
+        }
+
+        // Add new products to production file (even if Polar sync failed)
+        if (newProducts.length > 0) {
+          const updatedProducts = [...products, ...newProducts];
+          const writeResult = await writeProductsFile(projectDir, "production", updatedProducts);
+          if (!writeResult.success) {
+            setError(writeResult.error ?? "Failed to save products to production file");
+            setStep("error");
+            isSyncingSandboxRef.current = false;
+            return;
+          }
+          setProducts(updatedProducts);
+
+          // Regenerate TypeScript
+          await generateProductsTs(projectDir);
+        }
+
+        setLastOperation("sandbox_sync");
+        setOperationResults({ successes, failures });
+        isSyncingSandboxRef.current = false;
+        setStep("operation_complete");
+      };
+      syncSandboxToProd();
+    }
+  }, [step, credentials, selectedSlugs, sandboxProducts, products, projectDir]);
+
+  // Unarchive operation effect
+  useEffect(() => {
+    if (step === "unarchiving" && credentials && !isUnarchivingRef.current) {
+      isUnarchivingRef.current = true;
+      const unarchive = async () => {
+        const successes: string[] = [];
+        const failures: { slug: string; error: string }[] = [];
+
+        for (const slug of selectedSlugs) {
+          const product = products.find((p) => p.slug === slug);
+          if (!product || !product.polarProductId) {
+            failures.push({ slug, error: "Product not found or not synced" });
+            continue;
+          }
+
+          const result = await unarchivePolarProduct(credentials, product.polarProductId, env);
+          if (result.success) {
+            successes.push(slug);
+          } else {
+            failures.push({ slug, error: result.error });
+          }
+        }
+
+        setLastOperation("unarchive");
+        setOperationResults({ successes, failures });
+        isUnarchivingRef.current = false;
+        setStep("operation_complete");
+      };
+      unarchive();
+    }
+  }, [step, credentials, selectedSlugs, products, env]);
+
+  // Load Polar products for cleanup
+  useEffect(() => {
+    if (step === "loading_polar_products" && credentials && !isLoadingPolarProductsRef.current) {
+      isLoadingPolarProductsRef.current = true;
+      const load = async () => {
+        const result = await listPolarProducts(credentials, env);
+        if (!result.success) {
+          setError(result.error);
+          isLoadingPolarProductsRef.current = false;
+          setStep("error");
+          return;
+        }
+
+        // Find orphaned products (on Polar but not in local file)
+        const localProductIds = new Set(products.map((p) => p.polarProductId).filter(Boolean));
+        const orphaned = result.products.filter((p) => !localProductIds.has(p.id) && !p.isArchived);
+
+        if (orphaned.length === 0) {
+          setOperationResults({ successes: ["No orphaned products found on Polar"], failures: [] });
+          setLastOperation("cleanup");
+          isLoadingPolarProductsRef.current = false;
+          setStep("operation_complete");
+          return;
+        }
+
+        setOrphanedPolarProducts(orphaned);
+        isLoadingPolarProductsRef.current = false;
+        setStep("show_orphaned_products");
+      };
+      load();
+    }
+  }, [step, credentials, products, env]);
+
+  // Cleanup operation effect
+  useEffect(() => {
+    if (step === "cleaning_up" && credentials && !isCleaningUpRef.current) {
+      isCleaningUpRef.current = true;
+      const cleanup = async () => {
+        const successes: string[] = [];
+        const failures: { slug: string; error: string }[] = [];
+
+        for (const productId of selectedPolarProductIds) {
+          const polarProduct = orphanedPolarProducts.find((p) => p.id === productId);
+          if (!polarProduct) {
+            failures.push({ slug: productId, error: "Product not found" });
+            continue;
+          }
+
+          if (cleanupAction === "archive") {
+            const result = await archivePolarProduct(credentials, productId, env);
+            if (result.success) {
+              successes.push(polarProduct.name);
+            } else {
+              failures.push({ slug: polarProduct.name, error: result.error });
+            }
+          } else if (cleanupAction === "import") {
+            // Create local product entry with all available info from Polar
+            const slug = polarProduct.slug || toKebabCase(polarProduct.name);
+
+            // Determine product type based on Polar data
+            const productType: "subscription" | "one_time" | "free" = polarProduct.isRecurring
+              ? "subscription"
+              : polarProduct.prices[0]?.amountType === "free"
+              ? "free"
+              : "one_time";
+
+            // Convert Polar prices to local format
+            const prices: Product["prices"] = polarProduct.prices.map((p) => {
+              if (p.amountType === "free") {
+                return { amountType: "free" as const };
+              } else if (p.amountType === "custom") {
+                return {
+                  amountType: "custom" as const,
+                  amount: p.priceAmount ?? undefined,
+                  currency: "usd" as const,
+                };
+              } else {
+                return {
+                  amountType: "fixed" as const,
+                  amount: p.priceAmount ?? undefined,
+                  currency: "usd" as const,
+                };
+              }
+            });
+
+            const newProduct: Product = {
+              slug,
+              name: polarProduct.name,
+              description: polarProduct.description ?? undefined,
+              type: productType,
+              recurringInterval: polarProduct.recurringInterval ?? undefined,
+              recurringIntervalCount: polarProduct.isRecurring ? 1 : undefined,
+              prices,
+              display: {
+                title: polarProduct.name,
+                badge: null,
+                features: [],
+                highlighted: false,
+                cta: "Get Started",
+              },
+              polarProductId: productId,
+            };
+
+            // Check for duplicate slug
+            if (products.some((p) => p.slug === slug)) {
+              failures.push({ slug: polarProduct.name, error: `Slug "${slug}" already exists locally` });
+              continue;
+            }
+
+            // Add to products
+            const updatedProducts = [...products, newProduct];
+            const writeResult = await writeProductsFile(projectDir, env, updatedProducts);
+            if (writeResult.success) {
+              setProducts(updatedProducts);
+              successes.push(polarProduct.name);
+            } else {
+              failures.push({ slug: polarProduct.name, error: writeResult.error ?? "Failed to save" });
+            }
+          }
+        }
+
+        // Regenerate TypeScript if we imported products
+        if (cleanupAction === "import" && successes.length > 0) {
+          await generateProductsTs(projectDir);
+        }
+
+        setLastOperation("cleanup");
+        setOperationResults({ successes, failures });
+        isCleaningUpRef.current = false;
+        setStep("operation_complete");
+      };
+      cleanup();
+    }
+  }, [step, credentials, selectedPolarProductIds, orphanedPolarProducts, cleanupAction, products, projectDir, env]);
+
+  // Determine the header title based on step
+  const getHeaderTitle = () => {
+    if (step === "show_menu" || step === "checking_sync_status") {
+      return `Products Manager (${env})`;
+    }
+    if (step === "ask_sandbox_sync" || step === "loading_sandbox_products" || step === "select_sandbox_products" || step === "confirm_sandbox_sync" || step === "syncing_sandbox_to_prod") {
+      return `Sandbox → Production Sync`;
+    }
+    if (step.startsWith("select_for_remove") || step === "confirm_remove" || step === "removing") {
+      return `Remove Products (${env})`;
+    }
+    if (step.startsWith("select_for_sync") || step === "confirm_sync" || step === "syncing") {
+      return `Sync Products (${env})`;
+    }
+    if (step.startsWith("select_for_unarchive") || step === "confirm_unarchive" || step === "unarchiving") {
+      return `Unarchive Products (${env})`;
+    }
+    if (step === "loading_polar_products" || step === "show_orphaned_products" || step === "confirm_cleanup" || step === "cleaning_up") {
+      return `Clean Up Polar Products (${env})`;
+    }
+    if (step === "regenerating") {
+      return `Regenerate TypeScript (${env})`;
+    }
+    if (step === "operation_complete" || step === "ask_continue") {
+      return `Products Manager (${env})`;
+    }
+    return `Create Product (${env})`;
+  };
+
+  // Check if any products are archived
+  const hasArchivedProducts = Array.from(syncStatus.values()).some((s) => s === "archived");
+
   // Render based on step
   return (
     <Box flexDirection="column">
-      <SectionHeader title={`Create Product (${env})`} />
+      <SectionHeader title={getHeaderTitle()} />
 
       {step === "init" && <Spinner label="Loading products file..." />}
 
       {step === "load_credentials" && <Spinner label="Loading Polar credentials..." />}
+
+      {step === "checking_sync_status" && <Spinner label="Checking product sync status..." />}
+
+      {step === "ask_sandbox_sync" && (
+        <Box flexDirection="column">
+          <Text>You are running in production mode.</Text>
+          <Box marginTop={1}>
+            <Confirm
+              label="Would you like to sync sandbox products to production?"
+              onConfirm={handleSandboxSyncPrompt}
+              defaultValue={true}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "loading_sandbox_products" && <Spinner label="Loading sandbox products..." />}
+
+      {step === "select_sandbox_products" && (
+        <Box flexDirection="column">
+          {sandboxProducts.length === 0 ? (
+            <Box flexDirection="column">
+              <Text>No sandbox products found to sync.</Text>
+              <Box marginTop={1}>
+                <Text dimColor>Continuing to production menu...</Text>
+              </Box>
+            </Box>
+          ) : (
+            <MultiSelect
+              label="Select sandbox products to create in production"
+              items={sandboxProducts.map((p) => ({ label: `${p.name} (${p.slug})`, value: p.slug }))}
+              onSubmit={handleSandboxProductSelect}
+            />
+          )}
+        </Box>
+      )}
+
+      {step === "confirm_sandbox_sync" && (
+        <Box flexDirection="column">
+          <Text>
+            You are about to create {selectedSlugs.length} product{selectedSlugs.length !== 1 ? "s" : ""} in production:
+          </Text>
+          <Box flexDirection="column" marginLeft={2} marginTop={1}>
+            {selectedSlugs.map((slug) => {
+              const product = sandboxProducts.find((p) => p.slug === slug);
+              return (
+                <Text key={slug}>- {product?.name ?? slug} ({slug})</Text>
+              );
+            })}
+          </Box>
+          <Box marginTop={1}>
+            <Text dimColor>These will be created as new products on Polar production.</Text>
+          </Box>
+          <Box marginTop={1}>
+            <Confirm
+              label="Continue with sandbox to production sync?"
+              onConfirm={handleSandboxSyncConfirm}
+              defaultValue={true}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "syncing_sandbox_to_prod" && <Spinner label="Creating products in production..." />}
+
+      {step === "show_menu" && (
+        <Box flexDirection="column">
+          {products.length > 0 && (
+            <Box flexDirection="column" marginBottom={1}>
+              <Text bold>Products:</Text>
+              <ProductList products={products} syncStatus={syncStatus} />
+            </Box>
+          )}
+          <OperationMenu
+            onSelect={handleOperationSelect}
+            hasProducts={products.length > 0}
+            hasArchivedProducts={hasArchivedProducts}
+            showSyncFromSandbox={sandboxHasProducts}
+          />
+        </Box>
+      )}
+
+      {step === "select_for_remove" && (
+        <MultiSelect
+          label="Select products to remove"
+          items={products.map((p) => ({ label: `${p.name} (${p.slug})`, value: p.slug }))}
+          onSubmit={handleRemoveSelect}
+        />
+      )}
+
+      {step === "confirm_remove" && (
+        <Box flexDirection="column">
+          <Text color="yellow">
+            You are about to remove {selectedSlugs.length} product{selectedSlugs.length !== 1 ? "s" : ""}:
+          </Text>
+          <Box flexDirection="column" marginLeft={2} marginTop={1}>
+            {selectedSlugs.map((slug) => (
+              <Text key={slug}>- {slug}</Text>
+            ))}
+          </Box>
+          {selectedSlugs.length === products.length && (
+            <Box marginTop={1}>
+              <Text color="red" bold>Warning: This will remove ALL products!</Text>
+            </Box>
+          )}
+          <Box marginTop={1}>
+            <Confirm
+              label="Are you sure you want to remove these products?"
+              onConfirm={handleRemoveConfirm}
+              defaultValue={false}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "removing" && <Spinner label="Removing products..." />}
+
+      {step === "select_for_sync" && (
+        <MultiSelect
+          label="Select products to sync"
+          items={products.map((p) => ({ label: `${p.name} (${p.slug})`, value: p.slug }))}
+          onSubmit={handleSyncSelect}
+        />
+      )}
+
+      {step === "confirm_sync" && (
+        <Box flexDirection="column">
+          <Text>
+            You are about to sync {selectedSlugs.length} product{selectedSlugs.length !== 1 ? "s" : ""} to Polar:
+          </Text>
+          <Box flexDirection="column" marginLeft={2} marginTop={1}>
+            {selectedSlugs.map((slug) => {
+              const product = products.find((p) => p.slug === slug);
+              const hasId = product?.polarProductId;
+              return (
+                <Text key={slug}>
+                  - {slug} {hasId ? "(update)" : "(create new)"}
+                </Text>
+              );
+            })}
+          </Box>
+          <Box marginTop={1}>
+            <Confirm
+              label="Continue with sync?"
+              onConfirm={handleSyncConfirm}
+              defaultValue={true}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "syncing" && <Spinner label="Syncing products to Polar..." />}
+
+      {step === "regenerating" && <Spinner label="Regenerating TypeScript exports..." />}
+
+      {step === "select_for_unarchive" && (
+        <MultiSelect
+          label="Select archived products to unarchive"
+          items={products
+            .filter((p) => syncStatus.get(p.slug) === "archived")
+            .map((p) => ({ label: `${p.name} (${p.slug})`, value: p.slug }))}
+          onSubmit={handleUnarchiveSelect}
+        />
+      )}
+
+      {step === "confirm_unarchive" && (
+        <Box flexDirection="column">
+          <Text>
+            You are about to unarchive {selectedSlugs.length} product{selectedSlugs.length !== 1 ? "s" : ""} on Polar:
+          </Text>
+          <Box flexDirection="column" marginLeft={2} marginTop={1}>
+            {selectedSlugs.map((slug) => (
+              <Text key={slug}>- {slug}</Text>
+            ))}
+          </Box>
+          <Box marginTop={1}>
+            <Text dimColor>These products will become available for purchase again.</Text>
+          </Box>
+          <Box marginTop={1}>
+            <Confirm
+              label="Continue with unarchive?"
+              onConfirm={handleUnarchiveConfirm}
+              defaultValue={true}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "unarchiving" && <Spinner label="Unarchiving products on Polar..." />}
+
+      {step === "loading_polar_products" && <Spinner label="Loading products from Polar..." />}
+
+      {step === "show_orphaned_products" && (
+        <Box flexDirection="column">
+          <Text>Found {orphanedPolarProducts.length} product{orphanedPolarProducts.length !== 1 ? "s" : ""} on Polar that are not in your local file:</Text>
+          <Box flexDirection="column" marginLeft={2} marginTop={1} marginBottom={1}>
+            {orphanedPolarProducts.map((p) => {
+              const price = p.prices[0];
+              const priceStr = price?.amountType === "free"
+                ? "Free"
+                : price?.amountType === "custom"
+                ? `$${((price.priceAmount ?? 0) / 100).toFixed(0)}+`
+                : price?.priceAmount
+                ? `$${(price.priceAmount / 100).toFixed(price.priceAmount % 100 === 0 ? 0 : 2)}`
+                : "Free";
+              const typeStr = p.isRecurring ? `/${p.recurringInterval}` : "";
+              return (
+                <Text key={p.id} dimColor>- {p.name} ({priceStr}{typeStr})</Text>
+              );
+            })}
+          </Box>
+          <MultiSelect
+            label="Select products to clean up"
+            items={orphanedPolarProducts.map((p) => {
+              const price = p.prices[0];
+              const priceStr = price?.amountType === "free"
+                ? "Free"
+                : price?.amountType === "custom"
+                ? `$${((price.priceAmount ?? 0) / 100).toFixed(0)}+`
+                : price?.priceAmount
+                ? `$${(price.priceAmount / 100).toFixed(price.priceAmount % 100 === 0 ? 0 : 2)}`
+                : "Free";
+              const typeStr = p.isRecurring ? `/${p.recurringInterval}` : "";
+              return { label: `${p.name} (${priceStr}${typeStr})`, value: p.id };
+            })}
+            onSubmit={handleCleanupSelect}
+          />
+        </Box>
+      )}
+
+      {step === "confirm_cleanup" && (
+        <Box flexDirection="column">
+          <Text>
+            What would you like to do with {selectedPolarProductIds.length} selected product{selectedPolarProductIds.length !== 1 ? "s" : ""}?
+          </Text>
+          <Box marginTop={1}>
+            <Select
+              label="Cleanup action"
+              options={[
+                { label: "Archive on Polar (remove from sale)", value: "archive" },
+                { label: "Import to local file (create minimal entries)", value: "import" },
+              ]}
+              onSelect={handleCleanupActionSelect}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "cleaning_up" && <Spinner label={cleanupAction === "archive" ? "Archiving products on Polar..." : "Importing products to local file..."} />}
+
+      {step === "operation_complete" && (
+        <Box flexDirection="column">
+          {operationResults.successes.length > 0 && (
+            <Box flexDirection="column">
+              <StatusMessage status="success">
+                {lastOperation === "regenerate" || lastOperation === "cleanup"
+                  ? operationResults.successes[0] ?? `Successfully processed ${operationResults.successes.length} item${operationResults.successes.length !== 1 ? "s" : ""}`
+                  : lastOperation === "add"
+                  ? `Successfully created ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""}`
+                  : lastOperation === "sandbox_sync"
+                  ? `Successfully synced ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""} to production`
+                  : lastOperation === "unarchive"
+                  ? `Successfully unarchived ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""}`
+                  : `Successfully ${lastOperation === "remove" ? "removed" : "synced"} ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""}`}
+              </StatusMessage>
+              {lastOperation !== "regenerate" && lastOperation !== "cleanup" && (
+                <Box flexDirection="column" marginLeft={2}>
+                  {operationResults.successes.map((slug) => (
+                    <Text key={slug} color="green">- {slug}</Text>
+                  ))}
+                </Box>
+              )}
+              {lastOperation === "cleanup" && operationResults.successes.length > 1 && (
+                <Box flexDirection="column" marginLeft={2}>
+                  {operationResults.successes.map((name) => (
+                    <Text key={name} color="green">- {name}</Text>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          )}
+          {operationResults.failures.length > 0 && (
+            <Box flexDirection="column" marginTop={1}>
+              <StatusMessage status="error">
+                Failed to {lastOperation === "add" ? "sync" : lastOperation === "remove" ? "remove" : lastOperation === "sync" ? "sync" : lastOperation === "sandbox_sync" || lastOperation === "sync_from_sandbox" ? "sync to production" : lastOperation === "unarchive" ? "unarchive" : lastOperation === "cleanup" ? "clean up" : "regenerate"} {operationResults.failures.length} item{operationResults.failures.length !== 1 ? "s" : ""}
+              </StatusMessage>
+              <Box flexDirection="column" marginLeft={2}>
+                {operationResults.failures.map(({ slug, error }) => (
+                  <Text key={slug} color="red">- {slug}: {error}</Text>
+                ))}
+              </Box>
+              {(lastOperation === "sandbox_sync" || lastOperation === "sync_from_sandbox") && (
+                <Box marginTop={1}>
+                  <Text color="green">Products saved to products.{env}.json. Use "Sync products to Polar" to retry.</Text>
+                </Box>
+              )}
+            </Box>
+          )}
+          <Box marginTop={1}>
+            <Confirm
+              label="Perform another operation?"
+              onConfirm={handleContinueConfirm}
+              defaultValue={true}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "ask_continue" && (
+        <Confirm
+          label="Perform another operation?"
+          onConfirm={handleContinueConfirm}
+          defaultValue={true}
+        />
+      )}
 
       {step === "prompt_access_token" && (
         <TextInput
@@ -959,43 +2044,9 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
 
       {step === "complete" && (
         <Box flexDirection="column">
-          <StatusMessage status="success">Product creation complete!</StatusMessage>
-          <Box flexDirection="column" marginTop={1}>
-            {createdProduct && (
-              <Box flexDirection="column">
-                <Text bold>Monthly Product:</Text>
-                <Text>  Name: {createdProduct.name}</Text>
-                <Text>  Slug: {createdProduct.slug}</Text>
-                <Text>
-                  {polarSyncSuccess
-                    ? `  Polar ID: ${createdProduct.polarProductId}`
-                    : "  Polar: Not synced (saved locally only)"}
-                </Text>
-                {polarSyncError && <Text dimColor>  Error: {polarSyncError}</Text>}
-              </Box>
-            )}
-            {createdYearlyProduct && (
-              <Box flexDirection="column" marginTop={1}>
-                <Text bold>Yearly Product:</Text>
-                <Text>  Name: {createdYearlyProduct.name}</Text>
-                <Text>  Slug: {createdYearlyProduct.slug}</Text>
-                <Text>
-                  {yearlyPolarSyncSuccess
-                    ? `  Polar ID: ${createdYearlyProduct.polarProductId}`
-                    : "  Polar: Not synced (saved locally only)"}
-                </Text>
-                {yearlyPolarSyncError && <Text dimColor>  Error: {yearlyPolarSyncError}</Text>}
-              </Box>
-            )}
-          </Box>
-          <Box marginTop={1} flexDirection="column">
+          <StatusMessage status="success">Done!</StatusMessage>
+          <Box marginTop={1}>
             <Text dimColor>Products saved to products.{env}.json</Text>
-            {tsGenSuccess === true && (
-              <Text dimColor>TypeScript exports generated: src/features/subscription/products.generated.ts</Text>
-            )}
-            {tsGenSuccess === false && (
-              <Text color="yellow">Warning: TypeScript generation failed: {tsGenError}</Text>
-            )}
           </Box>
         </Box>
       )}

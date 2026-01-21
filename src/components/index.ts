@@ -1,9 +1,12 @@
 export { TextInput } from "./TextInput.js";
 export { Confirm } from "./Confirm.js";
 export { Select } from "./Select.js";
+export { MultiSelect } from "./MultiSelect.js";
 export { Spinner } from "./Spinner.js";
 export { SectionHeader } from "./SectionHeader.js";
 export { StatusMessage } from "./StatusMessage.js";
 export { ErrorRecovery } from "./ErrorRecovery.js";
 export { WizardProgress } from "./WizardProgress.js";
 export { CompletedSteps } from "./CompletedSteps.js";
+export { ProductList, type SyncStatus } from "./ProductList.js";
+export { OperationMenu } from "./OperationMenu.js";

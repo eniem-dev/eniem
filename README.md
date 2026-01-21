@@ -42,6 +42,47 @@ eniem-cli my-app
 eniem-cli --git-host 0xtiby my-app
 ```
 
+## Products Command
+
+Manage Polar products interactively. **Run this command from your Eniem project directory.**
+
+```bash
+eniem-cli products [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--env` | Environment: `sandbox` or `production` (default: `sandbox`) |
+| `--prod` | Shorthand for `--env=production` |
+| `--token` | Polar access token (bypasses `.env` lookup) |
+
+### Examples
+
+```bash
+# Manage sandbox products
+eniem-cli products
+
+# Manage production products
+eniem-cli products --prod
+
+# Use a specific access token
+eniem-cli products --prod --token=polar_xxx
+```
+
+### Features
+
+- **Add products**: Create new products with pricing, features, and display options
+- **Remove products**: Archive products on Polar and remove from local file
+- **Sync to Polar**: Push local product changes to Polar API
+- **Sync from sandbox**: Copy sandbox products to production environment
+- **Unarchive products**: Restore archived products on Polar
+- **Clean up Polar**: Manage orphaned products (archive or import to local file)
+- **Regenerate TypeScript**: Update generated product exports
+
+Products are stored in `products.sandbox.json` and `products.production.json`, with TypeScript exports generated in `src/features/subscription/products.generated.ts`.
+
 ## What it sets up
 
 The wizard will guide you through configuring:

@@ -93,6 +93,14 @@ export function slugExists(products: Product[], slug: string): boolean {
 }
 
 /**
+ * Removes a product from an array by slug.
+ * Pure function - returns a new array without mutating the original.
+ */
+export function removeProduct(products: Product[], slug: string): Product[] {
+  return products.filter((p) => p.slug !== slug);
+}
+
+/**
  * Validates a slug against the schema
  */
 export function validateSlug(

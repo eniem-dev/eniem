@@ -28,14 +28,16 @@ const cli = meow(
   `
   Usage
     $ eniem-cli [project-name]
-    $ eniem-cli products [--env=sandbox|production]
+    $ eniem-cli products [--env=sandbox|production] [--prod] [--token=<polar-token>]
 
   Commands
-    products       Create a new Polar product interactively
+    products       Manage Polar products interactively
 
   Options
     --git-host     SSH host alias for git clone (default: github.com)
     --env          Environment for products command (default: sandbox)
+    --prod         Shorthand for --env=production
+    --token        Polar access token (bypasses .env lookup)
     --help, -h     Show this help message
     --version, -v  Show version number
 
@@ -43,7 +45,8 @@ const cli = meow(
     $ eniem-cli my-app
     $ eniem-cli --git-host 0xtiby my-app
     $ eniem-cli products
-    $ eniem-cli products --env=production
+    $ eniem-cli products --prod
+    $ eniem-cli products --prod --token=polar_xxx
 `,
   {
     importMeta: import.meta,
@@ -52,6 +55,8 @@ const cli = meow(
     flags: {
       gitHost: { type: "string", default: "github.com" },
       env: { type: "string", default: "sandbox" },
+      prod: { type: "boolean", default: false },
+      token: { type: "string" },
       help: { type: "boolean", shortFlag: "h" },
       version: { type: "boolean", shortFlag: "v" },
     },
@@ -94,16 +99,21 @@ const App = ({ initialProjectName, gitHost }: AppProps) => {
 
 const command = cli.input[0];
 const gitHost = cli.flags.gitHost;
+const prodFlag = cli.flags.prod;
 const envFlag = cli.flags.env;
+const tokenFlag = cli.flags.token;
+
+// Determine environment: --prod takes precedence
+const resolvedEnv = prodFlag ? "production" : envFlag;
 
 // Validate env flag
 const validEnvs = ["sandbox", "production"];
-if (!validEnvs.includes(envFlag)) {
-  console.error(`\x1b[31m✗ Invalid environment: ${envFlag}\x1b[0m`);
+if (!validEnvs.includes(resolvedEnv)) {
+  console.error(`\x1b[31m✗ Invalid environment: ${resolvedEnv}\x1b[0m`);
   console.error(`  Valid options: sandbox, production`);
   process.exit(1);
 }
-const env = envFlag as PolarEnvironment;
+const env = resolvedEnv as PolarEnvironment;
 
 // Check if this is the products command
 if (command === "products") {
@@ -111,7 +121,7 @@ if (command === "products") {
   render(
     <Box flexDirection="column">
       <Header />
-      <ProductsCommand env={env} projectDir={projectDir} />
+      <ProductsCommand env={env} projectDir={projectDir} accessToken={tokenFlag} />
     </Box>
   );
 } else {
