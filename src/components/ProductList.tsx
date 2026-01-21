@@ -3,7 +3,7 @@ import InkSpinner from "ink-spinner";
 import React from "react";
 import type { Product } from "../lib/products.js";
 
-export type SyncStatus = "synced" | "not-synced" | "error" | "checking";
+export type SyncStatus = "synced" | "not-synced" | "error" | "checking" | "archived";
 
 interface ProductListProps {
   products: Product[];
@@ -30,12 +30,14 @@ function formatPrice(product: Product): string {
   return formattedPrice;
 }
 
-function getSyncIcon(status: SyncStatus): { icon: string; color?: string } {
+function getSyncIcon(status: SyncStatus): { icon: string; color?: string; label?: string } {
   switch (status) {
     case "synced":
       return { icon: "✓", color: "green" };
     case "not-synced":
       return { icon: "○", color: "yellow" };
+    case "archived":
+      return { icon: "⊘", color: "magenta", label: "archived" };
     case "error":
       return { icon: "✗", color: "red" };
     case "checking":
@@ -56,7 +58,7 @@ export const ProductList = ({ products, syncStatus }: ProductListProps) => {
     <Box flexDirection="column">
       {products.map((product) => {
         const status = syncStatus.get(product.slug) ?? "not-synced";
-        const { icon, color } = getSyncIcon(status);
+        const { icon, color, label } = getSyncIcon(status);
         const priceDisplay = formatPrice(product);
 
         return (
@@ -70,6 +72,7 @@ export const ProductList = ({ products, syncStatus }: ProductListProps) => {
             )}
             <Text>
               {product.name} ({product.slug}) - {priceDisplay}
+              {label && <Text color={color}> [{label}]</Text>}
             </Text>
           </Box>
         );

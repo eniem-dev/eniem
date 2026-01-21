@@ -33,6 +33,8 @@ import {
   checkProductExists,
   updatePolarProduct,
   archivePolarProduct,
+  unarchivePolarProduct,
+  listPolarProducts,
   type PolarCredentials,
   type PolarEnvironment,
 } from "../lib/polar.js";
@@ -93,6 +95,15 @@ type WizardStep =
   | "syncing"
   // Regenerate operation steps
   | "regenerating"
+  // Unarchive operation steps
+  | "select_for_unarchive"
+  | "confirm_unarchive"
+  | "unarchiving"
+  // Cleanup operation steps
+  | "loading_polar_products"
+  | "show_orphaned_products"
+  | "confirm_cleanup"
+  | "cleaning_up"
   // Completion steps
   | "operation_complete"
   | "ask_continue"
@@ -174,11 +185,16 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     successes: string[];
     failures: { slug: string; error: string }[];
   }>({ successes: [], failures: [] });
-  const [lastOperation, setLastOperation] = useState<"add" | "remove" | "sync" | "regenerate" | "sandbox_sync" | null>(null);
+  const [lastOperation, setLastOperation] = useState<"add" | "remove" | "sync" | "regenerate" | "sandbox_sync" | "unarchive" | "cleanup" | null>(null);
 
   // Sandbox-to-production sync state
   const [sandboxProducts, setSandboxProducts] = useState<Product[]>([]);
   const [askedSandboxSync, setAskedSandboxSync] = useState(false);
+
+  // Polar cleanup state
+  const [orphanedPolarProducts, setOrphanedPolarProducts] = useState<Array<{ id: string; name: string; isArchived: boolean; slug?: string }>>([]);
+  const [selectedPolarProductIds, setSelectedPolarProductIds] = useState<string[]>([]);
+  const [cleanupAction, setCleanupAction] = useState<"archive" | "import" | null>(null);
 
   // Refs to prevent duplicate effect runs
   const isCreatingRef = useRef(false);
@@ -189,6 +205,9 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   const isRegeneratingRef = useRef(false);
   const isLoadingSandboxRef = useRef(false);
   const isSyncingSandboxRef = useRef(false);
+  const isUnarchivingRef = useRef(false);
+  const isLoadingPolarProductsRef = useRef(false);
+  const isCleaningUpRef = useRef(false);
 
   // Initialize: Read products file
   useEffect(() => {
@@ -196,6 +215,17 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
       const init = async () => {
         const result = await readProductsFile(projectDir, env);
         if (!result.success) {
+          // In production mode, if file doesn't exist, check if we can offer sandbox sync
+          if (env === "production" && result.error.includes("not found")) {
+            // Check if sandbox file exists
+            const sandboxResult = await readProductsFile(projectDir, "sandbox");
+            if (sandboxResult.success && sandboxResult.products.length > 0) {
+              // Sandbox exists with products - offer to sync
+              setProducts([]);
+              setStep("load_credentials");
+              return;
+            }
+          }
           setError(result.error);
           setStep("error");
           return;
@@ -276,7 +306,11 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
           }
           const result = await checkProductExists(credentials, product.polarProductId, env);
           if (result.exists) {
-            newSyncStatus.set(product.slug, "synced");
+            if (result.isArchived) {
+              newSyncStatus.set(product.slug, "archived");
+            } else {
+              newSyncStatus.set(product.slug, "synced");
+            }
           } else if ("error" in result) {
             newSyncStatus.set(product.slug, "error");
           } else {
@@ -798,7 +832,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   };
 
   // Menu operation handlers
-  const handleOperationSelect = (operation: "add" | "remove" | "sync" | "regenerate") => {
+  const handleOperationSelect = (operation: "add" | "remove" | "sync" | "regenerate" | "unarchive" | "cleanup") => {
     setLastOperation(operation);
     setOperationResults({ successes: [], failures: [] });
 
@@ -829,6 +863,13 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
         break;
       case "regenerate":
         setStep("regenerating");
+        break;
+      case "unarchive":
+        setSelectedSlugs([]);
+        setStep("select_for_unarchive");
+        break;
+      case "cleanup":
+        setStep("loading_polar_products");
         break;
     }
   };
@@ -904,6 +945,39 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
       return;
     }
     setStep("syncing_sandbox_to_prod");
+  };
+
+  // Unarchive handlers
+  const handleUnarchiveSelect = (slugs: string[]) => {
+    if (slugs.length === 0) {
+      setStep("show_menu");
+      return;
+    }
+    setSelectedSlugs(slugs);
+    setStep("confirm_unarchive");
+  };
+
+  const handleUnarchiveConfirm = (confirmed: boolean) => {
+    if (!confirmed) {
+      setStep("show_menu");
+      return;
+    }
+    setStep("unarchiving");
+  };
+
+  // Cleanup handlers
+  const handleCleanupSelect = (productIds: string[]) => {
+    if (productIds.length === 0) {
+      setStep("show_menu");
+      return;
+    }
+    setSelectedPolarProductIds(productIds);
+    setStep("confirm_cleanup");
+  };
+
+  const handleCleanupActionSelect = (action: string) => {
+    setCleanupAction(action as "archive" | "import");
+    setStep("cleaning_up");
   };
 
   // Remove operation effect
@@ -1109,6 +1183,143 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     }
   }, [step, credentials, selectedSlugs, sandboxProducts, products, projectDir]);
 
+  // Unarchive operation effect
+  useEffect(() => {
+    if (step === "unarchiving" && credentials && !isUnarchivingRef.current) {
+      isUnarchivingRef.current = true;
+      const unarchive = async () => {
+        const successes: string[] = [];
+        const failures: { slug: string; error: string }[] = [];
+
+        for (const slug of selectedSlugs) {
+          const product = products.find((p) => p.slug === slug);
+          if (!product || !product.polarProductId) {
+            failures.push({ slug, error: "Product not found or not synced" });
+            continue;
+          }
+
+          const result = await unarchivePolarProduct(credentials, product.polarProductId, env);
+          if (result.success) {
+            successes.push(slug);
+          } else {
+            failures.push({ slug, error: result.error });
+          }
+        }
+
+        setLastOperation("unarchive");
+        setOperationResults({ successes, failures });
+        isUnarchivingRef.current = false;
+        setStep("operation_complete");
+      };
+      unarchive();
+    }
+  }, [step, credentials, selectedSlugs, products, env]);
+
+  // Load Polar products for cleanup
+  useEffect(() => {
+    if (step === "loading_polar_products" && credentials && !isLoadingPolarProductsRef.current) {
+      isLoadingPolarProductsRef.current = true;
+      const load = async () => {
+        const result = await listPolarProducts(credentials, env);
+        if (!result.success) {
+          setError(result.error);
+          isLoadingPolarProductsRef.current = false;
+          setStep("error");
+          return;
+        }
+
+        // Find orphaned products (on Polar but not in local file)
+        const localProductIds = new Set(products.map((p) => p.polarProductId).filter(Boolean));
+        const orphaned = result.products.filter((p) => !localProductIds.has(p.id) && !p.isArchived);
+
+        if (orphaned.length === 0) {
+          setOperationResults({ successes: ["No orphaned products found on Polar"], failures: [] });
+          setLastOperation("cleanup");
+          isLoadingPolarProductsRef.current = false;
+          setStep("operation_complete");
+          return;
+        }
+
+        setOrphanedPolarProducts(orphaned);
+        isLoadingPolarProductsRef.current = false;
+        setStep("show_orphaned_products");
+      };
+      load();
+    }
+  }, [step, credentials, products, env]);
+
+  // Cleanup operation effect
+  useEffect(() => {
+    if (step === "cleaning_up" && credentials && !isCleaningUpRef.current) {
+      isCleaningUpRef.current = true;
+      const cleanup = async () => {
+        const successes: string[] = [];
+        const failures: { slug: string; error: string }[] = [];
+
+        for (const productId of selectedPolarProductIds) {
+          const polarProduct = orphanedPolarProducts.find((p) => p.id === productId);
+          if (!polarProduct) {
+            failures.push({ slug: productId, error: "Product not found" });
+            continue;
+          }
+
+          if (cleanupAction === "archive") {
+            const result = await archivePolarProduct(credentials, productId, env);
+            if (result.success) {
+              successes.push(polarProduct.name);
+            } else {
+              failures.push({ slug: polarProduct.name, error: result.error });
+            }
+          } else if (cleanupAction === "import") {
+            // Create minimal local product entry
+            const slug = polarProduct.slug || toKebabCase(polarProduct.name);
+            const newProduct: Product = {
+              slug,
+              name: polarProduct.name,
+              type: "one_time",
+              prices: [{ amountType: "free" }],
+              display: {
+                title: polarProduct.name,
+                badge: null,
+                features: [],
+                highlighted: false,
+                cta: "Get Started",
+              },
+              polarProductId: productId,
+            };
+
+            // Check for duplicate slug
+            if (products.some((p) => p.slug === slug)) {
+              failures.push({ slug: polarProduct.name, error: `Slug "${slug}" already exists locally` });
+              continue;
+            }
+
+            // Add to products
+            const updatedProducts = [...products, newProduct];
+            const writeResult = await writeProductsFile(projectDir, env, updatedProducts);
+            if (writeResult.success) {
+              setProducts(updatedProducts);
+              successes.push(polarProduct.name);
+            } else {
+              failures.push({ slug: polarProduct.name, error: writeResult.error ?? "Failed to save" });
+            }
+          }
+        }
+
+        // Regenerate TypeScript if we imported products
+        if (cleanupAction === "import" && successes.length > 0) {
+          await generateProductsTs(projectDir);
+        }
+
+        setLastOperation("cleanup");
+        setOperationResults({ successes, failures });
+        isCleaningUpRef.current = false;
+        setStep("operation_complete");
+      };
+      cleanup();
+    }
+  }, [step, credentials, selectedPolarProductIds, orphanedPolarProducts, cleanupAction, products, projectDir, env]);
+
   // Determine the header title based on step
   const getHeaderTitle = () => {
     if (step === "show_menu" || step === "checking_sync_status") {
@@ -1123,6 +1334,12 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     if (step.startsWith("select_for_sync") || step === "confirm_sync" || step === "syncing") {
       return `Sync Products (${env})`;
     }
+    if (step.startsWith("select_for_unarchive") || step === "confirm_unarchive" || step === "unarchiving") {
+      return `Unarchive Products (${env})`;
+    }
+    if (step === "loading_polar_products" || step === "show_orphaned_products" || step === "confirm_cleanup" || step === "cleaning_up") {
+      return `Clean Up Polar Products (${env})`;
+    }
     if (step === "regenerating") {
       return `Regenerate TypeScript (${env})`;
     }
@@ -1131,6 +1348,9 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
     }
     return `Create Product (${env})`;
   };
+
+  // Check if any products are archived
+  const hasArchivedProducts = Array.from(syncStatus.values()).some((s) => s === "archived");
 
   // Render based on step
   return (
@@ -1213,7 +1433,11 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
               <ProductList products={products} syncStatus={syncStatus} />
             </Box>
           )}
-          <OperationMenu onSelect={handleOperationSelect} hasProducts={products.length > 0} />
+          <OperationMenu
+            onSelect={handleOperationSelect}
+            hasProducts={products.length > 0}
+            hasArchivedProducts={hasArchivedProducts}
+          />
         </Box>
       )}
 
@@ -1290,23 +1514,105 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
 
       {step === "regenerating" && <Spinner label="Regenerating TypeScript exports..." />}
 
+      {step === "select_for_unarchive" && (
+        <MultiSelect
+          label="Select archived products to unarchive"
+          items={products
+            .filter((p) => syncStatus.get(p.slug) === "archived")
+            .map((p) => ({ label: `${p.name} (${p.slug})`, value: p.slug }))}
+          onSubmit={handleUnarchiveSelect}
+        />
+      )}
+
+      {step === "confirm_unarchive" && (
+        <Box flexDirection="column">
+          <Text>
+            You are about to unarchive {selectedSlugs.length} product{selectedSlugs.length !== 1 ? "s" : ""} on Polar:
+          </Text>
+          <Box flexDirection="column" marginLeft={2} marginTop={1}>
+            {selectedSlugs.map((slug) => (
+              <Text key={slug}>- {slug}</Text>
+            ))}
+          </Box>
+          <Box marginTop={1}>
+            <Text dimColor>These products will become available for purchase again.</Text>
+          </Box>
+          <Box marginTop={1}>
+            <Confirm
+              label="Continue with unarchive?"
+              onConfirm={handleUnarchiveConfirm}
+              defaultValue={true}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "unarchiving" && <Spinner label="Unarchiving products on Polar..." />}
+
+      {step === "loading_polar_products" && <Spinner label="Loading products from Polar..." />}
+
+      {step === "show_orphaned_products" && (
+        <Box flexDirection="column">
+          <Text>Found {orphanedPolarProducts.length} product{orphanedPolarProducts.length !== 1 ? "s" : ""} on Polar that are not in your local file:</Text>
+          <Box flexDirection="column" marginLeft={2} marginTop={1} marginBottom={1}>
+            {orphanedPolarProducts.map((p) => (
+              <Text key={p.id} dimColor>- {p.name}</Text>
+            ))}
+          </Box>
+          <MultiSelect
+            label="Select products to clean up"
+            items={orphanedPolarProducts.map((p) => ({ label: p.name, value: p.id }))}
+            onSubmit={handleCleanupSelect}
+          />
+        </Box>
+      )}
+
+      {step === "confirm_cleanup" && (
+        <Box flexDirection="column">
+          <Text>
+            What would you like to do with {selectedPolarProductIds.length} selected product{selectedPolarProductIds.length !== 1 ? "s" : ""}?
+          </Text>
+          <Box marginTop={1}>
+            <Select
+              label="Cleanup action"
+              options={[
+                { label: "Archive on Polar (remove from sale)", value: "archive" },
+                { label: "Import to local file (create minimal entries)", value: "import" },
+              ]}
+              onSelect={handleCleanupActionSelect}
+            />
+          </Box>
+        </Box>
+      )}
+
+      {step === "cleaning_up" && <Spinner label={cleanupAction === "archive" ? "Archiving products on Polar..." : "Importing products to local file..."} />}
+
       {step === "operation_complete" && (
         <Box flexDirection="column">
           {operationResults.successes.length > 0 && (
             <Box flexDirection="column">
               <StatusMessage status="success">
-                {lastOperation === "regenerate"
-                  ? operationResults.successes[0]
+                {lastOperation === "regenerate" || lastOperation === "cleanup"
+                  ? operationResults.successes[0] ?? `Successfully processed ${operationResults.successes.length} item${operationResults.successes.length !== 1 ? "s" : ""}`
                   : lastOperation === "add"
                   ? `Successfully created ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""}`
                   : lastOperation === "sandbox_sync"
                   ? `Successfully synced ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""} to production`
+                  : lastOperation === "unarchive"
+                  ? `Successfully unarchived ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""}`
                   : `Successfully ${lastOperation === "remove" ? "removed" : "synced"} ${operationResults.successes.length} product${operationResults.successes.length !== 1 ? "s" : ""}`}
               </StatusMessage>
-              {lastOperation !== "regenerate" && (
+              {lastOperation !== "regenerate" && lastOperation !== "cleanup" && (
                 <Box flexDirection="column" marginLeft={2}>
                   {operationResults.successes.map((slug) => (
                     <Text key={slug} color="green">- {slug}</Text>
+                  ))}
+                </Box>
+              )}
+              {lastOperation === "cleanup" && operationResults.successes.length > 1 && (
+                <Box flexDirection="column" marginLeft={2}>
+                  {operationResults.successes.map((name) => (
+                    <Text key={name} color="green">- {name}</Text>
                   ))}
                 </Box>
               )}
@@ -1315,7 +1621,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
           {operationResults.failures.length > 0 && (
             <Box flexDirection="column" marginTop={1}>
               <StatusMessage status="error">
-                Failed to {lastOperation === "add" ? "sync" : lastOperation === "remove" ? "remove" : lastOperation === "sync" ? "sync" : lastOperation === "sandbox_sync" ? "sync to production" : "regenerate"} {operationResults.failures.length} item{operationResults.failures.length !== 1 ? "s" : ""}
+                Failed to {lastOperation === "add" ? "sync" : lastOperation === "remove" ? "remove" : lastOperation === "sync" ? "sync" : lastOperation === "sandbox_sync" ? "sync to production" : lastOperation === "unarchive" ? "unarchive" : lastOperation === "cleanup" ? "clean up" : "regenerate"} {operationResults.failures.length} item{operationResults.failures.length !== 1 ? "s" : ""}
               </StatusMessage>
               <Box flexDirection="column" marginLeft={2}>
                 {operationResults.failures.map(({ slug, error }) => (

@@ -2,7 +2,7 @@ import { Box, Text } from "ink";
 import SelectInput from "ink-select-input";
 import React from "react";
 
-type Operation = "add" | "remove" | "sync" | "regenerate";
+type Operation = "add" | "remove" | "sync" | "regenerate" | "unarchive" | "cleanup";
 
 interface SelectOption {
   label: string;
@@ -12,28 +12,36 @@ interface SelectOption {
 interface OperationMenuProps {
   onSelect: (operation: Operation) => void;
   hasProducts: boolean;
+  hasArchivedProducts?: boolean;
 }
-
-const ALL_OPTIONS: SelectOption[] = [
-  { label: "Add new product", value: "add" },
-  { label: "Remove products", value: "remove" },
-  { label: "Sync products to Polar", value: "sync" },
-  { label: "Regenerate TypeScript exports", value: "regenerate" },
-];
-
-const ADD_ONLY_OPTION: SelectOption[] = [
-  { label: "Add new product", value: "add" },
-];
 
 export const OperationMenu = ({
   onSelect,
   hasProducts,
+  hasArchivedProducts = false,
 }: OperationMenuProps) => {
   const handleSelect = (item: SelectOption) => {
     onSelect(item.value);
   };
 
-  const options = hasProducts ? ALL_OPTIONS : ADD_ONLY_OPTION;
+  // Build options dynamically based on state
+  const options: SelectOption[] = [
+    { label: "Add new product", value: "add" },
+  ];
+
+  if (hasProducts) {
+    options.push(
+      { label: "Remove products", value: "remove" },
+      { label: "Sync products to Polar", value: "sync" },
+    );
+    if (hasArchivedProducts) {
+      options.push({ label: "Unarchive products on Polar", value: "unarchive" });
+    }
+    options.push(
+      { label: "Clean up Polar products", value: "cleanup" },
+      { label: "Regenerate TypeScript exports", value: "regenerate" },
+    );
+  }
 
   return (
     <Box flexDirection="column">

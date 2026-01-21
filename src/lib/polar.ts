@@ -35,7 +35,8 @@ export interface CreateProductError {
 }
 
 export type CheckProductExistsResult =
-  | { exists: true }
+  | { exists: true; isArchived: false }
+  | { exists: true; isArchived: true }
   | { exists: false }
   | { exists: false; error: string };
 
@@ -45,6 +46,14 @@ export type UpdateProductResult =
 
 export type ArchiveProductResult =
   | { success: true }
+  | { success: false; error: string };
+
+export type UnarchiveProductResult =
+  | { success: true }
+  | { success: false; error: string };
+
+export type ListPolarProductsResult =
+  | { success: true; products: Array<{ id: string; name: string; isArchived: boolean; slug?: string }> }
   | { success: false; error: string };
 
 export type PolarEnvironment = "sandbox" | "production";
@@ -440,7 +449,8 @@ export async function archivePolarProduct(
 
 /**
  * Checks if a product exists on Polar by its ID.
- * Returns { exists: true } if the product exists.
+ * Returns { exists: true, isArchived: false } if the product exists and is active.
+ * Returns { exists: true, isArchived: true } if the product exists but is archived.
  * Returns { exists: false } if the product does not exist (404).
  * Returns { exists: false, error: string } if there was an error checking.
  */
@@ -451,8 +461,8 @@ export async function checkProductExists(
 ): Promise<CheckProductExistsResult> {
   try {
     const client = createPolarClient(credentials.accessToken, environment);
-    await client.products.get({ id: productId });
-    return { exists: true };
+    const product = await client.products.get({ id: productId });
+    return { exists: true, isArchived: product.isArchived ?? false };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
@@ -466,6 +476,106 @@ export async function checkProductExists(
     return {
       exists: false,
       error: `Failed to verify product existence: ${errorMessage}`,
+    };
+  }
+}
+
+/**
+ * Unarchives a product on the Polar API.
+ * Restores an archived product so it can be purchased again.
+ */
+export async function unarchivePolarProduct(
+  credentials: PolarCredentials,
+  productId: string,
+  environment: PolarEnvironment
+): Promise<UnarchiveProductResult> {
+  try {
+    const client = createPolarClient(credentials.accessToken, environment);
+
+    await client.products.update({
+      id: productId,
+      productUpdate: { isArchived: false },
+    });
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+      return {
+        success: false,
+        error: "Invalid Polar access token. Please check your credentials.",
+      };
+    }
+
+    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+      return {
+        success: false,
+        error: "Product not found. It may have been deleted.",
+      };
+    }
+
+    return {
+      success: false,
+      error: `Failed to unarchive product on Polar: ${errorMessage}`,
+    };
+  }
+}
+
+/**
+ * Lists all products from Polar for the organization.
+ * Returns products with their ID, name, archived status, and slug from metadata.
+ */
+export async function listPolarProducts(
+  credentials: PolarCredentials,
+  environment: PolarEnvironment
+): Promise<ListPolarProductsResult> {
+  try {
+    const client = createPolarClient(credentials.accessToken, environment);
+
+    // Fetch all products (including archived)
+    const allProducts: Array<{ id: string; name: string; isArchived: boolean; slug?: string }> = [];
+    let page = 1;
+    const limit = 100;
+
+    while (true) {
+      const result = await client.products.list({ page, limit });
+
+      for (const product of result.result.items) {
+        const slug = product.metadata && typeof product.metadata === "object"
+          ? (product.metadata as Record<string, unknown>).slug as string | undefined
+          : undefined;
+        allProducts.push({
+          id: product.id,
+          name: product.name,
+          isArchived: product.isArchived ?? false,
+          slug,
+        });
+      }
+
+      // Check if there are more pages
+      if (result.result.items.length < limit) {
+        break;
+      }
+      page++;
+    }
+
+    return { success: true, products: allProducts };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
+      return {
+        success: false,
+        error: "Invalid Polar access token. Please check your credentials.",
+      };
+    }
+
+    return {
+      success: false,
+      error: `Failed to list products from Polar: ${errorMessage}`,
     };
   }
 }
