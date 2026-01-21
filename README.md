@@ -44,7 +44,7 @@ eniem-cli --git-host 0xtiby my-app
 
 ## Products Command
 
-Manage Polar products interactively from your project directory.
+Manage Polar products interactively. **Run this command from your Eniem project directory.**
 
 ```bash
 eniem-cli products [options]
