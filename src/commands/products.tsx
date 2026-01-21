@@ -1704,13 +1704,18 @@ export const ProductsCommand = ({ env, projectDir, accessToken }: ProductsComman
           {operationResults.failures.length > 0 && (
             <Box flexDirection="column" marginTop={1}>
               <StatusMessage status="error">
-                Failed to {lastOperation === "add" ? "sync" : lastOperation === "remove" ? "remove" : lastOperation === "sync" ? "sync" : lastOperation === "sandbox_sync" ? "sync to production" : lastOperation === "unarchive" ? "unarchive" : lastOperation === "cleanup" ? "clean up" : "regenerate"} {operationResults.failures.length} item{operationResults.failures.length !== 1 ? "s" : ""}
+                Failed to {lastOperation === "add" ? "sync" : lastOperation === "remove" ? "remove" : lastOperation === "sync" ? "sync" : lastOperation === "sandbox_sync" || lastOperation === "sync_from_sandbox" ? "sync to production" : lastOperation === "unarchive" ? "unarchive" : lastOperation === "cleanup" ? "clean up" : "regenerate"} {operationResults.failures.length} item{operationResults.failures.length !== 1 ? "s" : ""}
               </StatusMessage>
               <Box flexDirection="column" marginLeft={2}>
                 {operationResults.failures.map(({ slug, error }) => (
                   <Text key={slug} color="red">- {slug}: {error}</Text>
                 ))}
               </Box>
+              {(lastOperation === "sandbox_sync" || lastOperation === "sync_from_sandbox") && (
+                <Box marginTop={1}>
+                  <Text color="green">Products saved to products.{env}.json. Use "Sync products to Polar" to retry.</Text>
+                </Box>
+              )}
             </Box>
           )}
           <Box marginTop={1}>
