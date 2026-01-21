@@ -1,3 +1,26 @@
+# [0.5.0](https://github.com/eniem-dev/eniem-cli/compare/v0.4.0...v0.5.0) (2026-01-21)
+
+
+### Bug Fixes
+
+* add "Sync from sandbox" option to menu in production mode ([42734d0](https://github.com/eniem-dev/eniem-cli/commit/42734d09a8ed40928a33af737da8f855554446af))
+* handle missing production file and add archived product management ([eb0403e](https://github.com/eniem-dev/eniem-cli/commit/eb0403e9e8ce16f009ffa583a54323a381603515))
+* import full product details from Polar in cleanup ([995917e](https://github.com/eniem-dev/eniem-cli/commit/995917e810b1e6b79bae34e626baf9a5b322302e))
+* show success message for local file save when Polar sync fails ([0419b9f](https://github.com/eniem-dev/eniem-cli/commit/0419b9ff0da33c646045d47d127b1c7ec27d93b3))
+
+
+### Features
+
+* add --prod flag and sandbox-to-production sync flow ([4d7b386](https://github.com/eniem-dev/eniem-cli/commit/4d7b3861a667b074302cbd6fd0bb7d7ce83488d1))
+* add --token flag and always save local files on Polar failure ([59ffbb1](https://github.com/eniem-dev/eniem-cli/commit/59ffbb153fe48eae93b338570aa09718a216e3b8))
+* add checkProductExists() helper function ([d2be2cb](https://github.com/eniem-dev/eniem-cli/commit/d2be2cbe441a5ce993f032468e73f138fdbe09ac))
+* add MultiSelect component for multi-item selection UI ([4805791](https://github.com/eniem-dev/eniem-cli/commit/48057914dad142c1686d5745d70bcf02189b2e1b))
+* add OperationMenu component for main menu operation selection ([226cb8c](https://github.com/eniem-dev/eniem-cli/commit/226cb8cedc258e12f23ff8e04dfd3572b8887d5f))
+* add ProductList component for displaying products with sync status ([2bf1544](https://github.com/eniem-dev/eniem-cli/commit/2bf1544ae344d22d4f3fa694f59ffa49dcb5ec3c))
+* add removeProduct() helper function ([21a62d2](https://github.com/eniem-dev/eniem-cli/commit/21a62d29a37da4a05097974f11eaf8eed4bef544))
+* add updatePolarProduct() and archivePolarProduct() helper functions ([e60fcb0](https://github.com/eniem-dev/eniem-cli/commit/e60fcb0ac2b261860e44369c633343e91129415b))
+* implement menu-driven products command with add/remove/sync/regenerate ([6c96827](https://github.com/eniem-dev/eniem-cli/commit/6c96827c077a3c8480c51f54961f7f6e852a2c44))
+
 # [0.4.0](https://github.com/eniem-dev/eniem-cli/compare/v0.3.0...v0.4.0) (2026-01-20)
 
 
