@@ -114,6 +114,7 @@ type WizardStep =
 interface ProductsCommandProps {
   env: PolarEnvironment;
   projectDir: string;
+  accessToken?: string;
 }
 
 interface ProductDraft {
@@ -136,7 +137,7 @@ interface ProductDraft {
 // Component
 // ============================================================================
 
-export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
+export const ProductsCommand = ({ env, projectDir, accessToken }: ProductsCommandProps) => {
   // Wizard state
   const [step, setStep] = useState<WizardStep>("init");
   const [error, setError] = useState<string | null>(null);
@@ -269,6 +270,20 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
   useEffect(() => {
     if (step === "load_credentials") {
       const load = async () => {
+        // If access token was provided via CLI, use it directly
+        if (accessToken) {
+          setCredentials({ accessToken });
+          // In production mode, ask about sandbox sync first (if not already asked)
+          if (env === "production" && !askedSandboxSync) {
+            setAskedSandboxSync(true);
+            setStep("ask_sandbox_sync");
+          } else {
+            setStep("checking_sync_status");
+          }
+          return;
+        }
+
+        // Otherwise, try to load from .env file
         const result = await loadPolarCredentials(projectDir);
         if (result.success) {
           setCredentials(result.credentials);
@@ -285,7 +300,7 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
       };
       load();
     }
-  }, [step, projectDir, env, askedSandboxSync]);
+  }, [step, projectDir, env, askedSandboxSync, accessToken]);
 
   // Check sync status for all products
   useEffect(() => {
@@ -1164,14 +1179,16 @@ export const ProductsCommand = ({ env, projectDir }: ProductsCommandProps) => {
           const createResult = await createPolarProduct(credentials, productForProd, "production");
           if (createResult.success) {
             productForProd.polarProductId = createResult.polarProductId;
-            newProducts.push(productForProd);
             successes.push(slug);
           } else {
-            failures.push({ slug, error: createResult.error });
+            // Still save locally even if Polar sync fails
+            failures.push({ slug, error: `Polar sync failed: ${createResult.error}` });
           }
+          // Always add to local products regardless of Polar result
+          newProducts.push(productForProd);
         }
 
-        // Add new products to production file
+        // Add new products to production file (even if Polar sync failed)
         if (newProducts.length > 0) {
           const updatedProducts = [...products, ...newProducts];
           const writeResult = await writeProductsFile(projectDir, "production", updatedProducts);
