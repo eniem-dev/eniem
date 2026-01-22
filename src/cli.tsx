@@ -63,13 +63,22 @@ const cli = meow(
   }
 );
 
+const LOGO = `
+███████╗███╗   ██╗██╗███████╗███╗   ███╗
+██╔════╝████╗  ██║██║██╔════╝████╗ ████║
+█████╗  ██╔██╗ ██║██║█████╗  ██╔████╔██║
+██╔══╝  ██║╚██╗██║██║██╔══╝  ██║╚██╔╝██║
+███████╗██║ ╚████║██║███████╗██║ ╚═╝ ██║
+╚══════╝╚═╝  ╚═══╝╚═╝╚══════╝╚═╝     ╚═╝
+`.trim();
+
 const Header = () => {
   return (
     <Box flexDirection="column" marginBottom={1}>
-      <Text bold color="cyan">
-        {pkg.name} v{pkg.version}
+      <Text color="cyan">{LOGO}</Text>
+      <Text dimColor>
+        v{pkg.version} - Scaffold your next Eniem project
       </Text>
-      <Text dimColor>Scaffold your next Eniem project</Text>
     </Box>
   );
 };
