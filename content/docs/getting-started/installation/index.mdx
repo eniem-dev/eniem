@@ -35,7 +35,11 @@ After setting up your app, configure your Polar products using the CLI:
 eniem products
 ```
 
-This interactive wizard lets you create subscription and one-time payment products, sync them to Polar, and generate TypeScript types for your pricing UI. See the [CLI Products guide](/guides/cli) for full documentation.
+This interactive wizard lets you create subscription and one-time payment products, sync them to Polar, and generate `products.generated.ts` with TypeScript types for your pricing UI.
+
+**How it works:** The CLI syncs your products from Polar and generates `products.generated.ts`. This file exports functions like `getCheckoutProducts()` that your auth configuration and pricing components consume—keeping your UI automatically in sync with Polar without manual product ID management.
+
+See the [CLI Products guide](/guides/cli) for full documentation, or [Product Configuration](/payments/products-generated) to understand how product data flows through your app.
 
 ## Useful commands
 
@@ -62,3 +66,9 @@ For interactive mode, use `./loop.sh` directly:
 ```
 
 See the [Ralph guide](/guides/ralph) for full documentation.
+
+## Next Steps
+
+- [Set Up Subscriptions](/guides/setup-subscriptions) - Configure recurring payments with Polar
+- [Product Configuration](/payments/products-generated) - Understand how product data flows to your UI
+- [OAuth Authentication](/authentication/oauth) - Configure social login providers

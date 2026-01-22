@@ -39,17 +39,17 @@ Batch of documentation updates to fix outdated content, improve organization, an
 
 ### Phase 4: Cross-Linking (Nice to Have)
 
-- [ ] Improve cross-linking between CLI guide, products-generated, and setup-subscriptions
+- [x] Improve cross-linking between CLI guide, products-generated, and setup-subscriptions
 
-- [ ] Add brief explanation of automated product data flow in Quick Start
+- [x] Add brief explanation of automated product data flow in Quick Start
 
 ### Phase 5: Validation and Completion
 
-- [ ] Run `pnpm types:check && pnpm build` - verify all pages render correctly
+- [x] Run `pnpm types:check && pnpm build` - verify all pages render correctly
 
-- [ ] Verify all internal links work correctly
+- [x] Verify all internal links work correctly
 
-- [ ] Create commit with descriptive message
+- [x] Create commit with descriptive message
 
 ---
 
@@ -63,7 +63,7 @@ Before marking complete, verify:
 - [x] Posthog is not mentioned in prerequisites
 - [x] Setup-subscriptions has env vars before product creation
 - [x] Setup-subscriptions step 4 shows `getCheckoutProducts()` import from products.generated.ts
-- [ ] All internal links work correctly
+- [x] All internal links work correctly
 
 ---
 
