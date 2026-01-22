@@ -29,13 +29,13 @@ Batch of documentation updates to fix outdated content, improve organization, an
 
 ### Phase 3: Setup Subscriptions Reorg
 
-- [ ] Move "Add Environment Variables" section (step 3) to come before "Create a Subscription Product" (step 2)
+- [x] Move "Add Environment Variables" section (step 3) to come before "Create a Subscription Product" (step 2)
 
-- [ ] Update step 4 ("Configure the Product in Auth") to show automated flow using `getCheckoutProducts()` from `products.generated.ts`
+- [x] Update step 4 ("Configure the Product in Auth") to show automated flow using `getCheckoutProducts()` from `products.generated.ts`
 
-- [ ] Update step 5 ("Use BuyButton") to reflect current component usage patterns
+- [x] Update step 5 ("Use BuyButton") to reflect current component usage patterns
 
-- [ ] Add prominent link to CLI docs from product creation section
+- [x] Add prominent link to CLI docs from product creation section
 
 ### Phase 4: Cross-Linking (Nice to Have)
 
@@ -61,8 +61,8 @@ Before marking complete, verify:
 - [x] New page at `/getting-started/manual-installation` covers git clone + manual Polar setup
 - [x] Ralph commands show: `ralph:plan`, `ralph:plan-work`, `ralph:build`, `ralph:build:auto` with `loop.sh` descriptions
 - [x] Posthog is not mentioned in prerequisites
-- [ ] Setup-subscriptions has env vars before product creation
-- [ ] Setup-subscriptions step 4 shows `getCheckoutProducts()` import from products.generated.ts
+- [x] Setup-subscriptions has env vars before product creation
+- [x] Setup-subscriptions step 4 shows `getCheckoutProducts()` import from products.generated.ts
 - [ ] All internal links work correctly
 
 ---
