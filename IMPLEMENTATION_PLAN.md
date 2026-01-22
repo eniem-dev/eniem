@@ -17,11 +17,11 @@ Batch of documentation updates to fix outdated content, improve organization, an
 
 ### Phase 2: Installation Page Split
 
-- [ ] Rename current installation page title to "Quick Start" and update content to focus on CLI-based workflow
+- [x] Rename current installation page title to "Quick Start" and update content to focus on CLI-based workflow
 
-- [ ] Add CLI product creation step to Quick Start (run `eniem products` after initial setup)
+- [x] Add CLI product creation step to Quick Start (run `eniem products` after initial setup)
 
-- [ ] Update Ralph commands section to use new `loop.sh` based commands (`ralph:plan`, `ralph:plan-work`, `ralph:build`, `ralph:build:auto`)
+- [x] Update Ralph commands section to use new `loop.sh` based commands (`ralph:plan`, `ralph:plan-work`, `ralph:build`, `ralph:build:auto`)
 
 - [ ] Create new `content/docs/getting-started/manual-installation/index.mdx` with manual setup content (git clone workflow, manual Polar product creation)
 
@@ -57,9 +57,9 @@ Batch of documentation updates to fix outdated content, improve organization, an
 
 Before marking complete, verify:
 
-- [ ] Installation page at `/getting-started/installation` is "Quick Start" with CLI-based workflow
+- [x] Installation page at `/getting-started/installation` is "Quick Start" with CLI-based workflow
 - [ ] New page at `/getting-started/manual-installation` covers git clone + manual Polar setup
-- [ ] Ralph commands show: `ralph:plan`, `ralph:plan-work`, `ralph:build`, `ralph:build:auto` with `loop.sh` descriptions
+- [x] Ralph commands show: `ralph:plan`, `ralph:plan-work`, `ralph:build`, `ralph:build:auto` with `loop.sh` descriptions
 - [x] Posthog is not mentioned in prerequisites
 - [ ] Setup-subscriptions has env vars before product creation
 - [ ] Setup-subscriptions step 4 shows `getCheckoutProducts()` import from products.generated.ts
