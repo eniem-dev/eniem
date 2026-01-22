@@ -1,4 +1,4 @@
 {
   "title": "Payments",
-  "pages": ["subscription", "one-time"]
+  "pages": ["products-generated", "subscription", "one-time"]
 }

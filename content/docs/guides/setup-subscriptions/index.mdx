@@ -1,6 +1,6 @@
 ---
 title: "Set Up Subscriptions"
-description: "> By the end of this guide, you'll have recurring payments working with Polar."
+description: "By the end of this guide, you'll have recurring payments working with Polar."
 ---
 
 ## Prerequisites
@@ -50,6 +50,18 @@ Add these if you're using usage-based pricing:
 6. Copy the generated token
 
 ### 2. Create a Subscription Product
+
+**Option A: Using the CLI (Recommended)**
+
+Use the [Eniem CLI](/guides/cli) to create and sync products interactively:
+
+```bash
+eniem products
+```
+
+Select **Add** to create a new product via the wizard, then **Sync** to push to Polar.
+
+**Option B: Manual Creation**
 
 1. In Polar, go to **Products → New Product**
 2. Configure your product and set pricing to **Recurring subscription**
@@ -192,4 +204,6 @@ Complete list of all available Polar OAuth scopes:
 
 ## Next Steps
 
+- [Product Configuration](/payments/products-generated) - Understand how product data flows to your UI
+- [CLI Products Command](/guides/cli) - Full CLI reference for product management
 - [Payments Reference](/payments) - All payment patterns (usage-based, one-time, etc.)
