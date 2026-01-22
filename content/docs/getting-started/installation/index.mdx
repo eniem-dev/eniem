@@ -1,11 +1,9 @@
 ---
-title: "Installation"
-description: "Here's a quick overview to get your app up and running."
+title: "Quick Start"
+description: "The fastest way to get your Eniem app up and running using the CLI."
 ---
 
-## Quick Start (Recommended)
-
-The fastest way to get started is using the Eniem CLI:
+The recommended way to get started is using the Eniem CLI. For manual git clone setup, see [Manual Installation](/getting-started/manual-installation).
 
 ```bash
 npx eniem-cli@latest [YOUR_APP_NAME]
@@ -27,93 +25,21 @@ pnpm dlx eniem-cli@latest [YOUR_APP_NAME]
 bunx eniem-cli@latest [YOUR_APP_NAME]
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to see your site. And voila!
-
----
-
-## Manual Installation
-
-If you prefer to set up manually:
-
-**1. Clone the repository:**
-
-```bash
-git clone https://github.com/eniem-dev/eniem-boilerplate [YOUR_APP_NAME]
-cd [YOUR_APP_NAME]
-```
-
-**2. Remove git history and reinitialize:**
-
-```bash
-git remote remove origin && rm -rf .git && git init
-```
-
-**3. Install dependencies:**
-
-```bash
-pnpm install
-```
-
-**4. Rename `.env.example` to `.env`:**
-
-```bash
-mv .env.example .env
-```
-
-**5. Start the database:**
-
-```bash
-pnpm db:start
-```
-
-**6. Run migrations:**
-
-```bash
-pnpm db:migrate
-```
-
-**7. Start the dev server:**
-
-```bash
-pnpm dev
-```
-
 Open [http://localhost:3000](http://localhost:3000) to see your site.
 
-### Configure .env
+## Configure Products
 
-> Skip this if you used the CLI — it handles `.env` setup automatically.
-
-Change `BETTER_AUTH_SECRET` to a random string (use `openssl rand -base64 32`). The file content should look like this:
+After setting up your app, configure your Polar products using the CLI:
 
 ```bash
-# Project Configuration
-PROJECT_URL=http://localhost:3000
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NEXT_PUBLIC_APP_NAME=eniem
-
-# Better Auth Configuration
-BETTER_AUTH_SECRET=your-random-secret-here
-BETTER_AUTH_URL=http://localhost:3000
-
-# Database Configuration (PostgreSQL)
-DATABASE_URL=postgresql://eniem:eniem-dev-password@localhost:5432/eniem
-
-# OAuth (optional)
-GITHUB_CLIENT_ID=
-GITHUB_CLIENT_SECRET=
-TWITTER_CLIENT_ID=
-TWITTER_CLIENT_SECRET=
-
-# Polar (for payments)
-POLAR_ACCESS_TOKEN=
-POLAR_SERVER=sandbox
-POLAR_WEBHOOK_SECRET=
-
-# Resend (for emails)
-RESEND_API_KEY=
-EMAIL_FROM_ADDRESS=no-reply@yourdomain.com
+eniem products
 ```
+
+This interactive wizard lets you create subscription and one-time payment products, sync them to Polar, and generate `products.generated.ts` with TypeScript types for your pricing UI.
+
+**How it works:** The CLI syncs your products from Polar and generates `products.generated.ts`. This file exports functions like `getCheckoutProducts()` that your auth configuration and pricing components consume—keeping your UI automatically in sync with Polar without manual product ID management.
+
+See the [CLI Products guide](/guides/cli) for full documentation, or [Product Configuration](/payments/products-generated) to understand how product data flows through your app.
 
 ## Useful commands
 
@@ -125,9 +51,24 @@ EMAIL_FROM_ADDRESS=no-reply@yourdomain.com
 
 ### Ralph (AI-driven development)
 
-- `pnpm feature:list` — List available implementations
-- `pnpm feature:create` — Create new feature (interactive planning)
-- `pnpm feature:implement -- <name>` — Implement a feature
-- `pnpm feature:implement-once -- <name>` — Single iteration
+Ralph uses `loop.sh` for autonomous feature implementation:
+
+- `pnpm ralph:plan` — Generate implementation plan from all specs
+- `pnpm ralph:plan-work "desc"` — Generate scoped implementation plan
+- `pnpm ralph:build` — Build one task from the plan
+- `pnpm ralph:build:auto` — Build autonomously (10 iterations)
+
+For interactive mode, use `./loop.sh` directly:
+
+```bash
+./loop.sh plan -i      # Plan with interactive output
+./loop.sh build 5 -i   # Build 5 iterations interactively
+```
 
 See the [Ralph guide](/guides/ralph) for full documentation.
+
+## Next Steps
+
+- [Set Up Subscriptions](/guides/setup-subscriptions) - Configure recurring payments with Polar
+- [Product Configuration](/payments/products-generated) - Understand how product data flows to your UI
+- [OAuth Authentication](/authentication/oauth) - Configure social login providers
