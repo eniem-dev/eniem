@@ -27,10 +27,10 @@ Always develop and test in sandbox first, then sync to production when ready.
 
 When creating your Polar API token, ensure these scopes are enabled:
 
-| Scope | Purpose |
-| ----- | ------- |
-| `products:read` | Read product catalog and details |
-| `products:write` | Create and modify products |
+| Scope            | Purpose                          |
+| ---------------- | -------------------------------- |
+| `products:read`  | Read product catalog and details |
+| `products:write` | Create and modify products       |
 
 ### Environment Variables
 
@@ -46,15 +46,15 @@ For production, create a separate token at `polar.sh`. The environment is determ
 
 ## Commands Reference
 
-| Operation | Description |
-| --------- | ----------- |
-| Add | Create a new product via interactive wizard |
-| Remove | Remove a product from local configuration (archives on Polar) |
-| Sync | Push local products to Polar |
-| Regenerate | Rebuild TypeScript types from product configuration |
-| Unarchive | Restore an archived product on Polar |
-| Sync from sandbox | Copy sandbox products to production (production mode only) |
-| Clean up Polar products | Import and reconcile products from Polar to local config |
+| Operation               | Description                                                   |
+| ----------------------- | ------------------------------------------------------------- |
+| Add                     | Create a new product via interactive wizard                   |
+| Remove                  | Remove a product from local configuration (archives on Polar) |
+| Sync                    | Push local products to Polar                                  |
+| Regenerate              | Rebuild TypeScript types from product configuration           |
+| Unarchive               | Restore an archived product on Polar                          |
+| Sync from sandbox       | Copy sandbox products to production (production mode only)    |
+| Clean up Polar products | Import and reconcile products from Polar to local config      |
 
 ## Base Command
 
@@ -72,11 +72,11 @@ Opens the interactive menu for managing products in the **production** environme
 
 ### Available Flags
 
-| Flag | Description |
-| ---- | ----------- |
-| `--prod` | Use production environment instead of sandbox |
-| `--env=sandbox\|production` | Explicitly specify the environment |
-| `--token=<polar-token>` | Provide API token directly, bypassing `.env` file lookup |
+| Flag                        | Description                                              |
+| --------------------------- | -------------------------------------------------------- |
+| `--prod`                    | Use production environment instead of sandbox            |
+| `--env=sandbox\|production` | Explicitly specify the environment                       |
+| `--token=<polar-token>`     | Provide API token directly, bypassing `.env` file lookup |
 
 **Examples:**
 
@@ -88,17 +88,13 @@ eniem products --env=production
 eniem products --token=polar_at_xxx
 ```
 
-{/* TODO: Add screenshot of main menu interface showing Add, Remove, Sync, Regenerate, Unarchive options */}
-{/* Screenshot: /images/cli/main-menu.png - Alt: "eniem products command main menu" */}
+![eniem products command main menu](/images/cli/main-menu.png)
 
 ## Operations
 
 ### Add
 
 The Add operation launches an interactive wizard to create a new product.
-
-{/* TODO: Add screenshot of add product wizard showing prompts for slug, name, type */}
-{/* Screenshot: /images/cli/add-wizard.png - Alt: "Add product wizard prompting for configuration" */}
 
 **Wizard Flow:**
 
@@ -115,21 +111,22 @@ The Add operation launches an interactive wizard to create a new product.
 After creating a monthly subscription, the CLI prompts: "Create yearly version?"
 
 If you accept, it automatically creates a yearly plan with smart defaults:
+
 - Price: 10× the monthly price (effectively 2 months free)
 - Same display configuration
 - Slug suffixed with `-yearly`
 
 **Product Schema Fields:**
 
-| Field | Required | Description |
-| ----- | -------- | ----------- |
-| `slug` | Yes | Unique URL-safe identifier (must start with letter, lowercase letters, numbers, hyphens) |
-| `name` | Yes | Display name shown to customers |
-| `description` | No | Product description for checkout |
-| `type` | Yes | `subscription` (recurring), `one_time` (single purchase), or `free` |
-| `recurringInterval` | For subscriptions | Billing interval: `month` or `year` |
-| `prices` | Yes | Array of price configurations (see below) |
-| `display` | No | UI display options (see below) |
+| Field               | Required          | Description                                                                              |
+| ------------------- | ----------------- | ---------------------------------------------------------------------------------------- |
+| `slug`              | Yes               | Unique URL-safe identifier (must start with letter, lowercase letters, numbers, hyphens) |
+| `name`              | Yes               | Display name shown to customers                                                          |
+| `description`       | No                | Product description for checkout                                                         |
+| `type`              | Yes               | `subscription` (recurring), `one_time` (single purchase), or `free`                      |
+| `recurringInterval` | For subscriptions | Billing interval: `month` or `year`                                                      |
+| `prices`            | Yes               | Array of price configurations (see below)                                                |
+| `display`           | No                | UI display options (see below)                                                           |
 
 **Price Schema:**
 
@@ -187,13 +184,9 @@ The Sync operation pushes your local product configuration to Polar.
 
 Running sync multiple times is safe. The CLI compares local and remote state, only updating what has changed.
 
-{/* TODO: Add screenshot of sync confirmation dialog */}
-{/* Screenshot: /images/cli/sync-confirmation.png - Alt: "Sync operation showing products being pushed to Polar" */}
+![Sync operation showing products being pushed to Polar](/images/cli/sync-confirmation.png)
 
 **Success State:**
-
-{/* TODO: Add screenshot of successful sync output */}
-{/* Screenshot: /images/cli/sync-success.png - Alt: "Successful sync showing created and updated products" */}
 
 ```
 ✓ Synced 3 products to sandbox
@@ -430,17 +423,18 @@ POLAR_ACCESS_TOKEN=your_production_token
 
 ### Common Error Messages
 
-| Error | Cause | Resolution |
-| ----- | ----- | ---------- |
-| `Invalid API token` | Token missing or incorrect | Verify `POLAR_ACCESS_TOKEN` in `.env` |
-| `Token missing required scopes` | Token lacks `products:read/write` | Create new token with correct scopes |
-| `Network error during sync` | Connection failed | Check internet, retry sync |
-| `Product slug already exists` | Duplicate slug | Choose a unique slug |
-| `No products to sync` | Empty product list | Add products before syncing |
+| Error                           | Cause                             | Resolution                            |
+| ------------------------------- | --------------------------------- | ------------------------------------- |
+| `Invalid API token`             | Token missing or incorrect        | Verify `POLAR_ACCESS_TOKEN` in `.env` |
+| `Token missing required scopes` | Token lacks `products:read/write` | Create new token with correct scopes  |
+| `Network error during sync`     | Connection failed                 | Check internet, retry sync            |
+| `Product slug already exists`   | Duplicate slug                    | Choose a unique slug                  |
+| `No products to sync`           | Empty product list                | Add products before syncing           |
 
 ### Missing or Invalid API Keys
 
 **Error:**
+
 ```
 ✗ Error: Invalid API token
   Unable to authenticate with Polar API
@@ -459,6 +453,7 @@ POLAR_ACCESS_TOKEN=your_production_token
 ### Network Failure During Sync
 
 **Error:**
+
 ```
 ✗ Sync failed: Network error
   Could not reach Polar API
@@ -474,6 +469,7 @@ POLAR_ACCESS_TOKEN=your_production_token
 ### Product Slug Conflicts
 
 **Error:**
+
 ```
 ✗ Validation error: slug 'pro' already exists
   Product slugs must be unique
@@ -513,35 +509,35 @@ Always sync to sandbox first, verify products work, then sync to production.
 
 ## Troubleshooting
 
-| Problem | Cause | Solution |
-| ------- | ----- | -------- |
-| Command not found: `eniem` | CLI not installed | Run `npm install -g eniem` |
-| Products not appearing in Polar | Not synced | Run Sync operation |
-| Type errors after adding product | Types not regenerated | Run Regenerate operation |
-| Wrong environment synced | Missing `--prod` flag | Use `--prod` for production |
-| Token works in browser but not CLI | Wrong token copied | Copy full token, no extra spaces |
-| Sync says "unchanged" but Polar differs | Local cache stale | Delete `.eniem` cache folder, re-sync |
+| Problem                                 | Cause                 | Solution                              |
+| --------------------------------------- | --------------------- | ------------------------------------- |
+| Command not found: `eniem`              | CLI not installed     | Run `npm install -g eniem`            |
+| Products not appearing in Polar         | Not synced            | Run Sync operation                    |
+| Type errors after adding product        | Types not regenerated | Run Regenerate operation              |
+| Wrong environment synced                | Missing `--prod` flag | Use `--prod` for production           |
+| Token works in browser but not CLI      | Wrong token copied    | Copy full token, no extra spaces      |
+| Sync says "unchanged" but Polar differs | Local cache stale     | Delete `.eniem` cache folder, re-sync |
 
 ## Command Cheatsheet
 
-| Command | Description |
-| ------- | ----------- |
-| `eniem products` | Manage sandbox products (interactive) |
-| `eniem products --prod` | Manage production products (interactive) |
-| `eniem products --env=production` | Same as `--prod` |
-| `eniem products --token=xxx` | Use specific token (bypasses `.env`) |
+| Command                           | Description                              |
+| --------------------------------- | ---------------------------------------- |
+| `eniem products`                  | Manage sandbox products (interactive)    |
+| `eniem products --prod`           | Manage production products (interactive) |
+| `eniem products --env=production` | Same as `--prod`                         |
+| `eniem products --token=xxx`      | Use specific token (bypasses `.env`)     |
 
 **Within the interactive menu:**
 
-| Option | Action |
-| ------ | ------ |
-| Add | Create new product via wizard |
-| Remove | Remove product (archives on Polar) |
-| Sync | Push products to Polar |
-| Regenerate | Rebuild TypeScript types |
-| Unarchive | Restore archived product |
-| Sync from sandbox | Copy sandbox products to production (prod mode only) |
-| Clean up Polar products | Import/reconcile products from Polar |
+| Option                  | Action                                               |
+| ----------------------- | ---------------------------------------------------- |
+| Add                     | Create new product via wizard                        |
+| Remove                  | Remove product (archives on Polar)                   |
+| Sync                    | Push products to Polar                               |
+| Regenerate              | Rebuild TypeScript types                             |
+| Unarchive               | Restore archived product                             |
+| Sync from sandbox       | Copy sandbox products to production (prod mode only) |
+| Clean up Polar products | Import/reconcile products from Polar                 |
 
 ## FAQ
 
@@ -569,7 +565,7 @@ Yes, each environment has its own configuration file. However, keeping them in s
 
 {/* Coming soon: Video tutorial showing the complete CLI products workflow */}
 
-*A video walkthrough demonstrating the end-to-end workflow from installation to synced products is coming soon.*
+_A video walkthrough demonstrating the end-to-end workflow from installation to synced products is coming soon._
 
 ## Next Steps
 
