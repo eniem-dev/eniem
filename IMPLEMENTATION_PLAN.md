@@ -23,9 +23,9 @@ Batch of documentation updates to fix outdated content, improve organization, an
 
 - [x] Update Ralph commands section to use new `loop.sh` based commands (`ralph:plan`, `ralph:plan-work`, `ralph:build`, `ralph:build:auto`)
 
-- [ ] Create new `content/docs/getting-started/manual-installation/index.mdx` with manual setup content (git clone workflow, manual Polar product creation)
+- [x] Create new `content/docs/getting-started/manual-installation/index.mdx` with manual setup content (git clone workflow, manual Polar product creation)
 
-- [ ] Update `content/docs/getting-started/meta.json` to include `manual-installation` page
+- [x] Update `content/docs/getting-started/meta.json` to include `manual-installation` page
 
 ### Phase 3: Setup Subscriptions Reorg
 
@@ -58,7 +58,7 @@ Batch of documentation updates to fix outdated content, improve organization, an
 Before marking complete, verify:
 
 - [x] Installation page at `/getting-started/installation` is "Quick Start" with CLI-based workflow
-- [ ] New page at `/getting-started/manual-installation` covers git clone + manual Polar setup
+- [x] New page at `/getting-started/manual-installation` covers git clone + manual Polar setup
 - [x] Ralph commands show: `ralph:plan`, `ralph:plan-work`, `ralph:build`, `ralph:build:auto` with `loop.sh` descriptions
 - [x] Posthog is not mentioned in prerequisites
 - [ ] Setup-subscriptions has env vars before product creation
