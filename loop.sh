@@ -65,9 +65,28 @@ run_claude() {
     LAST_OUTPUT=$(cat "$tmp_output")
     rm -f "$tmp_output" "$tmp_prompt"
   else
-    # Non-interactive: pipe mode, capture output
-    LAST_OUTPUT=$(echo "$prompt_content" | claude --dangerously-skip-permissions -p)
-    echo "$LAST_OUTPUT"
+    # Non-interactive: stream-json mode with formatted output (using Node.js for JSON parsing)
+    tmp_output=$(mktemp)
+    echo "$prompt_content" | claude --dangerously-skip-permissions -p --verbose --output-format stream-json 2>&1 | tee "$tmp_output" | node -e '
+const rl = require("readline").createInterface({ input: process.stdin });
+rl.on("line", (line) => {
+  try {
+    const d = JSON.parse(line);
+    if (d.type === "assistant") {
+      for (const c of d.message?.content || []) {
+        if (c.type === "text") console.log(c.text);
+        else if (c.type === "tool_use") {
+          const i = c.input || {};
+          const info = i.file_path || i.pattern || i.command?.slice(0, 60) || i.query || i.content?.slice(0, 40) || Object.keys(i).join(", ");
+          console.log("→ " + c.name + ": " + info);
+        }
+      }
+    }
+  } catch {}
+});
+'
+    LAST_OUTPUT=$(cat "$tmp_output")
+    rm -f "$tmp_output"
   fi
 }
 
