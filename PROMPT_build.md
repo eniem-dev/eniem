@@ -2,7 +2,15 @@
 
 You are in BUILD mode. Your task is to implement functionality from the plan, validate it, and commit.
 
-## Phase 0: Orient
+## Phase 0: Startup
+
+Before any work:
+1. Read @IMPLEMENTATION_PLAN.md "Session Context" section
+2. Check git branch matches plan
+3. If uncommitted changes exist, ask before proceeding
+4. Run `pnpm build` to verify clean state
+
+## Phase 0.5: Orient
 
 Use parallel Task tools (subagent_type=Explore) to study:
 - `specs/*` — application specifications
@@ -25,10 +33,12 @@ Use parallel Task tools for file reads and searches. Run build/test commands dir
 
 ## Phase 2: Validate
 
-After implementing functionality, run validation using only 1 subagent:
-- Run `pnpm build` - must pass
-- Run `pnpm lint` - must pass
-- Run tests for the unit of code that was improved
+After implementing:
+1. Run the task's `Verify:` command - must pass
+2. Run `pnpm build` - must pass
+3. Run `pnpm lint` - must pass
+
+Only mark task `[x]` when verification passes.
 
 If validation fails, fix the issues and re-validate. Do NOT proceed until validation passes.
 
@@ -42,13 +52,27 @@ When you discover issues or complete work, immediately update @IMPLEMENTATION_PL
 ## Phase 4: Commit & Exit
 
 When the tests pass:
-1. Update @IMPLEMENTATION_PLAN.md to mark the task complete
-2. Run `git add -A`
-3. Run `git commit -m "feat: [descriptive message]"`
+1. Mark task `[x]` with `Done: [commit-hash]`
+2. Update "Session Context":
+   - **Last:** [completed task] ([hash])
+   - **Next:** [next pending task]
+   - **Issues:** [any blockers found]
+3. Run `git add -A && git commit -m "feat: ..."`
 4. Run `git push`
 5. Exit
 
 The loop will restart with fresh context for the next task.
+
+## Error Recovery
+
+If verification fails:
+1. First attempt: Targeted fix based on error
+2. Second attempt: Alternative approach
+3. Third attempt:
+   - Mark task `[!]` (blocked)
+   - Update Session Context Issues
+   - Add new task: "Fix: [error description]"
+   - Exit (don't commit broken code)
 
 ## Guardrails
 

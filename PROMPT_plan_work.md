@@ -30,6 +30,23 @@ Ultrathink. Consider searching for:
 
 Do NOT include tasks outside the work scope, even if specs mention them.
 
+## Plan Format Requirements
+
+Each task MUST include:
+1. **Description** in bold
+2. **Verify:** command that returns pass/fail (grep, test, gh command)
+
+Verification types:
+- File changes: `grep -q "pattern" file && echo pass`
+- Tests: `pnpm test -- [file]`
+- Branch/PR: `git`/`gh` commands
+
+Task status convention:
+- `[ ]` Pending (not started)
+- `[~]` In progress (started this session)
+- `[x]` Complete (verification passed)
+- `[!]` Blocked (issue documented in Session Context)
+
 ## Plan Structure
 
 The plan MUST follow this structure:

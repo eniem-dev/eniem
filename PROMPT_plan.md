@@ -24,6 +24,55 @@ Ultrathink. Consider searching for:
 - Skipped or flaky tests
 - Inconsistent patterns
 
+## Plan Format Requirements
+
+Generate @IMPLEMENTATION_PLAN.md with this structure:
+
+```markdown
+# Implementation Plan: [Feature Name]
+
+## Session Context
+- **Last:** [Task completed] ([commit hash])
+- **Next:** [Next task to do]
+- **Issues:** [Blockers or None]
+
+## Scope
+[One-line description of the work]
+
+## Tasks
+
+- [ ] **Task description**
+  - Verify: `command that returns pass/fail`
+  - Done: [commit hash when complete]
+
+## Files to Modify
+- `path/to/file.ts`
+
+## Patterns to Follow
+- Pattern reference from existing code
+```
+
+Requirements:
+1. **Session Context** section at top (initialize as empty for new plans)
+2. **Scope** one-liner
+3. **Tasks** with:
+   - `[ ]` checkbox
+   - **Bold description**
+   - `Verify:` command that returns pass/fail
+4. **Files to Modify** list
+5. **Patterns to Follow** section
+
+Verification types:
+- File changes: `grep -q "pattern" file && echo pass`
+- Tests: `pnpm test -- [file]`
+- Branch/PR: `git`/`gh` commands
+
+Task status convention:
+- `[ ]` Pending (not started)
+- `[~]` In progress (started this session)
+- `[x]` Complete (verification passed)
+- `[!]` Blocked (issue documented in Session Context)
+
 ## Guardrails
 
 99999. When authoring documentation in the plan, capture the WHY, not just the what.
