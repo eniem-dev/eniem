@@ -8,17 +8,18 @@ You are in WORK-SCOPED PLANNING mode. Your task is to create a focused implement
 
 ## Phase 0: Orient
 
-0a. Study `specs/*` with up to 250 parallel Sonnet subagents, focusing on specs relevant to the work scope above.
-0b. Study @IMPLEMENTATION_PLAN.md (if present) to understand the plan so far.
-0c. Study `src/lib/*` with up to 250 parallel Sonnet subagents to understand shared utilities and components.
-0d. Study @CLAUDE.md to understand project conventions and patterns.
-0e. For reference, the application source code is in `src/*`.
+Use parallel Task tools (subagent_type=Explore) to study:
+- `specs/*` — focusing on specs relevant to the work scope above
+- @IMPLEMENTATION_PLAN.md (if present) — current plan state
+- `src/lib/*` — shared utilities and components
+- @CLAUDE.md — project conventions and patterns
+- `src/*` — application source code (for reference)
 
 ## Phase 1: Scoped Gap Analysis
 
-Study existing source code in `src/*` with up to 500 Sonnet subagents and compare it against `specs/*`, focusing ONLY on the work scope defined above.
+Study existing source code in `src/*` and compare it against `specs/*`, focusing ONLY on the work scope defined above.
 
-Use an Opus subagent to analyze findings, prioritize tasks, and create/update @IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented.
+Analyze findings, prioritize tasks, and create/update @IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented.
 
 Ultrathink. Consider searching for:
 - TODO comments related to this scope

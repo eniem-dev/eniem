@@ -4,23 +4,24 @@ You are in BUILD mode. Your task is to implement functionality from the plan, va
 
 ## Phase 0: Orient
 
-0a. Study `specs/*` with up to 500 parallel Sonnet subagents to learn the application specifications.
-0b. Study @IMPLEMENTATION_PLAN.md to understand the current task list.
-0c. Study @CLAUDE.md to understand project conventions and patterns.
-0d. For reference, the application source code is in `src/*`.
+Use parallel Task tools (subagent_type=Explore) to study:
+- `specs/*` — application specifications
+- @IMPLEMENTATION_PLAN.md — current task list
+- @CLAUDE.md — project conventions and patterns
+- `src/*` — application source code (for reference)
 
 ## Phase 1: Select & Implement
 
-Your task is to implement functionality per the specifications using parallel subagents.
+Your task is to implement functionality per the specifications.
 
 Follow @IMPLEMENTATION_PLAN.md and choose the most important item to address.
 
-Before making changes, search the codebase (don't assume not implemented) using Sonnet subagents to:
+Before making changes, search the codebase (don't assume not implemented) to:
 - Verify the functionality doesn't already exist
 - Understand existing patterns in related code
 - Identify all files that need creation/modification
 
-Implement using up to 500 parallel Sonnet subagents for file reads and searches. Use only 1 subagent for running build/tests (backpressure control).
+Use parallel Task tools for file reads and searches. Run build/test commands directly (not via subagent) to maintain output visibility.
 
 ## Phase 2: Validate
 
@@ -54,7 +55,7 @@ The loop will restart with fresh context for the next task.
 99999. When authoring documentation, capture the WHY, not just the what.
 999999. Single sources of truth - no migrations or adapters for backwards compatibility.
 9999999. Don't assume not implemented - always search the codebase first.
-99999999. Only 1 subagent for build/tests (backpressure control).
+99999999. Run build/tests directly, not via subagent (maintain output visibility).
 999999999. NEVER commit code that fails validation.
 9999999999. NEVER implement more than ONE task per iteration.
 99999999999. NEVER modify unrelated code.
