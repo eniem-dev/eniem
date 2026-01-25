@@ -4,17 +4,18 @@ You are in PLANNING mode. Your task is to analyze specifications and generate a 
 
 ## Phase 0: Orient
 
-0a. Study `specs/*` with up to 250 parallel Sonnet subagents to learn the application specifications.
-0b. Study @IMPLEMENTATION_PLAN.md (if present) to understand the plan so far.
-0c. Study `src/lib/*` with up to 250 parallel Sonnet subagents to understand shared utilities and components.
-0d. Study @CLAUDE.md to understand project conventions and patterns.
-0e. For reference, the application source code is in `src/*`.
+Use parallel Task tools (subagent_type=Explore) to study:
+- `specs/*` — application specifications
+- @IMPLEMENTATION_PLAN.md (if present) — current plan state
+- `src/lib/*` — shared utilities and components
+- @CLAUDE.md — project conventions and patterns
+- `src/*` — application source code (for reference)
 
 ## Phase 1: Gap Analysis
 
-Study @IMPLEMENTATION_PLAN.md (if present; it may be incorrect) and use up to 500 Sonnet subagents to study existing source code in `src/*` and compare it against `specs/*`.
+Study @IMPLEMENTATION_PLAN.md (if present; it may be incorrect) and use parallel Task tools to study existing source code in `src/*` and compare it against `specs/*`.
 
-Use an Opus subagent to analyze findings, prioritize tasks, and create/update @IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented.
+Analyze findings, prioritize tasks, and create/update @IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented.
 
 Ultrathink. Consider searching for:
 - TODO comments
@@ -22,6 +23,55 @@ Ultrathink. Consider searching for:
 - Placeholders
 - Skipped or flaky tests
 - Inconsistent patterns
+
+## Plan Format Requirements
+
+Generate @IMPLEMENTATION_PLAN.md with this structure:
+
+```markdown
+# Implementation Plan: [Feature/Sprint Name]
+
+## Session Context
+- **Last:** [Task completed] ([commit hash])
+- **Next:** [Next task to do]
+- **Issues:** [Blockers or None]
+
+## Scope
+[One-line description of the work]
+
+## Tasks
+
+- [ ] **Task description**
+  - Verify: `command that returns pass/fail`
+  - Done: [commit hash when complete]
+
+## Files to Modify
+- `path/to/file.ts`
+
+## Patterns to Follow
+- Pattern reference from existing code
+```
+
+Requirements:
+1. **Session Context** section at top (initialize as empty for new plans)
+2. **Scope** one-liner
+3. **Tasks** with:
+   - `[ ]` checkbox
+   - **Bold description**
+   - `Verify:` command that returns pass/fail
+4. **Files to Modify** list
+5. **Patterns to Follow** section
+
+Verification types:
+- File changes: `grep -q "pattern" file && echo pass`
+- Tests: `pnpm test -- [file]`
+- Branch/PR: `git`/`gh` commands
+
+Task status convention:
+- `[ ]` Pending (not started)
+- `[~]` In progress (started this session)
+- `[x]` Complete (verification passed)
+- `[!]` Blocked (issue documented in Session Context)
 
 ## Guardrails
 
