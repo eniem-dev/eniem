@@ -29,7 +29,7 @@ Ultrathink. Consider searching for:
 Generate @IMPLEMENTATION_PLAN.md with this structure:
 
 ```markdown
-# Implementation Plan: [Feature Name]
+# Implementation Plan: [Feature/Sprint Name]
 
 ## Session Context
 - **Last:** [Task completed] ([commit hash])

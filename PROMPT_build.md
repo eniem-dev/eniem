@@ -7,7 +7,7 @@ You are in BUILD mode. Your task is to implement functionality from the plan, va
 Before any work:
 1. Read @IMPLEMENTATION_PLAN.md "Session Context" section
 2. Check git branch matches plan
-3. If uncommitted changes exist, ask before proceeding
+3. If uncommitted changes exist, abort with error (auto mode cannot proceed with dirty state)
 4. Run `pnpm build` to verify clean state
 
 ## Phase 0.5: Orient
@@ -34,7 +34,7 @@ Use parallel Task tools for file reads and searches. Run build/test commands dir
 ## Phase 2: Validate
 
 After implementing:
-1. Run the task's `Verify:` command - must pass
+1. Run the `Verify:` command from the task in @IMPLEMENTATION_PLAN.md - must pass
 2. Run `pnpm build` - must pass
 3. Run `pnpm lint` - must pass
 
