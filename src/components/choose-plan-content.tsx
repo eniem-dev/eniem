@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { authClient, useSession } from "@/lib/auth-client";
 import { env } from "@/config";
 import { locales } from "@/locales";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
+import { ErrorCard } from "@/components/error-card";
 import { PricingCard } from "@/components/pricing-card";
 import {
   getPlanSelectionFromSearchParams,
@@ -56,20 +57,21 @@ export function ChoosePlanContent({ products }: ChoosePlanContentProps) {
     if (error) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <AlertCircle className="h-12 w-12 text-destructive" />
-            <p className="text-lg text-muted-foreground max-w-md">{error}</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Button onClick={triggerCheckout}>
-              {locales.ChoosePlanPage.tryAgain}
-            </Button>
-            <Button variant="outline" asChild>
-              <a href={`mailto:${env.support.email}`}>
-                {locales.ChoosePlanPage.contactSupport}
-              </a>
-            </Button>
-          </div>
+          <ErrorCard
+            message={error}
+            actions={
+              <>
+                <Button onClick={triggerCheckout}>
+                  {locales.ChoosePlanPage.tryAgain}
+                </Button>
+                <Button variant="outline" asChild>
+                  <a href={`mailto:${env.support.email}`}>
+                    {locales.ChoosePlanPage.contactSupport}
+                  </a>
+                </Button>
+              </>
+            }
+          />
         </div>
       );
     }

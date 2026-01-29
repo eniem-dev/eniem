@@ -1,12 +1,14 @@
+import type { ReactNode } from "react";
 import { locales } from "@/locales";
-import { Card, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { AlertTriangle } from "lucide-react";
 
 type ErrorCardProps = {
   message: string;
+  actions?: ReactNode;
 };
 
-export async function ErrorCard({ message }: ErrorCardProps) {
+export function ErrorCard({ message, actions }: ErrorCardProps) {
   return (
     <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/30">
       <CardHeader>
@@ -18,6 +20,11 @@ export async function ErrorCard({ message }: ErrorCardProps) {
           {message}
         </CardDescription>
       </CardHeader>
+      {actions && (
+        <CardContent className="pt-0">
+          <div className="flex flex-col sm:flex-row gap-3">{actions}</div>
+        </CardContent>
+      )}
     </Card>
   );
 }
