@@ -80,4 +80,9 @@ export const env = {
     posthogKey: process.env.NEXT_PUBLIC_POSTHOG_KEY,
     posthogHost: process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://eu.posthog.com",
   },
+
+  // Support Configuration
+  support: {
+    email: process.env.SUPPORT_EMAIL || process.env.EMAIL_FROM_ADDRESS || "support@eniem.dev",
+  },
 } as const;
