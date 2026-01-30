@@ -27,27 +27,27 @@ pnpm start
 node bin/eniem-cli.js [project-name]
 ```
 
-### Ralph Workflow (AI-driven feature implementation)
+### Eni Workflow (AI-driven feature implementation)
 
 ```bash
 # Create a spec for a new feature (interview-based)
 /spec-interview <feature-name>
 
 # Generate implementation plan from all specs
-pnpm ralph:plan
+pnpm eni:plan
 
 # Generate scoped implementation plan
-pnpm ralph:plan-work "description of work"
+pnpm eni:plan-work "description of work"
 
 # Build one task from the plan
-pnpm ralph:build
+pnpm eni:build
 
 # Build autonomously (10 iterations)
-pnpm ralph:build:auto
+pnpm eni:build:auto
 
 # Interactive mode (add -i flag)
-./loop.sh plan -i
-./loop.sh build 5 -i
+./.eni/loop.sh plan -i
+./.eni/loop.sh build 5 -i
 ```
 
 ## Architecture
