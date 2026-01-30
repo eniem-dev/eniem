@@ -55,6 +55,10 @@ Ask questions ONE AT A TIME. Adapt based on answers.
 - What are the success scenarios?
 - What are the failure scenarios?
 
+**Verification Commands**
+- For each acceptance criterion, what command verifies it?
+- Grep patterns, test commands, or CLI checks
+
 **Technical Hints** (explore codebase to answer these)
 - Which existing files will need modification?
 - Are there similar patterns in the codebase to follow?
@@ -111,6 +115,13 @@ After interview, create `specs/<feature-name>.md`:
 - **Files to create**: `src/features/<feature>/...`
 - **Patterns to follow**: See `src/features/settings/` for similar structure
 - **Dependencies**: Requires `specs/other-spec.md` (if applicable)
+
+## Verification Commands
+
+| Criterion | Command |
+|-----------|---------|
+| [Acceptance criterion 1] | `pnpm test -- [file] "[test name]"` |
+| [Acceptance criterion 2] | `grep -q "pattern" src/path/file.ts && echo pass` |
 
 ## Test Requirements
 - [ ] Test: [derived from acceptance criterion 1]

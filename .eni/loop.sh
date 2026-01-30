@@ -2,6 +2,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Colors for output
 RED='\033[0;31m'
@@ -14,7 +15,7 @@ NC='\033[0m' # No Color
 INTERACTIVE=false
 
 print_usage() {
-  echo -e "${BLUE}Ralph Loop - Autonomous AI Coding${NC}"
+  echo -e "${BLUE}Toby Loop - Autonomous AI Coding${NC}"
   echo ""
   echo "Usage:"
   echo "  ./loop.sh plan [-i]                    Full planning from all specs"
@@ -65,24 +66,44 @@ run_claude() {
     LAST_OUTPUT=$(cat "$tmp_output")
     rm -f "$tmp_output" "$tmp_prompt"
   else
-    # Non-interactive: pipe mode, capture output
-    LAST_OUTPUT=$(echo "$prompt_content" | claude --dangerously-skip-permissions -p)
-    echo "$LAST_OUTPUT"
+    # Non-interactive: stream-json mode with formatted output (using Node.js for JSON parsing)
+    tmp_output=$(mktemp)
+    echo "$prompt_content" | claude --dangerously-skip-permissions -p --verbose --output-format stream-json 2>&1 | tee "$tmp_output" | node -e '
+const rl = require("readline").createInterface({ input: process.stdin });
+rl.on("line", (line) => {
+  try {
+    const d = JSON.parse(line);
+    if (d.type === "assistant") {
+      for (const c of d.message?.content || []) {
+        if (c.type === "text") console.log(c.text);
+        else if (c.type === "tool_use") {
+          const i = c.input || {};
+          const info = i.file_path || i.pattern || i.command?.slice(0, 60) || i.query || i.content?.slice(0, 40) || Object.keys(i).join(", ");
+          console.log("→ " + c.name + ": " + info);
+        }
+      }
+    }
+  } catch {}
+});
+'
+    LAST_OUTPUT=$(cat "$tmp_output")
+    rm -f "$tmp_output"
   fi
 }
 
 # Check if Claude signaled completion
+# Only check last line to avoid matching the marker in the prompt instructions
 is_complete() {
-  echo "$LAST_OUTPUT" | grep -q "<complete>DONE</complete>"
+  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::TOBY_ALL_TASKS_COMPLETE:::"
 }
 
 check_requirements() {
-  if [ ! -f "$SCRIPT_DIR/CLAUDE.md" ]; then
+  if [ ! -f "$PROJECT_ROOT/CLAUDE.md" ]; then
     echo -e "${RED}Error: CLAUDE.md not found${NC}"
     exit 1
   fi
 
-  if [ ! -d "$SCRIPT_DIR/specs" ] || [ -z "$(ls -A "$SCRIPT_DIR/specs" 2>/dev/null)" ]; then
+  if [ ! -d "$PROJECT_ROOT/specs" ] || [ -z "$(ls -A "$PROJECT_ROOT/specs" 2>/dev/null)" ]; then
     echo -e "${YELLOW}Warning: specs/ directory is empty or missing${NC}"
     echo "Create spec files first using: /spec-interview <feature-name>"
   fi
