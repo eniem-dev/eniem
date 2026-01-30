@@ -73,11 +73,25 @@ Task status convention:
 - `[x]` Complete (verification passed)
 - `[!]` Blocked (issue documented in Session Context)
 
+## Plan Structure
+
+1. **First task**: Create git branch with semantic naming
+   - Use prefix based on work type: `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `test/`
+   - Convert description to kebab-case
+   - Example: "user authentication" → `feat/user-authentication`
+
+2. **Middle tasks**: Implementation tasks in priority order
+
+3. **Last task**: Create pull request
+   - Push branch to remote
+   - Create PR with summary of changes
+
 ## Guardrails
 
 99999. When authoring documentation in the plan, capture the WHY, not just the what.
 999999. Don't assume functionality is missing - confirm with code search first.
 9999999. Plan only. Do NOT implement anything.
+99999999. First task MUST be branch creation, last task MUST be PR creation.
 
 ## Exit
 
