@@ -10,7 +10,7 @@ Fetch review comments from a GitHub PR and fix them with approval before applyin
 
 `/fix-code-review <pr-url>`
 
-Example: `/fix-code-review https://github.com/eniem-dev/eniem-cli/pull/10`
+Example: `/fix-code-review https://github.com/eniem-dev/eniem-boilerplate/pull/10`
 
 ## Process
 
@@ -97,7 +97,7 @@ For each approved fix:
 
 Run validation (single commands, not in parallel):
 ```bash
-pnpm typecheck && pnpm build
+pnpm build
 pnpm lint
 pnpm test
 ```
