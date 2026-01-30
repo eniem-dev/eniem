@@ -1,3 +1,16 @@
+# [0.7.0](https://github.com/eniem-dev/eniem-cli/compare/v0.6.0...v0.7.0) (2026-01-30)
+
+
+### Bug Fixes
+
+* pass gitHost option to ai init command ([e91da09](https://github.com/eniem-dev/eniem-cli/commit/e91da098927a7495e703eb67df27888e1db8c74c))
+
+
+### Features
+
+* add ai init command to initialize AI workflow files ([201937f](https://github.com/eniem-dev/eniem-cli/commit/201937f22e5c5a6429857c165f9ac5a1b0a9edda))
+* rename ralph commands to eni and update paths ([0171e0e](https://github.com/eniem-dev/eniem-cli/commit/0171e0e81e983505559f55f2660150bd683f6a31))
+
 # [0.6.0](https://github.com/eniem-dev/eniem-cli/compare/v0.5.0...v0.6.0) (2026-01-22)
 
 
