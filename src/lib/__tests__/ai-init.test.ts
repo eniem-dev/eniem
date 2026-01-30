@@ -68,7 +68,7 @@ describe("ai-init", () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }) as any);
 
-      const result = await sparseCloneBoilerplate();
+      const result = await sparseCloneBoilerplate("github.com");
 
       expect(result.success).toBe(true);
       expect(result.tempDir).toBeTruthy();
@@ -103,7 +103,7 @@ describe("ai-init", () => {
     it("returns error when git commands fail", async () => {
       vi.mocked(execa).mockRejectedValue(new Error("git command failed"));
 
-      const result = await sparseCloneBoilerplate();
+      const result = await sparseCloneBoilerplate("github.com");
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("git command failed");

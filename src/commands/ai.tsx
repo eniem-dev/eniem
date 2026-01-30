@@ -25,9 +25,10 @@ type AiInitStep =
 interface AiCommandProps {
   forceFlag: boolean;
   targetDir: string;
+  gitHost: string;
 }
 
-export const AiCommand = ({ forceFlag, targetDir }: AiCommandProps) => {
+export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => {
   const [step, setStep] = useState<AiInitStep>("checking");
   const [eniExists, setEniExists] = useState(false);
   const [copiedFiles, setCopiedFiles] = useState<string[]>([]);
@@ -64,7 +65,7 @@ export const AiCommand = ({ forceFlag, targetDir }: AiCommandProps) => {
     if (step === "cloning" && !isCloningRef.current) {
       isCloningRef.current = true;
       const clone = async () => {
-        const result = await sparseCloneBoilerplate();
+        const result = await sparseCloneBoilerplate(gitHost);
         if (!result.success) {
           setError(result.error ?? "Failed to clone boilerplate");
           setStep("error");
@@ -77,7 +78,7 @@ export const AiCommand = ({ forceFlag, targetDir }: AiCommandProps) => {
       };
       clone();
     }
-  }, [step]);
+  }, [step, gitHost]);
 
   // Step 3: Copy files and ensure specs folder
   useEffect(() => {

@@ -148,7 +148,7 @@ if (command === "products") {
   render(
     <Box flexDirection="column">
       <Header />
-      <AiCommand forceFlag={forceFlag} targetDir={targetDir} />
+      <AiCommand forceFlag={forceFlag} targetDir={targetDir} gitHost={gitHost} />
     </Box>
   );
 } else if (command === "ai") {

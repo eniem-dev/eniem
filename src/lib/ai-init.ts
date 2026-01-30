@@ -3,7 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 
-const REPO_URL = "git@github.com:eniem-dev/eniem-boilerplate.git";
+const REPO_PATH = "eniem-dev/eniem-boilerplate.git";
 const FOLDERS_TO_COPY = [".eni", ".claude"];
 
 export interface AiInitResult {
@@ -29,19 +29,20 @@ export async function checkEniExists(targetDir: string): Promise<boolean> {
  * Sparse clones only .eni and .claude folders from eniem-boilerplate
  * Returns the path to the temp directory containing the cloned folders
  */
-export async function sparseCloneBoilerplate(): Promise<{
+export async function sparseCloneBoilerplate(gitHost: string): Promise<{
   success: boolean;
   tempDir: string;
   error?: string;
 }> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "eniem-ai-init-"));
+  const repoUrl = `git@${gitHost}:${REPO_PATH}`;
 
   try {
     // Initialize empty repo
     await execa("git", ["init"], { cwd: tempDir });
 
     // Add remote
-    await execa("git", ["remote", "add", "origin", REPO_URL], { cwd: tempDir });
+    await execa("git", ["remote", "add", "origin", repoUrl], { cwd: tempDir });
 
     // Enable sparse checkout
     await execa("git", ["config", "core.sparseCheckout", "true"], {

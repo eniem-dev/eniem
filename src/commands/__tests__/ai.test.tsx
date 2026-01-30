@@ -37,7 +37,7 @@ describe("AiCommand", () => {
       mockCheckEniExists.mockImplementation(() => new Promise(() => {}));
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       expect(lastFrame()).toContain("AI Workflow Setup");
@@ -47,7 +47,7 @@ describe("AiCommand", () => {
       mockCheckEniExists.mockImplementation(() => new Promise(() => {}));
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       expect(lastFrame()).toContain("Checking");
@@ -62,7 +62,7 @@ describe("AiCommand", () => {
       );
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -77,7 +77,7 @@ describe("AiCommand", () => {
       mockCheckEniExists.mockResolvedValue(true);
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -93,7 +93,7 @@ describe("AiCommand", () => {
       );
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={true} targetDir="/test/project" />
+        <AiCommand forceFlag={true} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -120,7 +120,7 @@ describe("AiCommand", () => {
       });
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -149,7 +149,7 @@ describe("AiCommand", () => {
       });
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={true} targetDir="/test/project" />
+        <AiCommand forceFlag={true} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -173,7 +173,7 @@ describe("AiCommand", () => {
       });
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -197,7 +197,7 @@ describe("AiCommand", () => {
       });
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -216,7 +216,7 @@ describe("AiCommand", () => {
       });
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -237,7 +237,7 @@ describe("AiCommand", () => {
       });
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -262,7 +262,7 @@ describe("AiCommand", () => {
       });
 
       const { lastFrame } = render(
-        <AiCommand forceFlag={false} targetDir="/test/project" />
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -282,7 +282,7 @@ describe("AiCommand", () => {
         error: "Copy failed",
       });
 
-      render(<AiCommand forceFlag={false} targetDir="/test/project" />);
+      render(<AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />);
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
