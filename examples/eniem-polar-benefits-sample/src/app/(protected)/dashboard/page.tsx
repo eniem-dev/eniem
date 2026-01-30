@@ -5,6 +5,12 @@ import { auth } from "@/lib/auth";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { SuccessBanner } from "@/components/success-banner";
+import {
+  GitHubBenefitsList,
+  GitHubBenefitsSkeleton,
+  DownloadablesList,
+  DownloadablesSkeleton,
+} from "@/features/benefits";
 
 export const metadata = createMetadata({
   ...getDefaultMetadata(),
@@ -35,6 +41,18 @@ export default async function DashboardPage() {
           </Link>
           .
         </p>
+      </div>
+
+      <div className="space-y-6">
+        <h2 className="text-2xl font-semibold">{locales.BenefitsList.title}</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Suspense fallback={<GitHubBenefitsSkeleton />}>
+            <GitHubBenefitsList />
+          </Suspense>
+          <Suspense fallback={<DownloadablesSkeleton />}>
+            <DownloadablesList />
+          </Suspense>
+        </div>
       </div>
     </div>
   );

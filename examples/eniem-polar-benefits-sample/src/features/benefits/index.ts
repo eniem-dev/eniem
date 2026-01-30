@@ -13,4 +13,6 @@ export { getGitHubBenefitsQuery } from "./queries/github-benefits.query";
 
 // Components
 export { DownloadablesList } from "./components/downloadables-list";
+export { DownloadablesSkeleton } from "./components/downloadables-skeleton";
 export { GitHubBenefitsList } from "./components/github-benefits-list";
+export { GitHubBenefitsSkeleton } from "./components/github-benefits-skeleton";

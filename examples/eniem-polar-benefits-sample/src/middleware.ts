@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { env, routes } from "@/config";
-import { hasActiveSubscription } from "@/features/subscription/services/subscription.service";
+import { hasActiveOrder } from "@/features/benefits";
 
 // Routes accessible in landing mode ONLY
 const LANDING_MODE_ALLOWED_ROUTES = [
@@ -44,22 +44,22 @@ function handleLandingMode(request: NextRequest): NextResponse | null {
 
 async function handleAccess(
   request: NextRequest,
-  userId: string
+  userId: string,
 ): Promise<NextResponse | null> {
   const { pathname } = request.nextUrl;
 
   const requiresAccess = REQUIRE_ACCESS_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`)
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 
   if (!requiresAccess) return null;
 
   // Choose ONE based on your business model:
   // 1. Subscription-only (recurring payments)
-  const hasUserAccess = await hasActiveSubscription(userId);
+  // const hasUserAccess = await hasActiveSubscription(userId);
 
   // 2. One-time purchase (orders/benefits)
-  // const hasUserAccess = await hasActiveOrder(userId);
+  const hasUserAccess = await hasActiveOrder(userId);
 
   // 3. Hybrid (subscription OR one-time)
   // const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId);
@@ -75,7 +75,7 @@ async function handleAuthentication(request: NextRequest): Promise<NextResponse>
   const isPublicRoute =
     PUBLIC_ROUTES.includes(pathname) ||
     PUBLIC_ROUTE_PREFIXES.some(
-      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
     ) ||
     pathname.startsWith(AUTH_API_PREFIX);
 
