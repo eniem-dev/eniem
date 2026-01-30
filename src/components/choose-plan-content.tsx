@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { authClient, useSession } from "@/lib/auth-client";
+import { env } from "@/config";
 import { locales } from "@/locales";
+import { logger } from "@/lib/logger";
+import { Button } from "@/components/ui/button";
+import { ErrorCard } from "@/components/error-card";
 import { PricingCard } from "@/components/pricing-card";
 import {
   getPlanSelectionFromSearchParams,
@@ -20,6 +24,7 @@ export function ChoosePlanContent({ products }: ChoosePlanContentProps) {
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const hasTriggeredCheckout = useRef(false);
+  const [error, setError] = useState<string | null>(null);
 
   const planSelection = useMemo(
     () => getPlanSelectionFromSearchParams(new URLSearchParams(searchParams.toString())),
@@ -28,16 +33,49 @@ export function ChoosePlanContent({ products }: ChoosePlanContentProps) {
 
   const hasSelection = hasPlanSelection(planSelection);
 
+  const triggerCheckout = useCallback(async () => {
+    try {
+      hasTriggeredCheckout.current = true;
+      setError(null);
+      await authClient.checkout({
+        slug: planSelection.slug,
+        products: planSelection.products,
+      });
+    } catch (err) {
+      logger.error("Checkout failed", { error: err, planSelection });
+      setError(locales.ChoosePlanPage.checkoutError);
+      hasTriggeredCheckout.current = false;
+    }
+  }, [planSelection]);
+
   useEffect(() => {
     if (!session?.user || hasTriggeredCheckout.current || !hasSelection) return;
-    hasTriggeredCheckout.current = true;
-    authClient.checkout({
-      slug: planSelection.slug,
-      products: planSelection.products,
-    });
-  }, [session, hasSelection, planSelection]);
+    triggerCheckout();
+  }, [session, hasSelection, triggerCheckout]);
 
   if (hasSelection) {
+    if (error) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+          <ErrorCard
+            message={error}
+            actions={
+              <>
+                <Button onClick={triggerCheckout}>
+                  {locales.ChoosePlanPage.tryAgain}
+                </Button>
+                <Button variant="outline" asChild>
+                  <a href={`mailto:${env.support.email}`}>
+                    {locales.ChoosePlanPage.contactSupport}
+                  </a>
+                </Button>
+              </>
+            }
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

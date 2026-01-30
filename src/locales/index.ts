@@ -259,6 +259,9 @@ export const locales = {
     subtitle:
       "A subscription is required to access this feature. Select the plan that works best for you.",
     redirectingToCheckout: "Redirecting to checkout...",
+    checkoutError: "Something went wrong while processing your checkout. Please try again.",
+    tryAgain: "Try Again",
+    contactSupport: "Contact Support",
   },
 
   TermsOfServicePage: {
