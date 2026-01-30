@@ -5,7 +5,7 @@ You are in BUILD mode. Your task is to implement functionality from the plan, va
 ## Phase 0: Startup
 
 Before any work:
-1. Read @IMPLEMENTATION_PLAN.md "Session Context" section
+1. Read @.toby/IMPLEMENTATION_PLAN.md "Session Context" section
 2. Check git branch matches plan
 3. If uncommitted changes exist, abort with error (auto mode cannot proceed with dirty state)
 4. Run `pnpm build` to verify clean state
@@ -14,7 +14,7 @@ Before any work:
 
 Use parallel Task tools (subagent_type=Explore) to study:
 - `specs/*` — application specifications
-- @IMPLEMENTATION_PLAN.md — current task list
+- @.toby/IMPLEMENTATION_PLAN.md — current task list
 - @CLAUDE.md — project conventions and patterns
 - `src/*` — application source code (for reference)
 
@@ -22,7 +22,7 @@ Use parallel Task tools (subagent_type=Explore) to study:
 
 Your task is to implement functionality per the specifications.
 
-Follow @IMPLEMENTATION_PLAN.md and choose the most important item to address.
+Follow @.toby/IMPLEMENTATION_PLAN.md and choose the most important item to address.
 
 Before making changes, search the codebase (don't assume not implemented) to:
 - Verify the functionality doesn't already exist
@@ -34,7 +34,7 @@ Use parallel Task tools for file reads and searches. Run build/test commands dir
 ## Phase 2: Validate
 
 After implementing:
-1. Run the `Verify:` command from the task in @IMPLEMENTATION_PLAN.md - must pass
+1. Run the `Verify:` command from the task in @.toby/IMPLEMENTATION_PLAN.md - must pass
 2. Run `pnpm build` - must pass
 3. Run `pnpm lint` - must pass
 
@@ -44,7 +44,7 @@ If validation fails, fix the issues and re-validate. Do NOT proceed until valida
 
 ## Phase 3: Update Plan
 
-When you discover issues or complete work, immediately update @IMPLEMENTATION_PLAN.md:
+When you discover issues or complete work, immediately update @.toby/IMPLEMENTATION_PLAN.md:
 - Mark completed items
 - Add newly discovered tasks
 - Note any blockers for future tasks
@@ -90,10 +90,10 @@ If verification fails:
 
 - Task completed and committed → Exit normally
 - Validation failing after 3 attempts → Exit with error, do NOT commit
-- No tasks remaining in plan → Output `<complete>DONE</complete>` and exit
+- No `[ ]` (unchecked) tasks remaining in plan → Output completion signal and exit
 
-IMPORTANT: When ALL tasks in the plan are complete, you MUST output exactly:
+IMPORTANT: When ALL tasks in the plan are marked `[x]` (complete), you MUST output exactly:
 ```
-<complete>DONE</complete>
+:::TOBY_ALL_TASKS_COMPLETE:::
 ```
-This signals the loop to stop. Do NOT continue iterating when there's nothing left to do.
+This signals the loop to stop. Do NOT output this signal if ANY `[ ]` tasks remain.
