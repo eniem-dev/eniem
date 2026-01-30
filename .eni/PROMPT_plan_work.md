@@ -10,7 +10,7 @@ You are in WORK-SCOPED PLANNING mode. Your task is to create a focused implement
 
 Use parallel Task tools (subagent_type=Explore) to study:
 - `specs/*` — focusing on specs relevant to the work scope above
-- @IMPLEMENTATION_PLAN.md (if present) — current plan state
+- @.toby/IMPLEMENTATION_PLAN.md (if present) — current plan state
 - `src/lib/*` — shared utilities and components
 - @CLAUDE.md — project conventions and patterns
 - `src/*` — application source code (for reference)
@@ -19,7 +19,7 @@ Use parallel Task tools (subagent_type=Explore) to study:
 
 Study existing source code in `src/*` and compare it against `specs/*`, focusing ONLY on the work scope defined above.
 
-Analyze findings, prioritize tasks, and create/update @IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented.
+Analyze findings, prioritize tasks, and create/update @.toby/IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented.
 
 Ultrathink. Consider searching for:
 - TODO comments related to this scope

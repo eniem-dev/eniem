@@ -6,16 +6,16 @@ You are in PLANNING mode. Your task is to analyze specifications and generate a 
 
 Use parallel Task tools (subagent_type=Explore) to study:
 - `specs/*` — application specifications
-- @IMPLEMENTATION_PLAN.md (if present) — current plan state
+- @.toby/IMPLEMENTATION_PLAN.md (if present) — current plan state
 - `src/lib/*` — shared utilities and components
 - @CLAUDE.md — project conventions and patterns
 - `src/*` — application source code (for reference)
 
 ## Phase 1: Gap Analysis
 
-Study @IMPLEMENTATION_PLAN.md (if present; it may be incorrect) and use parallel Task tools to study existing source code in `src/*` and compare it against `specs/*`.
+Study @.toby/IMPLEMENTATION_PLAN.md (if present; it may be incorrect) and use parallel Task tools to study existing source code in `src/*` and compare it against `specs/*`.
 
-Analyze findings, prioritize tasks, and create/update @IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented.
+Analyze findings, prioritize tasks, and create/update @.toby/IMPLEMENTATION_PLAN.md as a bullet point list sorted in priority of items yet to be implemented.
 
 Ultrathink. Consider searching for:
 - TODO comments
@@ -26,7 +26,7 @@ Ultrathink. Consider searching for:
 
 ## Plan Format Requirements
 
-Generate @IMPLEMENTATION_PLAN.md with this structure:
+Generate @.toby/IMPLEMENTATION_PLAN.md with this structure:
 
 ```markdown
 # Implementation Plan: [Feature/Sprint Name]
