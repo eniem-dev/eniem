@@ -18,37 +18,47 @@ print_usage() {
   echo -e "${BLUE}ENI Loop - Autonomous AI Coding${NC}"
   echo ""
   echo "Usage:"
-  echo "  ./loop.sh plan [-i]                    Full planning from all specs"
-  echo "  ./loop.sh plan-work \"description\" [-i] Work-scoped planning"
-  echo "  ./loop.sh build [N] [-i]               Build mode (default: 1 iteration)"
+  echo "  ./loop.sh plan <spec-name> [N] [-i]    Create beads from spec (default: 3 iterations)"
+  echo "  ./loop.sh build [epic-name] [N] [-i]   Build mode (default: 10 iterations, all ready tasks)"
   echo ""
   echo "Options:"
   echo "  -i    Interactive mode (watch Claude work in real-time)"
   echo ""
   echo "Examples:"
-  echo "  ./loop.sh plan                    Generate full implementation plan"
-  echo "  ./loop.sh plan -i                 Plan interactively (watch progress)"
-  echo "  ./loop.sh plan-work \"user auth\"   Plan only user auth feature"
-  echo "  ./loop.sh build                   Run 1 build iteration (supervised)"
-  echo "  ./loop.sh build 10                Run 10 build iterations (autonomous)"
-  echo "  ./loop.sh build 1 -i              Run 1 iteration interactively"
+  echo "  ./loop.sh plan usage-based-pricing        Create beads (3 iterations)"
+  echo "  ./loop.sh plan usage-based-pricing 5      Create beads (5 iterations)"
+  echo "  ./loop.sh build                           Build all ready tasks (1 iteration)"
+  echo "  ./loop.sh build usage-based-pricing       Build only tasks from epic"
+  echo "  ./loop.sh build usage-based-pricing 10    Build epic tasks (10 iterations)"
+  echo "  ./loop.sh build 10 -i                     Build all (10 iterations, interactive)"
   echo ""
-  echo "Requirements:"
-  echo "  - specs/*.md files with requirements"
-  echo "  - CLAUDE.md with project conventions"
+  echo "Workflow:"
+  echo "  1. /functional-spec <name>    Create specs/<name>.md"
+  echo "  2. ./loop.sh plan <name>      Create beads epic + issues"
+  echo "  3. bd ready                   See what to work on"
+  echo "  4. ./loop.sh build [epic]     Implement tasks"
 }
 
 LAST_OUTPUT=""
 
 run_claude() {
   local prompt_file="$1"
-  local work_scope="$2"
+  local spec_name="${2:-}"
+  local iteration="${3:-1}"
+  local epic_name="${4:-}"
   local prompt_content
 
-  if [ -n "$work_scope" ]; then
-    prompt_content=$(sed "s|{{WORK_SCOPE}}|$work_scope|g" "$prompt_file")
+  prompt_content=$(cat "$prompt_file")
+
+  # Template substitutions
+  if [ -n "$spec_name" ]; then
+    prompt_content=$(echo "$prompt_content" | sed "s|{{SPEC_NAME}}|$spec_name|g")
+  fi
+  prompt_content=$(echo "$prompt_content" | sed "s|{{ITERATION}}|$iteration|g")
+  if [ -n "$epic_name" ]; then
+    prompt_content=$(echo "$prompt_content" | sed "s|{{EPIC_NAME}}|$epic_name|g")
   else
-    prompt_content=$(cat "$prompt_file")
+    prompt_content=$(echo "$prompt_content" | sed "s|{{EPIC_NAME}}||g")
   fi
 
   if $INTERACTIVE; then
@@ -97,6 +107,11 @@ is_complete() {
   echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_ALL_TASKS_COMPLETE:::"
 }
 
+# Check if Claude signaled plan is fully refined
+is_refined() {
+  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_PLAN_REFINED:::"
+}
+
 check_requirements() {
   if [ ! -f "$PROJECT_ROOT/CLAUDE.md" ]; then
     echo -e "${RED}Error: CLAUDE.md not found${NC}"
@@ -123,55 +138,111 @@ parse_flags "$@"
 
 case "${1:-}" in
   plan)
-    check_requirements
-    echo -e "${GREEN}=== Planning Mode ===${NC}"
-    $INTERACTIVE && echo -e "${BLUE}Interactive mode enabled${NC}"
-    echo "Analyzing specs and generating implementation plan..."
-    run_claude "$SCRIPT_DIR/PROMPT_plan.md"
-    echo -e "${GREEN}=== Planning Complete ===${NC}"
-    ;;
+    # Require spec name
+    SPEC_NAME=""
+    MAX_ITERATIONS=3
+    for arg in "${@:2}"; do
+      if [[ "$arg" == -* ]]; then
+        continue
+      elif [[ "$arg" =~ ^[0-9]+$ ]]; then
+        MAX_ITERATIONS="$arg"
+      else
+        SPEC_NAME="$arg"
+      fi
+    done
 
-  plan-work)
-    if [ -z "${2:-}" ] || [[ "${2:-}" == -* ]]; then
-      echo -e "${RED}Error: Work scope description required${NC}"
-      echo "Usage: ./loop.sh plan-work \"description of work\" [-i]"
+    if [ -z "$SPEC_NAME" ]; then
+      echo -e "${RED}Error: Spec name required${NC}"
+      echo "Usage: ./loop.sh plan <spec-name> [iterations] [-i]"
+      echo ""
+      echo "Available specs:"
+      ls -1 "$PROJECT_ROOT/specs" 2>/dev/null | sed 's/\.md$//' | sed 's/^/  /'
       exit 1
     fi
+
+    if [ ! -f "$PROJECT_ROOT/specs/${SPEC_NAME}.md" ]; then
+      echo -e "${RED}Error: specs/${SPEC_NAME}.md not found${NC}"
+      echo ""
+      echo "Available specs:"
+      ls -1 "$PROJECT_ROOT/specs" 2>/dev/null | sed 's/\.md$//' | sed 's/^/  /'
+      exit 1
+    fi
+
     check_requirements
-    echo -e "${GREEN}=== Work-Scoped Planning Mode ===${NC}"
+    echo -e "${GREEN}=== Planning Mode: ${SPEC_NAME} ===${NC}"
     $INTERACTIVE && echo -e "${BLUE}Interactive mode enabled${NC}"
-    echo "Scope: $2"
-    run_claude "$SCRIPT_DIR/PROMPT_plan_work.md" "$2"
+    echo "Creating beads from specs/${SPEC_NAME}.md ($MAX_ITERATIONS iterations)..."
+
+    for i in $(seq 1 "$MAX_ITERATIONS"); do
+      echo ""
+      echo -e "${BLUE}--- Iteration $i of $MAX_ITERATIONS ---${NC}"
+
+      run_claude "$SCRIPT_DIR/PROMPT_plan.md" "$SPEC_NAME" "$i"
+
+      # Check for early exit (plan fully refined)
+      if is_refined; then
+        echo ""
+        echo -e "${GREEN}=== Plan Fully Refined ===${NC}"
+        exit 0
+      fi
+
+      if [ "$i" -lt "$MAX_ITERATIONS" ]; then
+        sleep 2
+      fi
+    done
+
     echo -e "${GREEN}=== Planning Complete ===${NC}"
     ;;
 
   build)
     check_requirements
 
-    # Get max iterations (skip flags)
-    MAX_ITERATIONS=1
+    # Parse arguments: [epic-name] [iterations]
+    EPIC_NAME=""
+    MAX_ITERATIONS=10
     for arg in "${@:2}"; do
-      if [[ "$arg" =~ ^[0-9]+$ ]]; then
+      if [[ "$arg" == -* ]]; then
+        continue
+      elif [[ "$arg" =~ ^[0-9]+$ ]]; then
         MAX_ITERATIONS="$arg"
-        break
+      else
+        EPIC_NAME="$arg"
       fi
     done
 
-    if [ ! -f "$SCRIPT_DIR/IMPLEMENTATION_PLAN.md" ]; then
-      echo -e "${RED}Error: IMPLEMENTATION_PLAN.md not found${NC}"
-      echo "Run './loop.sh plan' or './loop.sh plan-work \"scope\"' first"
-      exit 1
+    # Check if there are ready beads
+    if [ -n "$EPIC_NAME" ]; then
+      # Filter by epic name in title
+      READY_COUNT=$(bd ready 2>/dev/null | grep -i "$EPIC_NAME" | grep -c "^beads-" || echo "0")
+    else
+      READY_COUNT=$(bd ready 2>/dev/null | grep -c "^beads-" || echo "0")
+    fi
+
+    if [ "$READY_COUNT" -eq 0 ]; then
+      echo -e "${YELLOW}Warning: No ready beads found${NC}"
+      if [ -n "$EPIC_NAME" ]; then
+        echo "No ready tasks for epic: $EPIC_NAME"
+      fi
+      echo "Run './loop.sh plan <spec-name>' first to create beads"
+      echo ""
+      echo "Or check blocked issues with: bd blocked"
     fi
 
     echo -e "${GREEN}=== Build Mode ===${NC}"
+    if [ -n "$EPIC_NAME" ]; then
+      echo "Epic: $EPIC_NAME"
+    else
+      echo "Building all ready tasks"
+    fi
     $INTERACTIVE && echo -e "${BLUE}Interactive mode enabled${NC}"
     echo "Running $MAX_ITERATIONS iteration(s)..."
+    echo "Ready tasks: $READY_COUNT"
 
     for i in $(seq 1 "$MAX_ITERATIONS"); do
       echo ""
       echo -e "${BLUE}--- Iteration $i of $MAX_ITERATIONS ---${NC}"
 
-      if ! run_claude "$SCRIPT_DIR/PROMPT_build.md"; then
+      if ! run_claude "$SCRIPT_DIR/PROMPT_build.md" "" "1" "$EPIC_NAME"; then
         echo -e "${RED}Build iteration failed${NC}"
         exit 1
       fi
@@ -190,7 +261,7 @@ case "${1:-}" in
 
     echo ""
     echo -e "${GREEN}=== Completed $MAX_ITERATIONS iteration(s) ===${NC}"
-    echo "Run './loop.sh build' again to continue, or review IMPLEMENTATION_PLAN.md"
+    echo "Run './loop.sh build' again to continue, or check: bd ready"
     ;;
 
   -h|--help|help)

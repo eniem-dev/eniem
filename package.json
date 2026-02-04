@@ -22,8 +22,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "eni:plan": "./.eni/loop.sh plan",
-    "eni:build": "./.eni/loop.sh build",
-    "eni:plan-work": "./.eni/loop.sh plan-work"
+    "eni:build": "./.eni/loop.sh build"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.901.0",

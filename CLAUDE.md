@@ -327,3 +327,42 @@ Full docs available at `/docs`:
 
 - Make the plan extremely concise. Sacrifice grammar for the sake of concision.
 - At the end of each plan, give me a list of unresolved questions to answer, if any.
+
+## Beads (Issue Tracking)
+
+This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+
+### Quick Reference
+
+```bash
+bd ready              # Find available work
+bd show <id>          # View issue details
+bd update <id> --status in_progress  # Claim work
+bd close <id>         # Complete work
+bd sync --from-main   # Sync beads from main
+```
+
+### Beads Hygiene
+
+- **Run `bd doctor` regularly** — diagnoses and fixes issues
+- **Keep tasks small** — ~2 minutes each; if longer, break down
+- **Run `bd cleanup` when > 200 issues** — keep database performant
+- **File issues for discovered work** — anything > 2 min gets a bead
+- **Near-term focus** — beads is for this week's work, not distant backlog
+
+### Session Completion
+
+**When ending a work session**, complete ALL steps below. Work is NOT complete until `git push` succeeds.
+
+1. **File issues for remaining work** - Create beads for anything needing follow-up
+2. **Run quality gates** (if code changed) - `pnpm build && pnpm lint`
+3. **Update issue status** - `bd close` finished work
+4. **PUSH TO REMOTE** - This is MANDATORY:
+   ```bash
+   git pull --rebase
+   bd sync --from-main
+   git push
+   ```
+5. **Verify** - `git status` must show "up to date with origin"
+
+**CRITICAL:** Work is NOT complete until `git push` succeeds. Never stop before pushing.
