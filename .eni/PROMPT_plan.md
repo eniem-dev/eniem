@@ -61,6 +61,9 @@ bd create --type=task \
 ## Patterns
 - See \`path/to/example/\` for reference
 
+## Tests
+[Expected test cases: what to test and expected outcomes]
+
 ## Verify
 [command to run]" \
   --notes="Epic: [epic-id]" \
@@ -151,7 +154,8 @@ Review each issue against the spec:
 - [ ] Acceptance criteria captured in descriptions?
 - [ ] Dependencies model correct build order?
 - [ ] Tasks are atomic (~2 min each)?
-- [ ] Design fields have ALL 5 sections (Context, Acceptance Criteria, Files, Patterns, Verify)?
+- [ ] Design fields have ALL 6 sections (Context, Acceptance Criteria, Files, Patterns, Tests, Verify)?
+- [ ] Tests section present in design field with expected test cases?
 - [ ] Verification commands are testable?
 
 ### Step 3: Update Issues
