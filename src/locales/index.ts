@@ -36,6 +36,10 @@ export const locales = {
 
     // Rate limiting errors
     rateLimitExceeded: "Too many requests. Please try again later.",
+
+    // Credits errors
+    insufficientCredits: "Insufficient credits. Please upgrade to continue.",
+    creditsCheckFailed: "Unable to verify credits. Please try again.",
     rateLimitRetryAfter:
       "Too many requests. Please wait {seconds} seconds before trying again.",
 
@@ -526,6 +530,15 @@ export const locales = {
   },
   ErrorCard: {
     title: "An error occurred",
+  },
+
+  CreditBalance: {
+    creditsLabel: "{count} credits",
+    loading: "Loading credits...",
+    noSubscription: "Subscribe to get credits",
+    zeroCredits: "0 credits",
+    upgradePrompt: "Upgrade for more",
+    error: "--",
   },
 
   BillingOverview: {

@@ -22,10 +22,11 @@ Any user attempting to purchase a subscription plan.
 - [ ] Include "Try Again" button to retry checkout
 - [ ] Include mailto link to support email
 - [ ] Add `SUPPORT_EMAIL` environment variable to config
+- [ ] Log checkout errors with `logger.error()` for debugging
 
 ### Nice to Have
 
-- [ ] Log checkout errors with `logger.error()` for debugging
+- [ ] Track checkout errors in analytics (optional)
 
 ## Constraints
 
@@ -68,6 +69,17 @@ Any user attempting to purchase a subscription plan.
   - Locale pattern: Add to existing `ChoosePlanPage` object
 
 - **Dependencies:** None
+
+## Verification Commands
+
+| Criterion | Command |
+|-----------|---------|
+| Error state catches checkout failures | `grep -q "catch.*error" src/components/choose-plan-content.tsx && echo pass` |
+| Error UI has retry button | `grep -q "Try Again\|tryAgain" src/components/choose-plan-content.tsx && echo pass` |
+| Support email link present | `grep -q "mailto:" src/components/choose-plan-content.tsx && echo pass` |
+| SUPPORT_EMAIL in env config | `grep -q "SUPPORT_EMAIL\|supportEmail" src/config/env.ts && echo pass` |
+| Error messages in locales | `grep -q "checkoutError\|checkoutFailed" src/locales/index.ts && echo pass` |
+| Logger used for errors | `grep -q "logger.error" src/components/choose-plan-content.tsx && echo pass` |
 
 ## Test Requirements
 
