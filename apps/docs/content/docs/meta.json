@@ -1,0 +1,15 @@
+{
+  "title": "Eniem",
+  "pages": [
+    "index",
+    "getting-started",
+    "guides",
+    "project-configuration",
+    "features",
+    "authentication",
+    "payments",
+    "deployments",
+    "---",
+    "[LLM Documentation](/llms-full.txt)"
+  ]
+}

@@ -1,0 +1,232 @@
+---
+title: "Passwordless Authentication"
+description: "OTP-based authentication that allows users to sign in without a password."
+---
+
+[Check the official documentation for more detail about implementation](https://www.better-auth.com/docs/plugins/email-otp).
+
+## Configuration
+
+Passwordless authentication uses the `emailOTP` plugin configured in `lib/auth.ts`. The plugin handles OTP generation, storage, and validation. Key settings include the code length, expiration time, and maximum allowed attempts to prevent brute-force attacks.
+
+```typescript
+import { emailOTP } from "better-auth/plugins";
+
+export const AUTH_CONSTANTS = {
+  OTP_EXPIRES_IN_SECONDS: 300, // 5 minutes
+  OTP_LENGTH: 6,
+  OTP_MAX_ATTEMPTS: 3,
+} as const;
+
+export const auth = betterAuth({
+  plugins: [
+    emailOTP({
+      async sendVerificationOTP({ email, otp }) {
+        await sendOtpEmail(email, otp);
+      },
+      otpLength: AUTH_CONSTANTS.OTP_LENGTH,
+      expiresIn: AUTH_CONSTANTS.OTP_EXPIRES_IN_SECONDS,
+      allowedAttempts: AUTH_CONSTANTS.OTP_MAX_ATTEMPTS,
+    }),
+  ],
+});
+```
+
+### Client Plugin
+
+The client-side plugin provides methods to send and verify OTP codes. It exposes `authClient.emailOtp.sendVerificationOtp()` to request a code and integrates with the standard `signIn.emailOtp()` method for verification.
+
+```typescript
+import { emailOTPClient } from "better-auth/client/plugins";
+
+export const authClient = createAuthClient({
+  plugins: [emailOTPClient()],
+});
+```
+
+## Architecture
+
+Passwordless authentication is integrated into the existing login/signup forms:
+
+```
+features/authentication/
+├── components/
+│   ├── login.tsx              # Shows OTP input when no password
+│   ├── signup.tsx             # Shows OTP input when no password
+│   └── otp-verification.tsx   # 6-digit OTP input component
+└── hooks/
+    └── use-auth-form.ts       # handleSendCode, signIn.emailOtp
+```
+
+The same forms handle both password and passwordless flows based on user input.
+
+## Authentication Flow
+
+**Implementation:** `features/authentication/hooks/use-auth-form.ts`
+
+The flow is triggered when a user submits email without a password:
+
+```typescript
+// use-auth-form.ts
+const handleAuthSubmit = async (data: any) => {
+  const { email, password, otp } = data;
+
+  if (password && password.length > 0) {
+    // Password flow...
+  } else if (otp && otp.length > 0) {
+    // Verify OTP
+    const result = await signIn.emailOtp({ email, otp });
+  } else {
+    // No password, no OTP → send OTP
+    await handleSendCode(email);
+  }
+};
+```
+
+### Send OTP
+
+To initiate passwordless authentication, send an OTP to the user's email. The `type` parameter indicates whether this is for sign-in or sign-up (though both work the same way with automatic account creation).
+
+```typescript
+import { authClient } from "@/lib/auth-client";
+
+await authClient.emailOtp.sendVerificationOtp({
+  email: "user@example.com",
+  type: "sign-in",
+});
+```
+
+### Verify OTP
+
+Once the user receives the code, verify it to complete authentication. If the email doesn't exist in the system, a new account is created automatically.
+
+```typescript
+import { signIn } from "@/lib/auth-client";
+
+await signIn.emailOtp({
+  email: "user@example.com",
+  otp: "123456",
+});
+```
+
+**Flow:**
+
+1. User enters email on `/login` or `/signup` (leaves password empty)
+2. Clicks "Continue with email"
+3. OTP sent to email (6 digits, expires in 5 minutes)
+4. User enters OTP code
+5. If new user → account created automatically
+6. Redirect to dashboard
+
+## OTP Input Component
+
+**Implementation:** `features/authentication/components/otp-verification.tsx`
+
+The component uses `InputOTP` from shadcn/ui:
+
+```typescript
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+
+interface OtpVerificationProps {
+  onComplete: (value: string) => void;
+  onResend: () => void;
+  isLoading: boolean;
+  email: string;
+}
+
+export function OtpVerification({ onComplete, onResend, isLoading }: OtpVerificationProps) {
+  return (
+    <div className="grid gap-3">
+      <Label>{locales.OtpVerification.verificationCodeLabel}</Label>
+      <InputOTP maxLength={6} onComplete={onComplete}>
+        <InputOTPGroup>
+          <InputOTPSlot index={0} />
+          <InputOTPSlot index={1} />
+          <InputOTPSlot index={2} />
+        </InputOTPGroup>
+        <InputOTPSeparator />
+        <InputOTPGroup>
+          <InputOTPSlot index={3} />
+          <InputOTPSlot index={4} />
+          <InputOTPSlot index={5} />
+        </InputOTPGroup>
+      </InputOTP>
+      <Button variant="ghost" onClick={onResend} disabled={isLoading}>
+        Resend code
+      </Button>
+    </div>
+  );
+}
+```
+
+Usage in login/signup forms:
+
+```typescript
+// login.tsx / signup.tsx
+{codeSent && (
+  <OtpVerification
+    onComplete={onOtpComplete}
+    onResend={() => handleSendCode(getValues("email"))}
+    isLoading={isSubmitting || loading}
+    email={getValues("email")}
+  />
+)}
+```
+
+## Email Template
+
+**Implementation:** `components/emails/OtpEmail.tsx`
+
+The OTP email displays the 6-digit code prominently with clear expiration information. The code is styled with large font and letter spacing for easy reading.
+
+```typescript
+export function OtpEmail({ otp, expiresInSeconds }: OtpEmailProps) {
+  return (
+    <EmailLayout preview={`Your verification code is ${otp}`}>
+      <Text>Your verification code</Text>
+      <Text>Enter this code to verify your identity:</Text>
+      <Section style={codeContainer}>
+        <Text style={code}>{otp}</Text>
+      </Section>
+      <Text>
+        This code will expire in {formatExpiryTime(expiresInSeconds)}.
+      </Text>
+    </EmailLayout>
+  );
+}
+```
+
+The email is sent through the centralized email service in `lib/email.ts`, which handles both production (Resend) and development (console logging) environments:
+
+```typescript
+export async function sendOtpEmail(email: string, otp: string) {
+  return sendEmail({
+    to: email,
+    subject: "Your verification code",
+    template: OtpEmail({
+      otp,
+      expiresInSeconds: AUTH_CONSTANTS.OTP_EXPIRES_IN_SECONDS,
+    }),
+  });
+}
+```
+
+## Security
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| `otpLength` | 6 digits | Balance between security and usability |
+| `expiresIn` | 300s (5 min) | Limits time window for attacks |
+| `allowedAttempts` | 3 | Prevents brute-force guessing |
+
+Rate limiting is also applied to OTP endpoints. See [Rate Limits](/authentication/rate-limits).
+
+## Related
+
+- [Email/Password](/authentication/email-password) - Traditional authentication
+- [Rate Limits](/authentication/rate-limits) - OTP endpoints are rate limited

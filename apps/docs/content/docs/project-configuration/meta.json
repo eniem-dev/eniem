@@ -1,0 +1,9 @@
+{
+  "title": "Project Configuration",
+  "pages": [
+    "file-structure",
+    "page-level-access",
+    "locales",
+    "config"
+  ]
+}

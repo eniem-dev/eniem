@@ -1,0 +1,372 @@
+---
+title: "Emails"
+description: "Type-safe email sending with React Email templates and provider-agnostic architecture."
+---
+
+The email system provides a universal `sendEmail` function that you can use **anywhere in your application** - server actions, API routes, background jobs, webhooks, or any server-side code. Create beautiful, responsive emails using React components and swap providers without touching your templates.
+
+## Why This Architecture?
+
+- **Universal email sending** - Use `sendEmail` anywhere in your codebase
+- **Provider independence** - Swap Resend for SendGrid, AWS SES, or Mailgun by changing one file
+- **React components as templates** - Type-safe, composable, and easy to maintain
+- **Development mode debugging** - Emails logged to console with tokens/OTPs for easy testing
+- **Consistent styling** - Shared layout ensures brand consistency across all emails
+
+## Overview
+
+| File | Purpose |
+| --- | --- |
+| `lib/email.ts` | Email abstraction layer and helper functions |
+| `components/emails/` | React Email templates |
+| `components/emails/components/EmailLayout.tsx` | Shared layout wrapper |
+
+## The sendEmail Abstraction
+
+The core abstraction in `lib/email.ts` handles all email sending logic:
+
+```ts
+interface SendEmailOptions {
+  to: string;
+  subject: string;
+  template: React.ReactElement;
+  debugInfo?: Record<string, string>;
+}
+
+async function sendEmail({ to, subject, template, debugInfo }: SendEmailOptions) {
+  // Development: logs to console
+  // Production: sends via Resend
+}
+```
+
+### How It Works
+
+**In development**, emails are logged to the console instead of being sent:
+
+```
+=== EMAIL ===
+To: user@example.com
+Subject: Your verification code
+OTP: 123456
+---
+Your verification code is 123456...
+=============
+```
+
+**In production**, emails are sent via the configured provider (Resend by default):
+
+```ts
+const { error } = await resend.emails.send({
+  from: env.email.fromAddress,
+  to,
+  subject,
+  react: template,
+});
+```
+
+## Built-in Email Functions
+
+The system includes helper functions for common email types:
+
+```ts
+// One-time password verification
+await sendOtpEmail(email, otp);
+
+// Email address verification
+await sendVerificationEmail(email, token, url);
+
+// Password reset link
+await sendPasswordResetEmail(email, token, url);
+
+// Account deletion confirmation
+await sendDeleteAccountEmail(email, token, url);
+```
+
+### Using Anywhere in Your App
+
+Send emails from any server-side code:
+
+```ts
+// In a server action
+"use server";
+
+import { sendEmail } from "@/lib/email";
+import { WelcomeEmail } from "@/components/emails";
+
+export async function sendWelcomeEmail(userEmail: string, userName: string) {
+  await sendEmail({
+    to: userEmail,
+    subject: "Welcome to our platform!",
+    template: WelcomeEmail({ name: userName }),
+  });
+}
+```
+
+```ts
+// In an API route
+import { sendEmail } from "@/lib/email";
+import { OrderConfirmationEmail } from "@/components/emails";
+
+export async function POST(request: Request) {
+  const { email, orderId } = await request.json();
+
+  await sendEmail({
+    to: email,
+    subject: `Order #${orderId} confirmed`,
+    template: OrderConfirmationEmail({ orderId }),
+  });
+
+  return Response.json({ success: true });
+}
+```
+
+### BetterAuth Integration
+
+The built-in functions are pre-configured with BetterAuth:
+
+```ts
+// lib/auth.ts
+emailAndPassword: {
+  sendResetPassword: async ({ user, url, token }) => {
+    await sendPasswordResetEmail(user.email, token, url);
+  },
+},
+emailVerification: {
+  sendVerificationEmail: async ({ user, url, token }) => {
+    await sendVerificationEmail(user.email, token, url);
+  },
+},
+```
+
+## React Email Templates
+
+Templates are React components using `@react-email/components` for email-client compatibility.
+
+### EmailLayout Component
+
+All templates use a shared layout for consistency:
+
+```tsx
+// components/emails/components/EmailLayout.tsx
+interface EmailLayoutProps {
+  preview: string;
+  brandLogoUrl?: string;
+  children: React.ReactNode;
+}
+
+export function EmailLayout({ preview, brandLogoUrl, children }: EmailLayoutProps) {
+  return (
+    <Html>
+      <Head />
+      <Preview>{preview}</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          {brandLogoUrl && <Img src={brandLogoUrl} alt="Logo" />}
+          {children}
+          <Text style={footer}>
+            This email was sent by Eniem...
+          </Text>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+```
+
+### Template Example
+
+```tsx
+// components/emails/OtpEmail.tsx
+import { Section, Text } from "@react-email/components";
+import { EmailLayout } from "./components/EmailLayout";
+
+interface OtpEmailProps {
+  otp: string;
+  expiresInSeconds: number;
+  brandLogoUrl?: string;
+}
+
+export function OtpEmail({ otp, expiresInSeconds, brandLogoUrl }: OtpEmailProps) {
+  return (
+    <EmailLayout
+      preview={`Your verification code is ${otp}`}
+      brandLogoUrl={brandLogoUrl}
+    >
+      <Text style={heading}>Your verification code</Text>
+      <Section style={codeContainer}>
+        <Text style={code}>{otp}</Text>
+      </Section>
+      <Text style={paragraph}>
+        This code expires in {formatExpiryTime(expiresInSeconds)}.
+      </Text>
+    </EmailLayout>
+  );
+}
+
+// Inline styles for email client compatibility
+const heading = {
+  fontSize: "24px",
+  fontWeight: "600",
+  color: "#1a1a1a",
+  textAlign: "center" as const,
+};
+```
+
+## Creating Custom Templates
+
+### 1. Create the Template Component
+
+```tsx
+// components/emails/WelcomeEmail.tsx
+import { Text, Button } from "@react-email/components";
+import { EmailLayout } from "./components/EmailLayout";
+
+interface WelcomeEmailProps {
+  name: string;
+  dashboardUrl?: string;
+  brandLogoUrl?: string;
+}
+
+export function WelcomeEmail({
+  name,
+  dashboardUrl = "https://app.example.com",
+  brandLogoUrl
+}: WelcomeEmailProps) {
+  return (
+    <EmailLayout
+      preview={`Welcome ${name}!`}
+      brandLogoUrl={brandLogoUrl}
+    >
+      <Text style={heading}>Welcome, {name}!</Text>
+      <Text style={paragraph}>
+        We're excited to have you on board.
+      </Text>
+      <Button href={dashboardUrl} style={button}>
+        Go to Dashboard
+      </Button>
+    </EmailLayout>
+  );
+}
+
+const heading = { fontSize: "24px", color: "#1a1a1a" };
+const paragraph = { fontSize: "14px", color: "#525f7f" };
+const button = { backgroundColor: "#18181b", color: "#fff", padding: "12px 24px" };
+```
+
+### 2. Export from Index
+
+```ts
+// components/emails/index.ts
+export { OtpEmail } from "./OtpEmail";
+export { VerificationEmail } from "./VerificationEmail";
+export { PasswordResetEmail } from "./PasswordResetEmail";
+export { DeleteAccountEmail } from "./DeleteAccountEmail";
+export { WelcomeEmail } from "./WelcomeEmail"; // Add your new template
+export { EmailLayout } from "./components/EmailLayout";
+```
+
+### 3. Create a Helper Function (Optional)
+
+```ts
+// lib/email.ts
+export async function sendWelcomeEmail(email: string, name: string) {
+  return sendEmail({
+    to: email,
+    subject: "Welcome to Eniem!",
+    template: WelcomeEmail({
+      name,
+      brandLogoUrl: env.email.brandLogoUrl,
+    }),
+  });
+}
+```
+
+## Swapping Email Providers
+
+The abstraction makes provider switching straightforward. Only modify `sendEmail` in `lib/email.ts`:
+
+```ts
+// Example: Switch to SendGrid
+import sgMail from "@sendgrid/mail";
+import { render } from "@react-email/render";
+
+sgMail.setApiKey(env.email.sendgridApiKey);
+
+async function sendEmail({ to, subject, template, debugInfo }: SendEmailOptions) {
+  if (env.isDevelopment) {
+    // Dev logging unchanged...
+  }
+
+  // Render React template to HTML (Resend does this automatically)
+  const html = await render(template);
+
+  await sgMail.send({ to, from: env.email.fromAddress, subject, html });
+  return { success: true };
+}
+```
+
+Templates, helper functions, and integration points remain untouched.
+
+## Configuration
+
+Set these environment variables:
+
+```bash
+# Required
+RESEND_API_KEY=re_xxxxxxxxxxxxx
+
+# Optional
+EMAIL_FROM_ADDRESS=no-reply@yourdomain.com
+EMAIL_BRAND_LOGO_URL=https://yourdomain.com/logo.png
+```
+
+Configuration is centralized in `config/env.ts`:
+
+```ts
+email: {
+  resendApiKey: process.env.RESEND_API_KEY,
+  fromAddress: process.env.EMAIL_FROM_ADDRESS || "no-reply@eniem.dev",
+  brandLogoUrl: process.env.EMAIL_BRAND_LOGO_URL,
+}
+```
+
+## Development Mode
+
+In development (`NODE_ENV=development`), emails are not sent. Instead, they're logged to the console with all relevant information:
+
+```
+=== EMAIL ===
+To: user@example.com
+Subject: Reset your password
+Token: abc123xyz
+Reset Link: http://localhost:3000/auth/reset-password?token=abc123xyz
+---
+[Plain text version of the email]
+=============
+```
+
+The `debugInfo` parameter lets you log sensitive data (tokens, OTPs) that shouldn't appear in the email body but are useful for testing.
+
+## Best Practices
+
+1. **Use helper functions** - Create dedicated functions like `sendWelcomeEmail` rather than calling `sendEmail` directly throughout your codebase
+
+2. **Leverage debugInfo** - Pass tokens and sensitive data via `debugInfo` for development logging:
+   ```ts
+   await sendEmail({
+     to: email,
+     subject: "Verify your email",
+     template: VerificationEmail({ url }),
+     debugInfo: { Token: token, URL: url },
+   });
+   ```
+
+3. **Keep styles inline** - Email clients have limited CSS support. Always use inline styles defined as TypeScript objects
+
+4. **Test in development first** - The console output shows exactly what will be sent, making it easy to verify content before testing with real emails
+
+## Template Development
+
+For advanced template development including live preview, component library reference, and styling best practices, see the official React Email documentation:
+
+[React Email Documentation](https://react.email/docs/introduction)

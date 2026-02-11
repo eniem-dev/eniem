@@ -1,0 +1,11 @@
+{
+  "title": "Authentication",
+  "pages": [
+    "email-password",
+    "passwordless",
+    "oauth",
+    "siwe",
+    "rate-limits",
+    "account-deletion"
+  ]
+}

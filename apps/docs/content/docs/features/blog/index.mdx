@@ -1,0 +1,134 @@
+---
+title: "Blog"
+description: "Built-in blog with Velite MDX content layer for content marketing and SEO."
+---
+
+The blog feature uses [Velite](https://velite.js.org/) as an MDX content layer. Blog posts are authored as MDX files in `content/blog/`, compiled at build time, and rendered with pagination support.
+
+## Creating Posts
+
+Create MDX files in `content/blog/`:
+
+```mdx
+---
+title: Hello World
+description: Welcome to our blog! This is our first post.
+date: 2025-01-16
+slug: hello-world
+tags:
+  - announcement
+  - getting-started
+draft: false
+---
+
+Your content here...
+```
+
+### Frontmatter Schema
+
+| Field         | Type       | Required | Description                          |
+| ------------- | ---------- | -------- | ------------------------------------ |
+| `title`       | string     | Yes      | Post title (max 99 chars)            |
+| `description` | string     | Yes      | Post description (max 200 chars)     |
+| `date`        | ISO date   | Yes      | Publication date (YYYY-MM-DD)        |
+| `slug`        | string     | Yes      | URL slug for the post                |
+| `coverImage`  | string     | No       | Path to cover image                  |
+| `tags`        | string[]   | No       | Array of tags                        |
+| `draft`       | boolean    | No       | Draft posts are hidden in production |
+
+## Routes
+
+| Route            | Description                    |
+| ---------------- | ------------------------------ |
+| `/blog`          | Paginated list of posts        |
+| `/blog/[slug]`   | Individual post page           |
+
+Posts are paginated at 10 per page. Navigate with `?page=2`, `?page=3`, etc.
+
+## Draft Posts
+
+Draft posts (`draft: true`) behave differently based on environment:
+
+- **Development** (`pnpm dev`): Drafts are visible for preview
+- **Production** (`pnpm build`): Drafts are hidden from the list and return 404
+
+```ts
+// features/blog/blog.utils.ts
+export function getPublishedPosts() {
+  return posts
+    .filter((post) => !post.draft || env.isDevelopment)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+```
+
+## Callout Component
+
+Use callouts in your MDX content to highlight important information. Available types: `info`, `tip`, `warning`, `danger`.
+
+## Configuration
+
+Velite is configured in `velite.config.ts`:
+
+```ts
+import { defineConfig, defineCollection, s } from "velite";
+
+const posts = defineCollection({
+  name: "Post",
+  pattern: "blog/**/*.mdx",
+  schema: s.object({
+    title: s.string().max(99),
+    description: s.string().max(200),
+    date: s.isodate(),
+    slug: s.slug("blog"),
+    coverImage: s.string().optional(),
+    tags: s.array(s.string()).optional(),
+    draft: s.boolean().default(false),
+    content: s.mdx(),
+  }),
+});
+
+export default defineConfig({
+  root: "content",
+  output: {
+    data: ".velite",
+    assets: "public/static",
+  },
+  collections: { posts },
+});
+```
+
+Velite compiles content to `.velite/` at build time. The `#site/content` path alias imports compiled content:
+
+```ts
+import { posts } from "#site/content";
+```
+
+## SEO
+
+Each blog post generates proper metadata for SEO:
+
+```ts
+export async function generateMetadata({ params }: BlogPostPageProps) {
+  const post = posts.find((p) => p.slug === slug);
+
+  return createMetadata({
+    title: post.title,
+    description: post.description,
+  });
+}
+```
+
+Static params are generated for all posts:
+
+```ts
+export async function generateStaticParams() {
+  return posts.map((post) => ({
+    slug: post.slug,
+  }));
+}
+```
+
+## Related
+
+- [File Structure](/project-configuration/file-structure) - Content directory location
+- [Customize SEO](/guides/customize-seo) - Metadata configuration

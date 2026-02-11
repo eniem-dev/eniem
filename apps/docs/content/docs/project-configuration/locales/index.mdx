@@ -1,0 +1,213 @@
+---
+title: "Locales"
+description: "ENIEM uses a centralized locales system where all user-facing text is stored in a single TypeScript file."
+---
+
+## Why Centralized Locales?
+
+- **Single source of truth**: All text in one place, no scattered strings
+- **Type safety**: TypeScript catches typos and missing keys at compile time
+- **IDE support**: Full autocomplete for all locale paths
+- **Easy updates**: Change text once, reflected everywhere
+- **Future-ready**: Easy to extend for multi-language support
+
+## File Location
+
+```
+locales/
+└── index.ts    # All locales in one file
+```
+
+## Structure Overview
+
+The locales file is organized into **global sections** (used across the app) and **specific sections** (for pages and components):
+
+```ts
+// locales/index.ts
+export const locales = {
+  // Global sections (used app-wide)
+  metadata: { ... },     // Global SEO defaults
+  errors: { ... },       // All error messages
+  success: { ... },      // All success messages
+  common: { ... },       // Reusable UI labels
+
+  // Component sections (PascalCase)
+  LoginForm: { ... },
+  SignUpForm: { ... },
+  ProfileForm: { ... },
+
+  // Page sections (PascalCase + "Page")
+  HomePage: { metadata: { ... }, hero: { ... } },
+  LoginPage: { metadata: { ... } },
+  DashboardPage: { metadata: { ... } },
+} as const;
+```
+
+The `as const` declaration is critical - it enables TypeScript to infer literal types for all keys.
+
+## Organization Rules
+
+| Section | Purpose | Naming Convention | Required Fields |
+| --- | --- | --- | --- |
+| `metadata` | Global SEO defaults | - | `title`, `description` |
+| `errors` | Error messages | - | - |
+| `success` | Success notifications | - | - |
+| `common` | Reusable UI labels | - | - |
+| Pages | Page-specific content | PascalCase + `Page` | `metadata` object |
+| Components | Component UI labels | PascalCase | - |
+
+### Naming Conventions
+
+- **Pages**: `LoginPage`, `SignUpPage`, `DashboardPage` (match page name + "Page")
+- **Components**: `LoginForm`, `ProfileForm`, `BillingOverview` (match component name exactly)
+
+## Usage Patterns
+
+### Pattern 1: Page Metadata (SEO)
+
+Every page must define metadata using locales for consistent SEO:
+
+```tsx
+// app/(auth)/login/page.tsx
+import { locales } from "@/locales";
+import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
+
+export const metadata = createMetadata({
+  ...getDefaultMetadata(),
+  title: locales.LoginPage.metadata.title,
+  description: locales.LoginPage.metadata.description,
+});
+```
+
+### Pattern 2: Component UI Labels
+
+Components access their locales directly:
+
+```tsx
+// features/authentication/components/login.tsx
+import { locales } from "@/locales";
+
+export function LoginForm() {
+  return (
+    <form>
+      <Label htmlFor="email">{locales.LoginForm.emailLabel}</Label>
+      <Input
+        id="email"
+        type="email"
+        placeholder={locales.LoginForm.emailPlaceholder}
+      />
+      <Button type="submit">{locales.LoginForm.submitButton}</Button>
+    </form>
+  );
+}
+```
+
+### Pattern 3: Zod Schema Validation
+
+Error messages in validation schemas come from the `errors` section:
+
+```tsx
+// features/authentication/schemas/auth.schema.ts
+import { z } from "zod";
+import { locales } from "@/locales";
+
+export const loginSchema = z.object({
+  email: z.email(locales.errors.invalidEmail),
+  password: z.string().min(8, locales.errors.passwordTooShort),
+});
+
+export const signupSchema = z
+  .object({
+    email: z.email(locales.errors.invalidEmail),
+    password: z.string().min(8, locales.errors.passwordTooShort),
+    passwordConfirmation: z.string(),
+  })
+  .refine((data) => data.password === data.passwordConfirmation, {
+    message: locales.errors.passwordMismatch,
+    path: ["passwordConfirmation"],
+  });
+```
+
+### Pattern 4: Error Handling
+
+Display error messages using the centralized `errors` section:
+
+```tsx
+// In a page or component
+import { locales } from "@/locales";
+
+export default async function AccountPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+
+  if (!session) {
+    return <ErrorCard message={locales.errors.unauthorized} />;
+  }
+
+  return <AccountSettings user={session.user} />;
+}
+```
+
+## Type Safety
+
+The `as const` declaration provides full TypeScript inference:
+
+```tsx
+// Valid - TypeScript knows this path exists
+locales.LoginForm.emailLabel; // Type: "Email"
+
+// Invalid - TypeScript catches the typo at compile time
+locales.LoginForm.emialLabel; // Error: Property 'emialLabel' does not exist
+```
+
+Your IDE provides autocomplete for all locale paths, making it easy to discover available keys without checking the file.
+
+## Adding New Locales
+
+### For a New Component
+
+Add a new section using PascalCase matching your component name:
+
+```ts
+export const locales = {
+  // ... existing sections
+
+  // New component locales
+  UserAvatar: {
+    altText: "User profile picture",
+    uploadButton: "Upload new photo",
+    removeButton: "Remove photo",
+  },
+} as const;
+```
+
+### For a New Page
+
+Add a section with PascalCase + "Page" and always include `metadata`:
+
+```ts
+export const locales = {
+  // ... existing sections
+
+  // New page locales
+  SettingsPage: {
+    metadata: {
+      title: "Settings - ENIEM",
+      description: "Manage your account settings",
+    },
+    heading: "Account Settings",
+    saveButton: "Save changes",
+  },
+} as const;
+```
+
+## Best Practices
+
+> **Never hardcode strings** - Always use `locales` for any user-facing text.
+
+> **Every page needs metadata** - Required for SEO consistency across the app.
+
+> **Use the `errors` section** - Centralize all error messages for consistency.
+
+> **Match names exactly** - Component locale keys should match component names in PascalCase.
+
+> **Keep it flat when possible** - Avoid deep nesting; use simple key-value pairs.

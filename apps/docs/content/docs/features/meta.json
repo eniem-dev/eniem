@@ -1,0 +1,13 @@
+{
+  "title": "Features",
+  "pages": [
+    "landing-mode",
+    "blog",
+    "server-utilities",
+    "error-handling",
+    "emails",
+    "analytics",
+    "file-upload",
+    "testing"
+  ]
+}
