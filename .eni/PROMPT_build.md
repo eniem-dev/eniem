@@ -153,12 +153,20 @@ When no ready tasks remain for this epic/scope:
    bd list --status=open  # Should show no tasks for this epic
    ```
 
-2. Get completed tasks for PR body:
+2. Commit beads status:
+   ```bash
+   bd sync                            # export DB → issues.jsonl
+   git add .beads/issues.jsonl .beads/interactions.jsonl
+   git commit -m "chore: update beads"
+   git push -u origin HEAD
+   ```
+
+3. Get completed tasks for PR body:
    ```bash
    bd list --status=done  # Filter for this epic's tasks
    ```
 
-3. Create pull request with structured description:
+4. Create pull request with structured description:
    ```bash
    gh pr create --title "feat: {{EPIC_NAME}}" --body "$(cat <<'EOF'
    ## Summary
@@ -174,7 +182,7 @@ When no ready tasks remain for this epic/scope:
    )"
    ```
 
-4. Archive the spec:
+5. Archive the spec:
    ```bash
    mkdir -p specs/archive
    mv specs/{{EPIC_NAME}}.md specs/archive/
@@ -183,13 +191,13 @@ When no ready tasks remain for this epic/scope:
    git push
    ```
 
-5. Clean up worktree:
+6. Clean up worktree:
    ```bash
    cd ..  # Exit worktree directory
    git worktree remove "$WORKTREE"
    ```
 
-6. Output completion signal:
+7. Output completion signal:
    ```
    :::ENI_ALL_TASKS_COMPLETE:::
    ```
