@@ -37,5 +37,6 @@ export const routes = {
   account: {
     general: "/account/general",
     billing: "/account/billing",
+    usage: "/account/usage",
   },
 };

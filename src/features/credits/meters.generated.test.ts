@@ -6,6 +6,7 @@ import {
   getMeter,
   sandboxMeters,
   productionMeters,
+  resolveEventDisplayName,
 } from "./meters.generated";
 
 describe("meters.generated", () => {
@@ -32,7 +33,7 @@ describe("meters.generated", () => {
       expect(meter?.polarMeterId).toBe(
         "d1e2f3a4-5678-9abc-def0-1234567890ab"
       );
-      expect(meter?.eventNames).toEqual(["llm-token-usage"]);
+      expect(meter?.eventNames).toEqual(["use-credit"]);
     });
 
     it("returns undefined for a nonexistent slug", () => {
@@ -76,15 +77,32 @@ describe("meters.generated", () => {
 
   describe("MeterEventNames", () => {
     it("resolves to correct event name union for llm-tokens", () => {
-      // Type-level: MeterEventNames<"llm-tokens"> should be "llm-token-usage"
-      const validEvent: MeterEventNames<"llm-tokens"> = "llm-token-usage";
-      expect(validEvent).toBe("llm-token-usage");
+      // Type-level: MeterEventNames<"llm-tokens"> should be "use-credit"
+      const validEvent: MeterEventNames<"llm-tokens"> = "use-credit";
+      expect(validEvent).toBe("use-credit");
     });
 
     it("rejects invalid event names at compile time", () => {
       // @ts-expect-error - "invalid-event" is not a valid event name for llm-tokens
       const _invalid: MeterEventNames<"llm-tokens"> = "invalid-event";
       expect(_invalid).toBeDefined();
+    });
+  });
+
+  describe("resolveEventDisplayName", () => {
+    it("returns meter name for known event name", () => {
+      const displayName = resolveEventDisplayName("sandbox", "use-credit");
+      expect(displayName).toBe("LLM Tokens");
+    });
+
+    it("falls back to raw event name for unknown event", () => {
+      const displayName = resolveEventDisplayName("sandbox", "unknown-event");
+      expect(displayName).toBe("unknown-event");
+    });
+
+    it("works with production environment", () => {
+      const displayName = resolveEventDisplayName("production", "use-credit");
+      expect(displayName).toBe("LLM Tokens");
     });
   });
 });

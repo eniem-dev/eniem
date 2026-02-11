@@ -13,7 +13,7 @@ export const sandboxMeters = [
     slug: "llm-tokens",
     name: "LLM Tokens",
     polarMeterId: "d1e2f3a4-5678-9abc-def0-1234567890ab",
-    eventNames: ["llm-token-usage"],
+    eventNames: ["use-credit"],
   },
 ] as const satisfies readonly GeneratedMeter[];
 
@@ -29,7 +29,7 @@ export const productionMeters = [
     slug: "llm-tokens",
     name: "LLM Tokens",
     polarMeterId: null,
-    eventNames: ["llm-token-usage"],
+    eventNames: ["use-credit"],
   },
 ] as const satisfies readonly GeneratedMeter[];
 
@@ -44,4 +44,17 @@ export function getMeter(
   slug: MeterSlug
 ): GeneratedMeter | undefined {
   return getMeters(env).find((m) => m.slug === slug);
+}
+
+/**
+ * Resolves an event name to a human-readable meter display name.
+ * Falls back to the raw event name if no matching meter is found.
+ */
+export function resolveEventDisplayName(
+  env: "sandbox" | "production",
+  eventName: string
+): string {
+  const meters = getMeters(env);
+  const meter = meters.find((m) => m.eventNames.includes(eventName));
+  return meter?.name ?? eventName;
 }

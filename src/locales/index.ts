@@ -228,6 +228,7 @@ export const locales = {
     sidebar: {
       general: "General",
       billing: "Billing",
+      usage: "Usage",
     },
   },
 
@@ -243,6 +244,16 @@ export const locales = {
       title: "Billing Settings - Your App Name",
       description: "Manage your subscription, billing information, and payment methods",
     },
+  },
+
+  UsageHistoryPage: {
+    metadata: {
+      title: "Usage History - Your App Name",
+      description: "View your credit consumption history and usage details",
+    },
+    title: "Usage History",
+    loadMore: "Load more",
+    loading: "Loading...",
   },
 
   PricingPage: {
@@ -573,6 +584,16 @@ export const locales = {
         pending: "Pending",
         refunded: "Refunded",
       },
+    },
+  },
+
+  CreditsUsageHistory: {
+    title: "Usage History",
+    emptyState: "No usage yet",
+    showMore: "Show more",
+    columns: {
+      event: "Event",
+      date: "Date",
     },
   },
   NotFoundPage: {

@@ -18,3 +18,21 @@ export interface UsageEvent {
   metadata?: UsageMetadata;
   timestamp?: Date;
 }
+
+export interface UsageHistoryEvent {
+  id: string;
+  name: string;
+  timestamp: Date;
+  metadata: Record<string, string | number | boolean>;
+}
+
+export interface UsageHistoryPagination {
+  totalCount: number;
+  maxPage: number;
+  currentPage: number;
+}
+
+export interface UsageHistoryResult {
+  events: UsageHistoryEvent[];
+  pagination: UsageHistoryPagination;
+}
