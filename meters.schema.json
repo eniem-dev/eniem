@@ -1,0 +1,40 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Meters Configuration",
+  "description": "Polar meter definitions for sandbox and production environments",
+  "type": "object",
+  "required": ["meters"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "meters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["slug", "name", "polarMeterId", "eventNames"],
+        "properties": {
+          "slug": {
+            "type": "string",
+            "description": "Unique identifier for the meter"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable meter name"
+          },
+          "polarMeterId": {
+            "type": ["string", "null"],
+            "description": "Polar meter ID (null for unconfigured environments)"
+          },
+          "eventNames": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Event names tracked by this meter"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

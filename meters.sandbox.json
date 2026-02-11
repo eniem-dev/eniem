@@ -1,0 +1,11 @@
+{
+  "$schema": "./meters.schema.json",
+  "meters": [
+    {
+      "slug": "llm-tokens",
+      "name": "LLM Tokens",
+      "polarMeterId": "d1e2f3a4-5678-9abc-def0-1234567890ab",
+      "eventNames": ["llm-token-usage"]
+    }
+  ]
+}

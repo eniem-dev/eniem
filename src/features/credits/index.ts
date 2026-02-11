@@ -1,3 +1,16 @@
+// Meter Config
+export type {
+  GeneratedMeter,
+  MeterSlug,
+  MeterEventNames,
+} from "./meters.generated";
+export {
+  sandboxMeters,
+  productionMeters,
+  getMeters,
+  getMeter,
+} from "./meters.generated";
+
 // Models
 export type { CreditBalance, UsageMetadata, UsageEvent } from "./models/credits.model";
 
