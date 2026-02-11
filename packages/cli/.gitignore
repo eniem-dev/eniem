@@ -1,0 +1,7 @@
+scripts
+plan.md
+node_modules
+dist
+bin
+coverage
+IMPLEMENTATION_PLAN.md
