@@ -1,0 +1,92 @@
+{
+  "$schema": "./products.schema.json",
+  "products": [
+    {
+      "slug": "pro-monthly",
+      "name": "Pro Monthly",
+      "description": "Full access to all features, billed monthly",
+      "type": "subscription",
+      "recurringInterval": "month",
+      "recurringIntervalCount": 1,
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 1900,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "Pro",
+        "subtitle": "Billed monthly",
+        "badge": null,
+        "features": [
+          "Unlimited projects",
+          "Priority support",
+          "Advanced analytics",
+          "API access"
+        ],
+        "highlighted": false,
+        "cta": "Get Started"
+      },
+      "polarProductId": "b11de49b-1588-4283-be99-e8369899d7d1"
+    },
+    {
+      "slug": "pro-yearly",
+      "name": "Pro Yearly",
+      "description": "Full access to all features, billed yearly",
+      "type": "subscription",
+      "recurringInterval": "year",
+      "recurringIntervalCount": 1,
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 19000,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "Pro",
+        "subtitle": "Billed yearly",
+        "badge": "2 months free",
+        "features": [
+          "Unlimited projects",
+          "Priority support",
+          "Advanced analytics",
+          "API access",
+          "Early access to new features"
+        ],
+        "highlighted": true,
+        "cta": "Get Started"
+      },
+      "polarProductId": "114d3505-22e6-4718-89a2-560bba9b7d40"
+    },
+    {
+      "slug": "lifetime",
+      "name": "Lifetime Access",
+      "description": "One-time payment for forever access",
+      "type": "one_time",
+      "recurringIntervalCount": 1,
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 29900,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "Lifetime",
+        "subtitle": "Pay once, own forever",
+        "badge": "Best Deal",
+        "features": [
+          "Everything in Pro",
+          "Lifetime updates",
+          "Priority support forever",
+          "Exclusive founder badge"
+        ],
+        "highlighted": false,
+        "cta": "Buy Now"
+      },
+      "polarProductId": "201a345e-0b86-4602-8583-d87a83a2b18e"
+    }
+  ]
+}
