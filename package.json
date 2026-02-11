@@ -1,0 +1,22 @@
+{
+  "name": "eniem",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "dev:boilerplate": "turbo dev --filter=@eniem/boilerplate",
+    "dev:docs": "turbo dev --filter=@eniem/docs",
+    "dev:cli": "turbo dev --filter=eniem-cli",
+    "eni:plan": "./.eni/loop.sh plan",
+    "eni:plan-work": "./.eni/loop.sh plan-work",
+    "eni:build": "./.eni/loop.sh build",
+    "eni:build:auto": "./.eni/loop.sh build 10"
+  },
+  "devDependencies": {
+    "turbo": "^2"
+  },
+  "packageManager": "pnpm@9.15.4"
+}
