@@ -249,7 +249,7 @@ useCredits(meterId: string): { balance: number; isLoading: boolean; error: Error
 ### File Structure
 
 ```
-src/features/credits/
+apps/boilerplate/src/features/credits/
 ├── components/
 │   └── credit-balance.tsx      # Balance display component
 ├── hooks/

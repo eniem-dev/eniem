@@ -19,15 +19,15 @@ Developers building features that consume credits.
 - [ ] `meters.sandbox.json` — sandbox meter definitions with Polar meter IDs and associated event names
 - [ ] `meters.production.json` — production meter definitions (meter IDs can be `null` until configured)
 - [ ] `meters.schema.json` — JSON schema for validation (like `products.schema.json`)
-- [ ] `src/features/credits/meters.generated.ts` — hand-written TypeScript file mirroring the JSON structure with typed exports
+- [ ] `apps/boilerplate/src/features/credits/meters.generated.ts` — hand-written TypeScript file mirroring the JSON structure with typed exports
 - [ ] `GeneratedMeter` interface: `slug`, `meterId` (string | null), `name`, `eventNames` (string array)
 - [ ] `sandboxMeters` / `productionMeters` typed arrays exported as `const`
 - [ ] `getMeters(env)` function returning the correct array for the environment
 - [ ] `getMeter(env, slug)` helper to look up a specific meter by slug
 - [ ] Type-safe meter slugs — union type derived from config (e.g., `"llm-tokens" | "image-generation"`)
 - [ ] Type-safe event names — per-meter union types derived from config
-- [ ] Update `src/features/credits/index.ts` to export meter config utilities
-- [ ] Update `src/config/index.ts` to re-export or document meter config access pattern
+- [ ] Update `apps/boilerplate/src/features/credits/index.ts` to export meter config utilities
+- [ ] Update `apps/boilerplate/src/config/index.ts` to re-export or document meter config access pattern
 
 ### Nice to Have
 
@@ -73,13 +73,13 @@ Developers building features that consume credits.
   - `meters.sandbox.json` — at project root (like `products.sandbox.json`)
   - `meters.production.json` — at project root
   - `meters.schema.json` — at project root
-  - `src/features/credits/meters.generated.ts` — typed exports
+  - `apps/boilerplate/src/features/credits/meters.generated.ts` — typed exports
 - **Files to modify**:
-  - `src/features/credits/index.ts` — export meter config utilities
-  - `src/config/index.ts` — optionally re-export meter access
+  - `apps/boilerplate/src/features/credits/index.ts` — export meter config utilities
+  - `apps/boilerplate/src/config/index.ts` — optionally re-export meter access
 - **Patterns to follow**:
   - `products.sandbox.json` — JSON structure with `$schema`, environment-specific IDs
-  - `src/features/subscription/products.generated.ts` — `GeneratedProduct` interface, `sandboxProducts`/`productionProducts` arrays, `getProducts(env)` function, `as const` exports
+  - `apps/boilerplate/src/features/subscription/products.generated.ts` — `GeneratedProduct` interface, `sandboxProducts`/`productionProducts` arrays, `getProducts(env)` function, `as const` exports
 - **Example JSON structure**:
   ```json
   {
@@ -112,9 +112,9 @@ Developers building features that consume credits.
 | Sandbox JSON exists | `test -f meters.sandbox.json && echo pass` |
 | Production JSON exists | `test -f meters.production.json && echo pass` |
 | Schema exists | `test -f meters.schema.json && echo pass` |
-| Generated TS exists | `test -f src/features/credits/meters.generated.ts && echo pass` |
-| Exports getMeter | `grep -q "getMeter" src/features/credits/meters.generated.ts && echo pass` |
-| Credits index exports | `grep -q "getMeter" src/features/credits/index.ts && echo pass` |
+| Generated TS exists | `test -f apps/boilerplate/src/features/credits/meters.generated.ts && echo pass` |
+| Exports getMeter | `grep -q "getMeter" apps/boilerplate/src/features/credits/meters.generated.ts && echo pass` |
+| Credits index exports | `grep -q "getMeter" apps/boilerplate/src/features/credits/index.ts && echo pass` |
 | Build passes | `pnpm build` |
 
 ## Test Requirements

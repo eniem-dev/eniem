@@ -49,7 +49,7 @@ Developer maintaining the eniem codebase.
     - `scripts/__tests__/sync-products.test.ts`
 - **Files to modify**:
   - `package.json` - remove `products:sync` script
-  - `src/features/subscription/products.generated.ts` - update header comment
+  - `apps/boilerplate/src/features/subscription/products.generated.ts` - update header comment
 - **Files to keep**:
   - `products.sandbox.json`
   - `products.production.json`

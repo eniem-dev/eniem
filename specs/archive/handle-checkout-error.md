@@ -56,16 +56,16 @@ Any user attempting to purchase a subscription plan.
 ## Technical Hints
 
 - **Files to modify:**
-  - `src/components/choose-plan-content.tsx` - Add error state, wrap checkout in try/catch
-  - `src/config/env.ts` - Add `SUPPORT_EMAIL` to config schema
-  - `src/locales/index.ts` - Add error message strings under `ChoosePlanPage`
+  - `apps/boilerplate/src/components/choose-plan-content.tsx` - Add error state, wrap checkout in try/catch
+  - `apps/boilerplate/src/config/env.ts` - Add `SUPPORT_EMAIL` to config schema
+  - `apps/boilerplate/src/locales/index.ts` - Add error message strings under `ChoosePlanPage`
   - `.env.example` - Document new env var
 
 - **Files to create:** None
 
 - **Patterns to follow:**
-  - Error state pattern: See `src/features/authentication/components/reset-password.tsx` for `useState` error handling
-  - Env config pattern: See existing `env.email.*` structure in `src/config/env.ts`
+  - Error state pattern: See `apps/boilerplate/src/features/authentication/components/reset-password.tsx` for `useState` error handling
+  - Env config pattern: See existing `env.email.*` structure in `apps/boilerplate/src/config/env.ts`
   - Locale pattern: Add to existing `ChoosePlanPage` object
 
 - **Dependencies:** None
@@ -74,12 +74,12 @@ Any user attempting to purchase a subscription plan.
 
 | Criterion | Command |
 |-----------|---------|
-| Error state catches checkout failures | `grep -q "catch.*error" src/components/choose-plan-content.tsx && echo pass` |
-| Error UI has retry button | `grep -q "Try Again\|tryAgain" src/components/choose-plan-content.tsx && echo pass` |
-| Support email link present | `grep -q "mailto:" src/components/choose-plan-content.tsx && echo pass` |
-| SUPPORT_EMAIL in env config | `grep -q "SUPPORT_EMAIL\|supportEmail" src/config/env.ts && echo pass` |
-| Error messages in locales | `grep -q "checkoutError\|checkoutFailed" src/locales/index.ts && echo pass` |
-| Logger used for errors | `grep -q "logger.error" src/components/choose-plan-content.tsx && echo pass` |
+| Error state catches checkout failures | `grep -q "catch.*error" apps/boilerplate/src/components/choose-plan-content.tsx && echo pass` |
+| Error UI has retry button | `grep -q "Try Again\|tryAgain" apps/boilerplate/src/components/choose-plan-content.tsx && echo pass` |
+| Support email link present | `grep -q "mailto:" apps/boilerplate/src/components/choose-plan-content.tsx && echo pass` |
+| SUPPORT_EMAIL in env config | `grep -q "SUPPORT_EMAIL\|supportEmail" apps/boilerplate/src/config/env.ts && echo pass` |
+| Error messages in locales | `grep -q "checkoutError\|checkoutFailed" apps/boilerplate/src/locales/index.ts && echo pass` |
+| Logger used for errors | `grep -q "logger.error" apps/boilerplate/src/components/choose-plan-content.tsx && echo pass` |
 
 ## Test Requirements
 
