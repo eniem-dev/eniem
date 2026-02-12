@@ -23,8 +23,10 @@ bd sync               # Sync with git
 3. **Update issue status** - Close finished work, update in-progress items
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
+   bd sync                            # export DB → issues.jsonl
+   git add .beads/issues.jsonl .beads/interactions.jsonl
+   git commit -m "chore: update beads"
    git pull --rebase
-   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```

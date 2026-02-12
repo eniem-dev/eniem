@@ -1,0 +1,215 @@
+---
+title: "Account Deletion"
+description: "Secure account deletion with email verification and automatic cleanup of associated data."
+---
+
+[Check the official documentation for more detail about implementation](https://www.better-auth.com/docs/concepts/users-accounts).
+
+## Overview
+
+Account deletion permanently removes a user's account and all associated data. To prevent accidental or unauthorized deletions, the process requires email verification before the account is actually deleted.
+
+When an account is deleted:
+
+- User profile and authentication data are removed
+- All active sessions are invalidated
+- Associated Polar customer data is cleaned up
+- Subscriptions and benefits are terminated
+
+This action is irreversible.
+
+## Configuration
+
+Account deletion is configured in `lib/auth.ts` under the `user.deleteUser` settings. The configuration enables email verification before deletion and sets up cleanup hooks for associated services.
+
+```typescript
+export const auth = betterAuth({
+  user: {
+    deleteUser: {
+      enabled: true,
+      sendDeleteAccountVerification: async ({ user, url, token }) => {
+        await sendDeleteAccountEmail(user.email, token, url);
+      },
+      afterDelete: async (user) => {
+        logger.info("User deleted, cleaning up Polar customer", { userId: user.id });
+        try {
+          await polarClient.customers.deleteExternal({ externalId: user.id });
+          logger.info("Polar customer deleted successfully", { userId: user.id });
+        } catch (error) {
+          logger.error("Failed to delete Polar customer", {
+            userId: user.id,
+            error: error instanceof Error ? error.message : error,
+          });
+        }
+      },
+    },
+  },
+});
+```
+
+### Configuration Options
+
+| Option | Purpose |
+|--------|---------|
+| `enabled` | Enables the account deletion feature |
+| `sendDeleteAccountVerification` | Callback to send confirmation email with verification link |
+| `afterDelete` | Hook executed after successful deletion for cleanup tasks |
+
+## Architecture
+
+The account deletion feature is implemented in the settings module:
+
+```
+features/settings/
+├── components/
+│   └── delete-account-form.tsx    # Deletion request UI
+└── index.ts                        # Public exports
+
+components/emails/
+└── DeleteAccountEmail.tsx          # Confirmation email template
+
+lib/
+├── auth.ts                         # BetterAuth configuration
+└── email.ts                        # sendDeleteAccountEmail function
+```
+
+The deletion form is displayed on the account settings page:
+
+| Route | Component |
+|-------|-----------|
+| `/account` | `DeleteAccountForm` |
+
+## Deletion Flow
+
+**Flow:**
+
+1. User navigates to account settings (`/account`)
+2. Clicks "Delete My Account" button
+3. Confirmation email sent to user's email address
+4. User clicks confirmation link in email
+5. Account and all associated data permanently deleted
+6. Polar customer record cleaned up
+7. User logged out automatically
+
+## Implementation
+
+### Request Deletion
+
+**Implementation:** `features/settings/components/delete-account-form.tsx`
+
+The deletion form displays a warning and requires user action to initiate the process:
+
+```typescript
+// delete-account-form.tsx
+const handleDeleteAccount = async () => {
+  setIsLoading(true);
+  try {
+    await authClient.deleteUser();
+    toast.success(locales.success.deleteAccountEmailSent);
+  } catch (error) {
+    toast.error(locales.errors.accountDeletionFailed);
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+**Client call:**
+
+```typescript
+import { authClient } from "@/lib/auth-client";
+
+await authClient.deleteUser();
+```
+
+This sends a verification email to the user. The account is not deleted until the user clicks the confirmation link.
+
+### Email Confirmation
+
+**Implementation:** `components/emails/DeleteAccountEmail.tsx`
+
+The confirmation email contains:
+
+- Clear warning about irreversible action
+- Confirmation button with verification link
+- Fallback text link for email clients that don't support buttons
+- Note to ignore the email if deletion wasn't requested
+
+```typescript
+export function DeleteAccountEmail({ url }: DeleteAccountEmailProps) {
+  return (
+    <EmailLayout preview="Confirm account deletion">
+      <Text>Confirm Account Deletion</Text>
+      <Text>
+        We received a request to permanently delete your account. This action
+        cannot be undone. All your data, subscriptions, and benefits will be
+        permanently removed.
+      </Text>
+      <Text style={warningText}>
+        If you did not request this, please ignore this email. Your account
+        will remain safe.
+      </Text>
+      <Button href={url}>Confirm Deletion</Button>
+    </EmailLayout>
+  );
+}
+```
+
+The email is sent via the centralized email service:
+
+```typescript
+// lib/email.ts
+export async function sendDeleteAccountEmail(email: string, token: string, url: string) {
+  return sendEmail({
+    to: email,
+    subject: "Confirm account deletion",
+    template: DeleteAccountEmail({ url, brandLogoUrl: env.email.brandLogoUrl }),
+    debugInfo: { Token: token, "Confirmation Link": url },
+  });
+}
+```
+
+### After Deletion (Cleanup)
+
+When the user confirms deletion, the `afterDelete` hook is executed to clean up associated services:
+
+```typescript
+afterDelete: async (user) => {
+  logger.info("User deleted, cleaning up Polar customer", { userId: user.id });
+  try {
+    await polarClient.customers.deleteExternal({ externalId: user.id });
+    logger.info("Polar customer deleted successfully", { userId: user.id });
+  } catch (error) {
+    logger.error("Failed to delete Polar customer", {
+      userId: user.id,
+      error: error instanceof Error ? error.message : error,
+    });
+  }
+},
+```
+
+This ensures that:
+
+- Polar customer records are removed
+- Subscriptions are properly terminated
+- All cleanup actions are logged for audit purposes
+
+## Security
+
+| Measure | Purpose |
+|---------|---------|
+| Email verification required | Prevents unauthorized deletion |
+| No immediate deletion | Two-step process allows users to reconsider |
+| Email-only accounts can delete | Accounts without email cannot be deleted (verification impossible) |
+| Logged cleanup | Audit trail for compliance and debugging |
+
+### Email Requirement
+
+Users without an email address associated with their account cannot delete it. This is because the verification email is the only way to confirm the deletion request. The UI displays a warning message:
+
+> "Account deletion requires email verification. Please add an email address to your account first."
+
+## Related
+
+- [Email/Password](/authentication/email-password) - Change email before deletion
+- [Rate Limits](/authentication/rate-limits) - Auth endpoints are rate limited

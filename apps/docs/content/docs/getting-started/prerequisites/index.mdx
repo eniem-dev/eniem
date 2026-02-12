@@ -1,0 +1,25 @@
+---
+title: "Prerequisites"
+description: "Eniem is an opinonated boilerplate for building application quickly."
+---
+
+## Third Party Services
+
+Eniem uses the following third party services:
+
+- [Polar](https://polar.sh/) - For subscriptions and payments.
+- [Digital Ocean](https://www.digitalocean.com/) - For images and file storage.
+- [Resend](https://resend.com/) - For email delivery.
+
+## Required account setup
+
+You will need to create accounts on the following services:
+
+- [Polar](https://polar.sh/signup)
+- [Digital Ocean](https://www.digitalocean.com/)
+
+Resend is optional and won't block you from building in dev mode. You will need a Resend account to send emails in production, or you can use another third party email service by updating the `lib/email.ts` file.
+
+## Database
+
+Eniem uses a Postgres database. The project come with a `docker-compose.yml` file that will setup a Postgres database for you in a Docker container. You will need to have [Docker](https://www.docker.com/get-started/) installed on your machine.

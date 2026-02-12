@@ -1,0 +1,108 @@
+---
+title: "Enable Landing Mode"
+description: "By the end of this guide, you'll have a pre-launch landing page with email collection."
+---
+
+## Prerequisites
+
+- Completed the [Installation](/getting-started/installation) guide
+- Database running
+
+## Steps
+
+### 1. Enable Landing Mode
+
+Add or update the environment variable in your `.env` file:
+
+```bash
+LANDING_MODE=true
+```
+
+### 2. Start Your Application
+
+```bash
+pnpm dev
+```
+
+Visit any route - you'll be automatically redirected to `/landing`.
+
+### 3. Customize the Landing Page (Optional)
+
+Edit the landing page content in `app/(landing)/landing/page.tsx`:
+
+```tsx
+import { NewsletterForm } from "@/features/newsletter";
+import { locales } from "@/locales";
+
+export default function LandingPage() {
+  return (
+    <section className="py-24 px-6 text-center">
+      <h1 className="text-7xl font-black">{locales.LandingPage.hero.title}</h1>
+      <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+        {locales.LandingPage.hero.subtitle}
+      </p>
+      <NewsletterForm />
+    </section>
+  );
+}
+```
+
+Update the text in `locales/index.ts`:
+
+```typescript
+LandingPage: {
+  hero: {
+    title: "Something amazing is coming",
+    subtitle: "Join the waitlist to get early access.",
+  },
+  newsletter: {
+    placeholder: "Enter your email",
+    submitButton: "Get Early Access",
+    success: "You're on the list!",
+  },
+}
+```
+
+### 4. Choose Your Email Collection Method
+
+The newsletter feature provides two methods for collecting emails:
+
+**Method 1: Database Storage (Default)**
+
+Emails are saved to the `CollectedEmail` table in your database. No additional setup needed.
+
+**Method 2: Email Provider (Resend)**
+
+To send emails directly to Resend, edit `features/newsletter/actions/newsletter.action.ts`:
+
+```ts
+// Comment out the database method
+// await saveEmailToDatabase(email);
+
+// Uncomment the email provider method
+await saveEmailToProvider(email);
+```
+
+You can also use both methods simultaneously.
+
+## Test It
+
+1. Visit `http://localhost:3000` - you should see the landing page
+2. Try visiting `/dashboard` or any other route - you'll be redirected to `/landing`
+3. Submit an email through the form
+4. Check your database for the collected email (or your Resend audience if using that method)
+
+## Disable Landing Mode
+
+When you're ready to launch, simply set:
+
+```bash
+LANDING_MODE=false
+```
+
+Or remove the variable entirely. Your application will immediately return to normal operation.
+
+## Next Steps
+
+- [Landing Mode Reference](/features/landing-mode) - Full documentation with email collection options
+- [Add OAuth Provider](/guides/add-oauth) - Set up authentication for launch

@@ -1,0 +1,134 @@
+---
+title: "Rate Limits"
+description: "Protection against brute-force attacks and abuse through request rate limiting."
+---
+
+[Check the official documentation for more detail about implementation](https://www.better-auth.com/docs/concepts/rate-limit).
+
+## Overview
+
+Rate limiting restricts the number of requests a user can make to authentication endpoints within a specific time window. This prevents attackers from attempting to guess passwords, spam OTP codes, or overwhelm the system with requests.
+
+Rate limits are applied per IP address and stored in the database for persistence across server restarts.
+
+## Configuration
+
+Rate limiting is configured in `lib/auth.ts`:
+
+```typescript
+export const auth = betterAuth({
+  rateLimit: {
+    enabled: true,
+    window: 60, // 60 seconds
+    max: 100, // max requests per window
+    storage: "database",
+    modelName: "rateLimit",
+    customRules: {
+      "/sign-in/email": { window: 10, max: 3 },
+      "/sign-up/email": { window: 10, max: 3 },
+      "/email-otp/send-verification-otp": { window: 60, max: 3 },
+      "/sign-in/email-otp": { window: 10, max: 3 },
+    },
+  },
+  advanced: {
+    ipAddress: {
+      ipAddressHeaders: ["cf-connecting-ip", "x-forwarded-for"],
+    },
+  },
+});
+```
+
+## Rate Limit Rules
+
+### Global Default
+
+All authentication endpoints are protected by a global rate limit:
+
+| Setting | Value | Description |
+|---------|-------|-------------|
+| `window` | 60 seconds | Time window for counting requests |
+| `max` | 100 requests | Maximum requests allowed per window |
+
+This applies to any endpoint without a custom rule.
+
+### Custom Rules
+
+Sensitive endpoints have stricter limits to prevent abuse:
+
+| Endpoint | Window | Max | Purpose |
+|----------|--------|-----|---------|
+| `/sign-in/email` | 10s | 3 | Prevents password brute-force attacks |
+| `/sign-up/email` | 10s | 3 | Prevents mass account creation |
+| `/email-otp/send-verification-otp` | 60s | 3 | Prevents OTP email spam |
+| `/sign-in/email-otp` | 10s | 3 | Prevents OTP code guessing |
+
+### Why These Limits?
+
+**Sign-in/Sign-up (3 per 10 seconds):**
+Allows legitimate users to retry after typos while blocking automated attacks. An attacker would need over 5 minutes to try just 100 password combinations.
+
+**OTP Send (3 per 60 seconds):**
+Stricter limit because each request sends an email. Prevents attackers from flooding a user's inbox and reduces email costs.
+
+**OTP Verify (3 per 10 seconds):**
+Combined with the 3-attempt limit in the OTP plugin itself, this makes brute-forcing a 6-digit code practically impossible.
+
+## IP Address Detection
+
+For accurate rate limiting behind proxies or CDNs, the system checks these headers in order:
+
+1. `cf-connecting-ip` - Cloudflare's real IP header
+2. `x-forwarded-for` - Standard proxy header
+
+This ensures rate limits apply to the actual client IP, not the proxy server.
+
+## Storage
+
+Rate limit data is stored in the database using the `rateLimit` model:
+
+```prisma
+model rateLimit {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  count     Int
+  lastReset DateTime
+}
+```
+
+Database storage ensures rate limits persist across server restarts and work correctly in multi-instance deployments.
+
+## Client-Side Handling
+
+The auth client handles rate limit errors automatically in `lib/auth-client.ts`. When a 429 response is received, it logs a warning with the retry time using localized messages.
+
+```typescript
+export const authClient = createAuthClient({
+  fetchOptions: {
+    onError: async (context) => {
+      const { response } = context;
+      if (response.status === 429) {
+        const retryAfter = response.headers.get("X-Retry-After");
+        if (retryAfter) {
+          const message = locales.errors.rateLimitRetryAfter.replace(
+            "{seconds}",
+            retryAfter
+          );
+          console.warn("Rate limit exceeded:", message);
+        } else {
+          console.warn("Rate limit exceeded:", locales.errors.rateLimitExceeded);
+        }
+      }
+    },
+  },
+});
+```
+
+When rate limited, the server responds with:
+
+- **Status code:** `429 Too Many Requests`
+- **Header:** `X-Retry-After` with seconds until the limit resets
+
+## Related
+
+- [Email/Password](/authentication/email-password) - Protected by sign-in/sign-up limits
+- [Passwordless](/authentication/passwordless) - Protected by OTP limits

@@ -1,0 +1,145 @@
+---
+title: "Manual Installation"
+description: "Set up Eniem manually using git clone and the Polar dashboard for product configuration."
+---
+
+For the fastest setup, use the [Quick Start](/getting-started/installation) guide with the Eniem CLI. This page covers manual setup for developers who prefer full control over the installation process.
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/eniem-dev/eniem.git [YOUR_APP_NAME]
+cd [YOUR_APP_NAME]
+```
+
+## Install Dependencies
+
+```bash
+pnpm install
+```
+
+> Eniem requires Node 18.17 or greater. Type `node -v` in your terminal to check version.
+
+## Configure Environment
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your configuration. See [Prerequisites](/getting-started/prerequisites) for required accounts.
+
+## Start the Database
+
+```bash
+pnpm db:start
+pnpm db:migrate
+```
+
+## Start Development Server
+
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to see your site.
+
+## Manual Product Configuration
+
+When not using the CLI, you'll need to create products directly in Polar and configure them manually.
+
+### 1. Create Products in Polar
+
+1. Go to [Polar.sh](https://polar.sh) (or [sandbox.polar.sh](https://sandbox.polar.sh) for testing)
+2. Navigate to **Products → New Product**
+3. Configure your product:
+   - Set a name and description
+   - Choose pricing type (recurring subscription or one-time)
+   - Set your price
+4. After creation, copy the **Product ID** from the product page URL
+
+### 2. Create Product Configuration Files
+
+Create `products.sandbox.json` in your project root:
+
+```json
+{
+  "products": [
+    {
+      "slug": "pro-monthly",
+      "name": "Pro Monthly",
+      "description": "Full access, billed monthly",
+      "type": "subscription",
+      "recurringInterval": "month",
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 1900,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "Pro",
+        "cta": "Subscribe",
+        "features": ["Unlimited access", "Priority support"],
+        "highlighted": false
+      },
+      "polarProductId": "your-polar-product-id"
+    }
+  ]
+}
+```
+
+For production, create a matching `products.production.json` with production Product IDs.
+
+### 3. Generate TypeScript Types
+
+Run the type generator to create type-safe product references:
+
+```bash
+pnpm generate:products
+```
+
+This creates `src/features/subscription/products.generated.ts` with:
+- Type definitions for product slugs
+- Helper functions for accessing product data
+
+### 4. Configure Auth
+
+Update `/lib/auth.ts` with your products:
+
+```typescript
+import { getCheckoutProducts } from "@/features/subscription/products.generated";
+
+polar({
+  client: polarClient,
+  createCustomerOnSignUp: true,
+  use: [
+    checkout({
+      products: getCheckoutProducts(),
+      successUrl: "/success?checkout_id={CHECKOUT_ID}",
+      authenticatedUsersOnly: true,
+    }),
+    portal(),
+    webhooks({
+      secret: env.payment.polarWebhookSecret,
+    }),
+  ],
+});
+```
+
+## Useful Commands
+
+- `pnpm dev` — Start development server
+- `pnpm build` — Build for production
+- `pnpm db:start` — Start PostgreSQL container
+- `pnpm db:stop` — Stop PostgreSQL container
+- `pnpm db:studio` — Open Prisma Studio
+- `pnpm generate:products` — Regenerate product TypeScript types
+
+## Next Steps
+
+- [Set Up Subscriptions](/guides/setup-subscriptions) — Complete subscription configuration
+- [CLI Products Command](/guides/cli) — Consider switching to CLI for easier product management
+- [Product Configuration](/payments/products-generated) — Understand how product data flows to your UI

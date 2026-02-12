@@ -1,0 +1,568 @@
+---
+title: "CLI Products Command"
+description: "By the end of this guide, you'll have Polar products managed through the Eniem CLI with a sandbox-first workflow."
+---
+
+The `eniem products` command provides an interactive terminal interface for creating, managing, and syncing Polar products. It follows a sandbox-first workflow, allowing you to safely test product configurations before deploying to production.
+
+## Prerequisites
+
+- Completed the [Installation](/getting-started/installation) guide
+- Running inside an **eniem project directory** (where `products.sandbox.json` or `products.production.json` exists)
+- A [Polar.sh](https://polar.sh) account (sandbox and/or production)
+- Familiarity with [Setting Up Subscriptions](/guides/setup-subscriptions) for API token creation
+
+## Polar API Setup
+
+### Sandbox vs Production Environments
+
+The CLI supports two environments:
+
+- **Sandbox** (default): Use `sandbox.polar.sh` for testing without real payments
+- **Production**: Use `polar.sh` with the `--prod` flag for live payments
+
+Always develop and test in sandbox first, then sync to production when ready.
+
+### Required Scopes
+
+When creating your Polar API token, ensure these scopes are enabled:
+
+| Scope            | Purpose                          |
+| ---------------- | -------------------------------- |
+| `products:read`  | Read product catalog and details |
+| `products:write` | Create and modify products       |
+
+### Environment Variables
+
+Add this to your `.env` file:
+
+```bash
+POLAR_ACCESS_TOKEN=your_sandbox_access_token
+```
+
+For production, create a separate token at `polar.sh`. The environment is determined by the `--prod` or `--env` flags, not by an environment variable.
+
+> **Note:** The CLI does not read a `POLAR_SERVER` environment variable. Use `--prod` or `--env=production` to target production.
+
+## Commands Reference
+
+| Operation               | Description                                                   |
+| ----------------------- | ------------------------------------------------------------- |
+| Add                     | Create a new product via interactive wizard                   |
+| Remove                  | Remove a product from local configuration (archives on Polar) |
+| Sync                    | Push local products to Polar                                  |
+| Regenerate              | Rebuild TypeScript types from product configuration           |
+| Unarchive               | Restore an archived product on Polar                          |
+| Sync from sandbox       | Copy sandbox products to production (production mode only)    |
+| Clean up Polar products | Import and reconcile products from Polar to local config      |
+
+## Base Command
+
+```bash
+eniem products
+```
+
+Opens the interactive menu for managing products in the **sandbox** environment.
+
+```bash
+eniem products --prod
+```
+
+Opens the interactive menu for managing products in the **production** environment.
+
+### Available Flags
+
+| Flag                        | Description                                              |
+| --------------------------- | -------------------------------------------------------- |
+| `--prod`                    | Use production environment instead of sandbox            |
+| `--env=sandbox\|production` | Explicitly specify the environment                       |
+| `--token=<polar-token>`     | Provide API token directly, bypassing `.env` file lookup |
+
+**Examples:**
+
+```bash
+# Using --env flag
+eniem products --env=production
+
+# Using --token to bypass .env
+eniem products --token=polar_at_xxx
+```
+
+![eniem products command main menu](/images/cli/main-menu.png)
+
+## Operations
+
+### Add
+
+The Add operation launches an interactive wizard to create a new product.
+
+**Wizard Flow:**
+
+1. Enter product **slug** (URL-safe identifier, e.g., `pro-monthly`)
+2. Enter product **name** (display name, e.g., "Pro Monthly")
+3. Enter product **description** (customer-facing text)
+4. Select product **type**: `subscription`, `one_time`, or `free`
+5. Configure **prices** (amount type, amount, currency)
+6. Set **display** options (title, CTA, features, etc.)
+7. For monthly subscriptions: optionally create a yearly version automatically
+
+**Automatic Yearly Plan Generation:**
+
+After creating a monthly subscription, the CLI prompts: "Create yearly version?"
+
+If you accept, it automatically creates a yearly plan with smart defaults:
+
+- Price: 10× the monthly price (effectively 2 months free)
+- Same display configuration
+- Slug suffixed with `-yearly`
+
+**Product Schema Fields:**
+
+| Field               | Required          | Description                                                                              |
+| ------------------- | ----------------- | ---------------------------------------------------------------------------------------- |
+| `slug`              | Yes               | Unique URL-safe identifier (must start with letter, lowercase letters, numbers, hyphens) |
+| `name`              | Yes               | Display name shown to customers                                                          |
+| `description`       | No                | Product description for checkout                                                         |
+| `type`              | Yes               | `subscription` (recurring), `one_time` (single purchase), or `free`                      |
+| `recurringInterval` | For subscriptions | Billing interval: `month` or `year`                                                      |
+| `prices`            | Yes               | Array of price configurations (see below)                                                |
+| `display`           | No                | UI display options (see below)                                                           |
+
+**Price Schema:**
+
+```typescript
+prices: [{
+  amountType: "fixed" | "custom" | "free",
+  amount?: number,    // Required for "fixed", in cents (e.g., 1900 = $19.00)
+  currency?: "usd"    // Currently only USD supported
+}]
+```
+
+**Display Schema:**
+
+```typescript
+display: {
+  title: string,       // Required - Display title for pricing card
+  cta: string,         // Required - Call-to-action button text
+  features: string[],  // Required - List of features to display
+  highlighted: boolean, // Required - Whether to highlight this plan
+  subtitle?: string,   // Optional - Subtitle under title
+  badge?: string       // Optional - Badge text (e.g., "Popular")
+}
+```
+
+**Validation Rules:**
+
+- Slug must be unique across all products
+- Slug must start with a letter (pattern: `/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/`)
+- At least one price is required
+- Subscription products require a `recurringInterval` (month/year)
+- Minimum price for fixed pricing: $0.50 (50 cents)
+
+### Remove
+
+The Remove operation removes a product from your local configuration and archives it on Polar.
+
+**Flow:**
+
+1. Select the product to remove from the list
+2. Confirm removal
+
+> **Note:** Removing a product **archives** it on Polar (sets `isArchived: true`). The product is not permanently deleted. Use the Unarchive operation to restore it if needed.
+
+### Sync
+
+The Sync operation pushes your local product configuration to Polar.
+
+**What Gets Synced:**
+
+- New products are created on Polar
+- Existing products are updated with local changes
+- Product prices and metadata are synchronized
+
+**Idempotency:**
+
+Running sync multiple times is safe. The CLI compares local and remote state, only updating what has changed.
+
+![Sync operation showing products being pushed to Polar](/images/cli/sync-confirmation.png)
+
+**Success State:**
+
+```
+✓ Synced 3 products to sandbox
+  - pro-monthly (created)
+  - pro-yearly (updated)
+  - starter (unchanged)
+```
+
+**Failure State:**
+
+```
+✗ Sync failed: Invalid API token
+  Run 'eniem products' and verify your POLAR_ACCESS_TOKEN
+```
+
+**Local Save on Polar Failure:**
+
+When creating a product, if the Polar API sync fails, the product is still saved to your local JSON file with `polarProductId: null`. This allows you to:
+
+1. Fix the issue (network, token, etc.)
+2. Run Sync again to push the product to Polar
+3. The CLI will create the product on Polar and update the local file with the `polarProductId`
+
+### Regenerate
+
+The Regenerate operation rebuilds TypeScript types from your product configuration.
+
+**When to Use:**
+
+- After manually editing `products.sandbox.json` or `products.production.json`
+- When type imports show errors after product changes
+- To refresh types after pulling changes from git
+
+**What Gets Regenerated:**
+
+- TypeScript type definitions for product slugs
+- Type-safe imports for use in application code
+
+### Unarchive
+
+The Unarchive operation restores products that have been archived on Polar.
+
+**When Products Become Archived:**
+
+- Manually archived in Polar dashboard
+- Removed via the Remove operation (which archives on Polar)
+- Automatically archived after extended inactivity (rare)
+
+**How to Restore:**
+
+1. Run `eniem products` (or `eniem products --prod`)
+2. Select **Unarchive**
+3. Choose the archived product to restore
+4. Product becomes active again on Polar
+
+### Sync from Sandbox
+
+When running in production mode (`eniem products --prod`), the first menu option is "Sync products from sandbox".
+
+This operation copies your sandbox product configuration to production, allowing you to quickly replicate your tested setup.
+
+**Flow:**
+
+1. Run `eniem products --prod`
+2. Select **Sync from sandbox**
+3. Review the products that will be copied
+4. Confirm to create matching products in production
+
+**Use Case:**
+
+After thoroughly testing products in sandbox, use this to quickly set up identical products in production without re-entering all details manually.
+
+### Clean Up Polar Products
+
+The Clean up operation imports and reconciles products from Polar into your local configuration.
+
+**When to Use:**
+
+- Products were created directly in the Polar dashboard
+- Local config is out of sync with Polar
+- Starting fresh with an existing Polar product catalog
+
+**Flow:**
+
+1. Select **Clean up Polar products**
+2. CLI fetches all products from Polar
+3. Compares with local configuration
+4. Offers to import missing products or update existing ones
+
+## Generated Files
+
+### Product Configuration Files
+
+The CLI generates JSON files to store your product definitions:
+
+**`products.sandbox.json`** - Sandbox environment products
+
+```json
+{
+  "products": [
+    {
+      "slug": "pro-monthly",
+      "name": "Pro Monthly",
+      "description": "Full access, billed monthly",
+      "type": "subscription",
+      "recurringInterval": "month",
+      "prices": [
+        {
+          "amountType": "fixed",
+          "amount": 1900,
+          "currency": "usd"
+        }
+      ],
+      "display": {
+        "title": "Pro",
+        "cta": "Subscribe",
+        "features": ["Unlimited access", "Priority support"],
+        "highlighted": false
+      },
+      "polarProductId": "prod_xxx"
+    }
+  ]
+}
+```
+
+**`products.production.json`** - Production environment products
+
+Same structure as sandbox. Typically mirrors sandbox after testing.
+
+### TypeScript Types
+
+The CLI generates type definitions for type-safe product references at `src/features/subscription/products.generated.ts`:
+
+```typescript
+// src/features/subscription/products.generated.ts
+export type ProductSlug = "pro-monthly" | "pro-yearly" | "starter";
+```
+
+**Using in Application Code:**
+
+```tsx
+import { BuyButton } from "@/components/buy-button";
+import type { ProductSlug } from "@/features/subscription/products.generated";
+
+function PricingCard({ slug }: { slug: ProductSlug }) {
+  return <BuyButton slug={slug} label="Subscribe" />;
+}
+```
+
+## End-to-End Workflow
+
+Follow these steps to go from zero to synced products:
+
+### 1. Install Eniem CLI
+
+```bash
+npm install -g eniem
+# or
+pnpm add -g eniem
+```
+
+### 2. Configure Environment
+
+Create or update your `.env` file:
+
+```bash
+POLAR_ACCESS_TOKEN=your_sandbox_token_from_polar
+```
+
+> **Note:** The environment is controlled by flags (`--prod` or `--env`), not environment variables.
+
+### 3. Add Your First Product
+
+```bash
+eniem products
+```
+
+Select **Add** and complete the wizard:
+
+- Slug: `pro-monthly`
+- Name: Pro Monthly
+- Type: subscription
+- Recurring interval: month
+- Amount type: fixed
+- Price: 1900 (in cents), USD
+
+### 4. Sync to Polar
+
+From the menu, select **Sync**.
+
+The CLI creates the product on `sandbox.polar.sh`.
+
+### 5. Verify in Polar Dashboard
+
+Visit [sandbox.polar.sh](https://sandbox.polar.sh) and confirm your product appears under Products.
+
+### 6. Test in Your Application
+
+Use the generated types and BuyButton component:
+
+```tsx
+<BuyButton slug="pro-monthly" label="Start Pro" />
+```
+
+## Sandbox-to-Production Workflow
+
+Always complete sandbox testing before syncing to production.
+
+### Why Sandbox First?
+
+- Test checkout flows without real charges
+- Verify product configuration and pricing
+- Catch errors before affecting live customers
+- Use Polar's test card: `4242 4242 4242 4242`
+
+### Moving to Production
+
+1. **Create production token** at [polar.sh](https://polar.sh) (not sandbox)
+2. **Update environment** or use the `--prod` flag:
+
+```bash
+eniem products --prod
+```
+
+3. **Add products** (or use "Sync from sandbox" to copy sandbox products)
+4. **Sync** to create products on production Polar
+5. **Update `.env`** for your deployed application with the production token:
+
+```bash
+POLAR_ACCESS_TOKEN=your_production_token
+```
+
+## Error Handling
+
+### Common Error Messages
+
+| Error                           | Cause                             | Resolution                            |
+| ------------------------------- | --------------------------------- | ------------------------------------- |
+| `Invalid API token`             | Token missing or incorrect        | Verify `POLAR_ACCESS_TOKEN` in `.env` |
+| `Token missing required scopes` | Token lacks `products:read/write` | Create new token with correct scopes  |
+| `Network error during sync`     | Connection failed                 | Check internet, retry sync            |
+| `Product slug already exists`   | Duplicate slug                    | Choose a unique slug                  |
+| `No products to sync`           | Empty product list                | Add products before syncing           |
+
+### Missing or Invalid API Keys
+
+**Error:**
+
+```
+✗ Error: Invalid API token
+  Unable to authenticate with Polar API
+```
+
+**Resolution:**
+
+1. Verify token exists in `.env`:
+   ```bash
+   echo $POLAR_ACCESS_TOKEN
+   ```
+2. Confirm token is valid at Polar dashboard
+3. Ensure token has `products:read` and `products:write` scopes
+4. Check you're using the correct environment (sandbox vs production)
+
+### Network Failure During Sync
+
+**Error:**
+
+```
+✗ Sync failed: Network error
+  Could not reach Polar API
+```
+
+**Resolution:**
+
+1. Check your internet connection
+2. Verify Polar API status at [status.polar.sh](https://status.polar.sh)
+3. Retry the sync operation
+4. If persistent, wait and try again later
+
+### Product Slug Conflicts
+
+**Error:**
+
+```
+✗ Validation error: slug 'pro' already exists
+  Product slugs must be unique
+```
+
+**Resolution:**
+
+1. Choose a different slug (e.g., `pro-plan` instead of `pro`)
+2. Or remove the existing product first if it's no longer needed
+
+### Production Sync Without Sandbox Products
+
+The CLI guards against accidental production-first workflows:
+
+**Behavior:**
+
+If you run `eniem products --prod` without having synced to sandbox first, the CLI will warn you but allow proceeding if you confirm.
+
+**Recommendation:**
+
+Always sync to sandbox first, verify products work, then sync to production.
+
+### Archived Products
+
+**Why products get archived:**
+
+- Removed via the CLI Remove operation
+- Manually archived via Polar dashboard
+- Product marked inactive during cleanup
+
+**How to restore:**
+
+1. Run `eniem products` (add `--prod` for production)
+2. Select **Unarchive** from the menu
+3. Choose the archived product
+4. Product is restored and active
+
+## Troubleshooting
+
+| Problem                                 | Cause                 | Solution                              |
+| --------------------------------------- | --------------------- | ------------------------------------- |
+| Command not found: `eniem`              | CLI not installed     | Run `npm install -g eniem`            |
+| Products not appearing in Polar         | Not synced            | Run Sync operation                    |
+| Type errors after adding product        | Types not regenerated | Run Regenerate operation              |
+| Wrong environment synced                | Missing `--prod` flag | Use `--prod` for production           |
+| Token works in browser but not CLI      | Wrong token copied    | Copy full token, no extra spaces      |
+| Sync says "unchanged" but Polar differs | Local cache stale     | Delete `.eniem` cache folder, re-sync |
+
+## Command Cheatsheet
+
+| Command                           | Description                              |
+| --------------------------------- | ---------------------------------------- |
+| `eniem products`                  | Manage sandbox products (interactive)    |
+| `eniem products --prod`           | Manage production products (interactive) |
+| `eniem products --env=production` | Same as `--prod`                         |
+| `eniem products --token=xxx`      | Use specific token (bypasses `.env`)     |
+
+**Within the interactive menu:**
+
+| Option                  | Action                                               |
+| ----------------------- | ---------------------------------------------------- |
+| Add                     | Create new product via wizard                        |
+| Remove                  | Remove product (archives on Polar)                   |
+| Sync                    | Push products to Polar                               |
+| Regenerate              | Rebuild TypeScript types                             |
+| Unarchive               | Restore archived product                             |
+| Sync from sandbox       | Copy sandbox products to production (prod mode only) |
+| Clean up Polar products | Import/reconcile products from Polar                 |
+
+## FAQ
+
+**Can I skip sandbox and go straight to production?**
+
+You can, but it's not recommended. Sandbox lets you test checkout flows with test cards and catch configuration errors before they affect real customers.
+
+**How do I update an existing product?**
+
+Edit the product in `products.sandbox.json` (or `.production.json`), then run Sync. The CLI updates the product on Polar with your changes.
+
+**Where are products stored locally?**
+
+Products are stored in `products.sandbox.json` and `products.production.json` in your project root. These files are safe to commit to git.
+
+**What happens if I delete a product from Polar directly?**
+
+The local JSON file won't be affected. Next sync will recreate the product on Polar. To fully remove, delete from both the local file and Polar.
+
+**Can I have different products in sandbox vs production?**
+
+Yes, each environment has its own configuration file. However, keeping them in sync is recommended to ensure testing matches production.
+
+## Next Steps
+
+- [Product Configuration](/payments/products-generated) - Understand how synced products flow to your UI
+- [Payments Reference](/payments) - Learn about checkout flows, webhooks, and payment patterns
+- [Set Up Subscriptions](/guides/setup-subscriptions) - Configure subscription products with Polar
