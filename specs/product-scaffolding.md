@@ -224,18 +224,18 @@ Documented reference with all supported types and enum values:
   - `products.example.jsonc` - Documented example with all product/price types and enum comments
   - `products.sandbox.json` - Sandbox product definitions (root)
   - `products.production.json` - Production product definitions (root)
-  - `src/features/subscription/products.generated.ts` - Exports `sandboxProducts`, `productionProducts`, and `getProducts(env)` helper
+  - `apps/boilerplate/src/features/subscription/products.generated.ts` - Exports `sandboxProducts`, `productionProducts`, and `getProducts(env)` helper
 
 - **Files to modify**:
   - `package.json` - Add `products:sync` script
-  - `src/lib/auth.ts` - Import `getProducts(env.payment.polarServer)` for checkout config
-  - `src/features/subscription/index.ts` - Export generated products
-  - `src/app/(marketing)/pricing/page.tsx` - Use generated display data
-  - `src/locales/index.ts` - Remove hardcoded pricing text (moved to JSON)
+  - `apps/boilerplate/src/lib/auth.ts` - Import `getProducts(env.payment.polarServer)` for checkout config
+  - `apps/boilerplate/src/features/subscription/index.ts` - Export generated products
+  - `apps/boilerplate/src/app/(marketing)/pricing/page.tsx` - Use generated display data
+  - `apps/boilerplate/src/locales/index.ts` - Remove hardcoded pricing text (moved to JSON)
 
 - **Patterns to follow**:
   - Use `tsx` to run TypeScript scripts (already in devDeps)
-  - Use existing `src/lib/polar.ts` client
+  - Use existing `apps/boilerplate/src/lib/polar.ts` client
   - Follow `env.payment.polarServer` for environment detection
 
 - **Dependencies**:

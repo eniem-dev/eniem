@@ -74,7 +74,7 @@ AI agents running through the `.eni/loop.sh` build and plan workflows.
 - **Files to modify**: `.eni/PROMPT_build.md`, `.eni/PROMPT_plan.md`, `.gitignore`
 - **Patterns to follow**: See existing validation gate in `PROMPT_build.md` lines 99-104; extend with `pnpm test`
 - **Patterns to follow**: See existing design field template in `PROMPT_plan.md` lines 51-67; add `## Tests` section
-- **Existing test examples**: `src/lib/errors.test.ts`, `src/lib/utils.test.ts` (colocated, vitest, describe/it/expect)
+- **Existing test examples**: `apps/boilerplate/src/lib/errors.test.ts`, `apps/boilerplate/src/lib/utils.test.ts` (colocated, vitest, describe/it/expect)
 
 ## Verification Commands
 

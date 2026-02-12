@@ -75,32 +75,32 @@ Authenticated users with an active subscription that includes usage-based credit
 ## Technical Hints
 
 - **Files to modify**:
-  - `src/features/credits/models/credits.model.ts` — add `UsageHistoryEvent` type
-  - `src/features/credits/index.ts` — export new service, query, component
-  - `src/features/billing/components/billing-overview.tsx` — add `CreditsUsageHistoryCard`
-  - `src/locales/index.ts` — add usage history labels
+  - `apps/boilerplate/src/features/credits/models/credits.model.ts` — add `UsageHistoryEvent` type
+  - `apps/boilerplate/src/features/credits/index.ts` — export new service, query, component
+  - `apps/boilerplate/src/features/billing/components/billing-overview.tsx` — add `CreditsUsageHistoryCard`
+  - `apps/boilerplate/src/locales/index.ts` — add usage history labels
 - **Files to create**:
-  - `src/features/credits/services/credits-usage.service.ts` — `getUsageHistory()` using `polarClient.events.list()`
-  - `src/features/credits/queries/credits-usage.query.ts` — `getCreditsUsageQuery()`
-  - `src/features/credits/components/credits-usage-history-card.tsx` — billing page card (last 20)
-  - `src/app/(protected)/account/billing/usage/page.tsx` — dedicated full history page
+  - `apps/boilerplate/src/features/credits/services/credits-usage.service.ts` — `getUsageHistory()` using `polarClient.events.list()`
+  - `apps/boilerplate/src/features/credits/queries/credits-usage.query.ts` — `getCreditsUsageQuery()`
+  - `apps/boilerplate/src/features/credits/components/credits-usage-history-card.tsx` — billing page card (last 20)
+  - `apps/boilerplate/src/app/(protected)/account/billing/usage/page.tsx` — dedicated full history page
 - **Patterns to follow**:
-  - `OrderHistoryCard` (`src/features/billing/components/order-history-card.tsx`) — desktop table + mobile cards, empty state, locales pattern
+  - `OrderHistoryCard` (`apps/boilerplate/src/features/billing/components/order-history-card.tsx`) — desktop table + mobile cards, empty state, locales pattern
   - `credits.query.ts` — `createAuthenticatedQuery` wrapper pattern
   - `credits.service.ts` — Polar SDK error handling with logger
-- **Dependencies**: Existing credits feature (`src/features/credits/`), Polar SDK `events.list()` API
+- **Dependencies**: Existing credits feature (`apps/boilerplate/src/features/credits/`), Polar SDK `events.list()` API
 
 ## Verification Commands
 
 | Criterion | Command |
 |-----------|---------|
-| Service file exists | `test -f src/features/credits/services/credits-usage.service.ts && echo pass` |
-| Query file exists | `test -f src/features/credits/queries/credits-usage.query.ts && echo pass` |
-| Component file exists | `test -f src/features/credits/components/credits-usage-history-card.tsx && echo pass` |
-| Usage page exists | `test -f "src/app/(protected)/account/billing/usage/page.tsx" && echo pass` |
-| BillingOverview imports component | `grep -q "CreditsUsageHistoryCard" src/features/billing/components/billing-overview.tsx && echo pass` |
-| Locales updated | `grep -q "creditsUsageHistoryCard" src/locales/index.ts && echo pass` |
-| Exports updated | `grep -q "CreditsUsageHistoryCard" src/features/credits/index.ts && echo pass` |
+| Service file exists | `test -f apps/boilerplate/src/features/credits/services/credits-usage.service.ts && echo pass` |
+| Query file exists | `test -f apps/boilerplate/src/features/credits/queries/credits-usage.query.ts && echo pass` |
+| Component file exists | `test -f apps/boilerplate/src/features/credits/components/credits-usage-history-card.tsx && echo pass` |
+| Usage page exists | `test -f "apps/boilerplate/src/app/(protected)/account/billing/usage/page.tsx" && echo pass` |
+| BillingOverview imports component | `grep -q "CreditsUsageHistoryCard" apps/boilerplate/src/features/billing/components/billing-overview.tsx && echo pass` |
+| Locales updated | `grep -q "creditsUsageHistoryCard" apps/boilerplate/src/locales/index.ts && echo pass` |
+| Exports updated | `grep -q "CreditsUsageHistoryCard" apps/boilerplate/src/features/credits/index.ts && echo pass` |
 | Build passes | `pnpm build` |
 
 ## Test Requirements

@@ -76,9 +76,9 @@ Any authenticated user consuming credits. This is an infrastructure-level protec
 
 - **Files to modify**:
   - `prisma/schema.prisma` — add `CreditBalance` model with `userId + meterId` unique constraint
-  - `src/features/credits/services/credits.service.ts` — refactor `getCreditsBalance`, `hasCredits`, `assertHasCredits` to use local balance
-  - `src/features/credits/models/credits.model.ts` — update types if needed
-  - `src/lib/auth.ts` — add local row deletion in `onCustomerStateChanged` and `onOrderPaid` handlers
+  - `apps/boilerplate/src/features/credits/services/credits.service.ts` — refactor `getCreditsBalance`, `hasCredits`, `assertHasCredits` to use local balance
+  - `apps/boilerplate/src/features/credits/models/credits.model.ts` — update types if needed
+  - `apps/boilerplate/src/lib/auth.ts` — add local row deletion in `onCustomerStateChanged` and `onOrderPaid` handlers
 - **Files to create**:
   - `prisma/migrations/XXXXXX_add_credit_balance/migration.sql` — via `pnpm db:migrate`
 - **Patterns to follow**:
@@ -94,7 +94,7 @@ Any authenticated user consuming credits. This is an infrastructure-level protec
   });
   // result.count === 0 means insufficient balance
   ```
-- **Dependencies**: Existing credits feature, Polar webhooks in `src/lib/auth.ts`
+- **Dependencies**: Existing credits feature, Polar webhooks in `apps/boilerplate/src/lib/auth.ts`
 
 ## Verification Commands
 
@@ -102,8 +102,8 @@ Any authenticated user consuming credits. This is an infrastructure-level protec
 |-----------|---------|
 | Prisma model exists | `grep -q "model CreditBalance" prisma/schema.prisma && echo pass` |
 | Unique constraint on userId+meterId | `grep -A5 "model CreditBalance" prisma/schema.prisma \| grep -q "@@unique" && echo pass` |
-| Webhook deletes local rows | `grep -q "creditBalance" src/lib/auth.ts && echo pass` |
-| Atomic deduction pattern | `grep -q "decrement" src/features/credits/services/credits.service.ts && echo pass` |
+| Webhook deletes local rows | `grep -q "creditBalance" apps/boilerplate/src/lib/auth.ts && echo pass` |
+| Atomic deduction pattern | `grep -q "decrement" apps/boilerplate/src/features/credits/services/credits.service.ts && echo pass` |
 | Migration exists | `ls prisma/migrations/*credit_balance* && echo pass` |
 | Build passes | `pnpm build` |
 | DB migration runs | `pnpm db:push` |

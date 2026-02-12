@@ -30,11 +30,11 @@ Enhance Ralph based on Anthropic's "Effective Harnesses" + AIHero's "Ralph Metho
   - Done: abc123
 
 - [x] **Add SUPPORT_EMAIL to env config**
-  - Verify: `grep -q SUPPORT_EMAIL src/config/env.ts && echo pass`
+  - Verify: `grep -q SUPPORT_EMAIL apps/boilerplate/src/config/env.ts && echo pass`
   - Done: def456
 
 - [ ] **Add locale strings for error UI**
-  - Verify: `grep -q checkoutError src/locales/index.ts && echo pass`
+  - Verify: `grep -q checkoutError apps/boilerplate/src/locales/index.ts && echo pass`
 
 - [ ] **Implement error handling in component**
   - Verify: `pnpm test -- choose-plan-content`
@@ -43,9 +43,9 @@ Enhance Ralph based on Anthropic's "Effective Harnesses" + AIHero's "Ralph Metho
   - Verify: `gh pr view --json state -q '.state' | grep -q OPEN`
 
 ## Files to Modify
-- `src/config/env.ts`
-- `src/locales/index.ts`
-- `src/components/choose-plan-content.tsx`
+- `apps/boilerplate/src/config/env.ts`
+- `apps/boilerplate/src/locales/index.ts`
+- `apps/boilerplate/src/components/choose-plan-content.tsx`
 
 ## Patterns to Follow
 - Error state: `useState<string | null>(null)` from `reset-password.tsx`
@@ -194,7 +194,7 @@ New spec section:
 |-----------|---------|
 | Error UI displays within 1s | `pnpm test -- choose-plan "displays error"` |
 | Retry button works | `pnpm test -- choose-plan "retry triggers"` |
-| Support email link correct | `grep -q "mailto:" src/components/choose-plan-content.tsx` |
+| Support email link correct | `grep -q "mailto:" apps/boilerplate/src/components/choose-plan-content.tsx` |
 ```
 
 ---
