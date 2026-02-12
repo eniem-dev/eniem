@@ -7,6 +7,15 @@
 * 2-post-migration-config — configure package names, remove duplicate workflows, setup semantic-release ([#3](https://github.com/eniem-dev/eniem/issues/3)) ([5153390](https://github.com/eniem-dev/eniem/commit/515339027e7dced595e65e7ec4bf2145d4226b5b))
 * **cli:** document ai init command and switch to npm trusted publishing ([66f92ab](https://github.com/eniem-dev/eniem/commit/66f92abd9543b142edf9719a41811a7c2228f47f))
 
+# eniem-cli-v1.0.0 (2026-02-12)
+
+
+### Features
+
+* 1-migrate-repos — Import all repos via git subtree ([#1](https://github.com/eniem-dev/eniem/issues/1)) ([43222c6](https://github.com/eniem-dev/eniem/commit/43222c6bf4013b128ad122f0bc74230be336fa09))
+* 2-post-migration-config — configure package names, remove duplicate workflows, setup semantic-release ([#3](https://github.com/eniem-dev/eniem/issues/3)) ([5153390](https://github.com/eniem-dev/eniem/commit/515339027e7dced595e65e7ec4bf2145d4226b5b))
+* **cli:** document ai init command and switch to npm trusted publishing ([66f92ab](https://github.com/eniem-dev/eniem/commit/66f92abd9543b142edf9719a41811a7c2228f47f))
+
 # [0.7.0](https://github.com/eniem-dev/eniem-cli/compare/v0.6.0...v0.7.0) (2026-01-30)
 
 
