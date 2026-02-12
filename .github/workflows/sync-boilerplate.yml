@@ -13,10 +13,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Extract version from tag
         id: version
         run: echo "version=${GITHUB_REF#refs/tags/boilerplate@}" >> "$GITHUB_OUTPUT"
+
+      - name: Build changelog
+        id: changelog
+        run: |
+          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          PREV_TAG=$(git tag -l 'boilerplate@*' --sort=-v:refname | grep -v "^${CURRENT_TAG}$" | head -1)
+          if [ -n "$PREV_TAG" ]; then
+            LOG=$(git log "${PREV_TAG}..${CURRENT_TAG}" --oneline -- apps/boilerplate/)
+          else
+            LOG=$(git log "${CURRENT_TAG}" --oneline -- apps/boilerplate/)
+          fi
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "log<<$EOF" >> "$GITHUB_OUTPUT"
+          echo "$LOG" >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -63,7 +80,12 @@ jobs:
           git diff --cached --quiet || (
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
-            git commit -m "release: v${{ steps.version.outputs.version }}"
+            BODY="${{ steps.changelog.outputs.log }}"
+            if [ -n "$BODY" ]; then
+              git commit -m "release: v${{ steps.version.outputs.version }}" -m "$BODY"
+            else
+              git commit -m "release: v${{ steps.version.outputs.version }}"
+            fi
             git tag -a "v${{ steps.version.outputs.version }}" -m "v${{ steps.version.outputs.version }}"
             git push --follow-tags
           )
