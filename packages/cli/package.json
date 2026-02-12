@@ -12,7 +12,8 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/eniem-dev/eniem-cli.git"
+    "url": "git+https://github.com/eniem-dev/eniem.git",
+    "directory": "packages/cli"
   },
   "publishConfig": {
     "access": "public"
