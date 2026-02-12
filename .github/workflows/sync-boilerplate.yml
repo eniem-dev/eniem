@@ -1,0 +1,43 @@
+name: Sync Boilerplate
+
+on:
+  push:
+    tags:
+      - "boilerplate@*"
+
+jobs:
+  sync:
+    name: Extract & Sync Boilerplate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/boilerplate@}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Rsync boilerplate to temp dir
+        run: |
+          mkdir -p /tmp/boilerplate
+          rsync -a --exclude node_modules --exclude .next --exclude .worktrees --exclude .beads apps/boilerplate/ /tmp/boilerplate/
+
+      - name: Restore standalone package name
+        run: sed -i 's/"@eniem\/boilerplate"/"eniem"/' /tmp/boilerplate/package.json
+
+      - name: Generate standalone lock file
+        run: cd /tmp/boilerplate && pnpm install --lockfile-only
+
+      # TODO: Push to customer repo (eniem-9bk)
+      - name: Push to customer repo
+        run: echo "Placeholder — customer repo push will be added in a follow-up task"
