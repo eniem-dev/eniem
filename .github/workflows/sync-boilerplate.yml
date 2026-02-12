@@ -38,6 +38,32 @@ jobs:
       - name: Generate standalone lock file
         run: cd /tmp/boilerplate && pnpm install --lockfile-only
 
-      # TODO: Push to customer repo (eniem-9bk)
-      - name: Push to customer repo
-        run: echo "Placeholder — customer repo push will be added in a follow-up task"
+      - name: Setup deploy key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.BOILERPLATE_DEPLOY_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Clone customer repo
+        env:
+          GIT_SSH_COMMAND: "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
+        run: git clone git@github.com:eniem-dev/eniem-boilerplate.git /tmp/customer-repo
+
+      - name: Swap .git directory
+        run: |
+          rm -rf /tmp/boilerplate/.git
+          mv /tmp/customer-repo/.git /tmp/boilerplate/.git
+
+      - name: Commit, tag, and push if changes exist
+        env:
+          GIT_SSH_COMMAND: "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
+        working-directory: /tmp/boilerplate
+        run: |
+          git add -A
+          git diff --cached --quiet || (
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "release: v${{ steps.version.outputs.version }}"
+            git tag "v${{ steps.version.outputs.version }}"
+            git push --follow-tags
+          )
