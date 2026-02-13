@@ -29,11 +29,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix",
-    "eni:plan": "./.eni/loop.sh plan",
-    "eni:plan-work": "./.eni/loop.sh plan-work",
-    "eni:build": "./.eni/loop.sh build",
-    "eni:build:auto": "./.eni/loop.sh build 10"
+    "lint:fix": "eslint src/ --fix"
   },
   "dependencies": {
     "@polar-sh/sdk": "^0.31.0",
