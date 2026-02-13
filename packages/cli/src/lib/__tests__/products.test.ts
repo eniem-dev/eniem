@@ -346,6 +346,17 @@ describe("products", () => {
   });
 
   describe("readProductsFile", () => {
+    it("reads from polar/ subdirectory", async () => {
+      mockReadFile.mockResolvedValue(JSON.stringify([validProduct]));
+
+      await readProductsFile("/project", "sandbox");
+
+      expect(mockReadFile).toHaveBeenCalledWith(
+        "/project/polar/products.sandbox.json",
+        "utf-8"
+      );
+    });
+
     it("reads and parses valid products file", async () => {
       mockReadFile.mockResolvedValue(JSON.stringify([validProduct]));
 
@@ -358,7 +369,7 @@ describe("products", () => {
       }
     });
 
-    it("returns error for missing file", async () => {
+    it("returns error for missing file with polar/ path", async () => {
       const error = new Error("ENOENT") as NodeJS.ErrnoException;
       error.code = "ENOENT";
       mockReadFile.mockRejectedValue(error);
@@ -367,18 +378,18 @@ describe("products", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toContain("not found");
+        expect(result.error).toContain("polar/products.sandbox.json not found");
       }
     });
 
-    it("returns error for invalid JSON", async () => {
+    it("returns error for invalid JSON with polar/ path", async () => {
       mockReadFile.mockResolvedValue("{ invalid json }");
 
       const result = await readProductsFile("/project", "sandbox");
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toContain("invalid JSON");
+        expect(result.error).toContain("polar/products.sandbox.json contains invalid JSON");
       }
     });
 
@@ -389,7 +400,7 @@ describe("products", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toContain("must contain an array");
+        expect(result.error).toContain("polar/products.sandbox.json must contain an array");
       }
     });
 
@@ -428,6 +439,17 @@ describe("products", () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.products).toHaveLength(0);
+      }
+    });
+
+    it("error messages reference polar/ path for unknown errors", async () => {
+      mockReadFile.mockRejectedValue("string error");
+
+      const result = await readProductsFile("/project", "production");
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error).toContain("polar/products.production.json");
       }
     });
   });
