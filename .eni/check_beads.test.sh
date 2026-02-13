@@ -52,7 +52,22 @@ else
   assert "check_beads called before check_requirements in plan" "fail"
 fi
 
-# Test 5: Error message references 'eniem ai init' when bd not found
+# Test 5: check_beads is called before check_requirements in build command
+BUILD_BLOCK=$(sed -n '/^  build)/,/^  ;;/p' "$LOOP_SH")
+if echo "$BUILD_BLOCK" | grep -q "check_beads"; then
+  # Also verify check_beads comes before check_requirements in the build block
+  BEADS_LINE=$(echo "$BUILD_BLOCK" | grep -n "check_beads" | head -1 | cut -d: -f1)
+  REQ_LINE=$(echo "$BUILD_BLOCK" | grep -n "check_requirements" | head -1 | cut -d: -f1)
+  if [ "$BEADS_LINE" -lt "$REQ_LINE" ]; then
+    assert "check_beads called before check_requirements in build" "pass"
+  else
+    assert "check_beads called before check_requirements in build" "fail"
+  fi
+else
+  assert "check_beads called before check_requirements in build" "fail"
+fi
+
+# Test 6: Error message references 'eniem ai init' when bd not found
 if grep -A3 'command -v bd' "$LOOP_SH" | grep -q 'eniem ai init'; then
   assert "Error message references 'eniem ai init' when bd not found" "pass"
 else

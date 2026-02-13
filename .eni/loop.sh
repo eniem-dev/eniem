@@ -211,6 +211,7 @@ case "${1:-}" in
     ;;
 
   build)
+    check_beads
     check_requirements
 
     # Parse arguments: [epic-name] [iterations]
