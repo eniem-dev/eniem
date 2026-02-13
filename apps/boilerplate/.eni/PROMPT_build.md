@@ -95,7 +95,7 @@ If the task is a `[Tracer]` task, it MUST touch all layers end-to-end before mov
 
 Follow:
 - The design field in the bead
-- Patterns in `CLAUDE.md`
+- Patterns in `AGENTS.md`
 - Existing code conventions
 
 **Test requirement:** Each implementation must include colocated `.test.ts` files.

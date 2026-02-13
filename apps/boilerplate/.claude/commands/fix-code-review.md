@@ -126,16 +126,16 @@ Ready to commit? (Don't commit automatically - let user decide)
 
 After fixing comments, analyze whether any fix reveals a gap between implementation and documented patterns:
 
-1. **Compare with CLAUDE.md** - Does the fix follow a pattern not documented?
+1. **Compare with AGENTS.md** - Does the fix follow a pattern not documented?
 2. **Check consistency** - Is this a recurring issue that could be prevented?
 3. **Identify root cause** - Why did this gap happen?
 
 If a gap is detected, use AskUserQuestion:
-- "I noticed [describe gap]. Should I update CLAUDE.md to document this pattern?"
+- "I noticed [describe gap]. Should I update AGENTS.md to document this pattern?"
 - Options: "Yes, update docs" / "No, one-time fix" / "Let me explain"
 
 Examples of detectable gaps:
-- Using `console.log` instead of `logger` (already in CLAUDE.md)
+- Using `console.log` instead of `logger` (already in AGENTS.md)
 - Missing error handling pattern
 - Inconsistent file naming
 - Not using established abstractions

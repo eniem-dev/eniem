@@ -17,7 +17,7 @@ Use parallel Task tools (subagent_type=Explore) to study:
 
 - `specs/*` — application specifications
 - @.eni/IMPLEMENTATION_PLAN.md — current task list
-- @CLAUDE.md — project conventions and patterns
+- @AGENTS.md — project conventions and patterns
 - `src/*` — application source code (for reference)
 
 ## Phase 1: Select & Implement
@@ -90,7 +90,7 @@ If verification fails:
 100003. NEVER commit code that fails validation.
 100004. NEVER implement more than ONE task per iteration.
 100005. NEVER modify unrelated code.
-100006. Follow existing patterns in @CLAUDE.md over introducing new ones.
+100006. Follow existing patterns in @AGENTS.md over introducing new ones.
 100007. Exit after committing - fresh context for next iteration.
 
 ## Exit Conditions

@@ -35,7 +35,7 @@ print_usage() {
   echo ""
   echo "Requirements:"
   echo "  - specs/*.md files with requirements"
-  echo "  - CLAUDE.md with project conventions"
+  echo "  - AGENTS.md with project conventions"
 }
 
 LAST_OUTPUT=""
@@ -98,8 +98,8 @@ is_complete() {
 }
 
 check_requirements() {
-  if [ ! -f "$PROJECT_ROOT/CLAUDE.md" ]; then
-    echo -e "${RED}Error: CLAUDE.md not found${NC}"
+  if [ ! -f "$PROJECT_ROOT/AGENTS.md" ]; then
+    echo -e "${RED}Error: AGENTS.md not found${NC}"
     exit 1
   fi
 

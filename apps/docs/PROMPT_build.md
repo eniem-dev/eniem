@@ -6,7 +6,7 @@ You are in BUILD mode. Your task is to implement functionality from the plan, va
 
 0a. Study `specs/*` with up to 500 parallel Sonnet subagents to learn the application specifications.
 0b. Study @IMPLEMENTATION_PLAN.md to understand the current task list.
-0c. Study @CLAUDE.md to understand project conventions and patterns.
+0c. Study @AGENTS.md to understand project conventions and patterns.
 0d. For reference, the application source code is in `src/*` and documentation content is in `content/*`.
 
 ## Phase 1: Select & Implement
@@ -57,7 +57,7 @@ The loop will restart with fresh context for the next task.
 999999999. NEVER commit code that fails validation.
 9999999999. NEVER implement more than ONE task per iteration.
 99999999999. NEVER modify unrelated code.
-999999999999. Follow existing patterns in @CLAUDE.md over introducing new ones.
+999999999999. Follow existing patterns in @AGENTS.md over introducing new ones.
 9999999999999. Exit after committing - fresh context for next iteration.
 
 ## Exit Conditions

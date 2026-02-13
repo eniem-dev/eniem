@@ -146,7 +146,7 @@ Process:
 3. Shows plan for approval
 4. Applies approved fixes
 5. Validates (build, lint, tests)
-6. Detects pattern gaps for CLAUDE.md updates
+6. Detects pattern gaps for AGENTS.md updates
 
 ## Guardrails
 
@@ -156,7 +156,7 @@ Ralph follows strict guardrails (9-series numbering for priority):
 - **Search before implementing** - Never assume functionality is missing
 - **One task per iteration** - Fresh context prevents drift
 - **Validation required** - Never commit failing code
-- **Follow existing patterns** - CLAUDE.md conventions over new ones
+- **Follow existing patterns** - AGENTS.md conventions over new ones
 - **WHY over WHAT** - Documentation captures reasoning
 
 ## Folder Structure
@@ -168,7 +168,7 @@ repo/
 ├── PROMPT_plan_work.md     # Work-scoped planning prompt
 ├── PROMPT_build.md         # Build mode prompt
 ├── IMPLEMENTATION_PLAN.md  # Generated task list (gitignored)
-├── CLAUDE.md               # Project conventions
+├── AGENTS.md               # Project conventions (CLAUDE.md symlinks here)
 ├── specs/                  # Feature specifications
 │   ├── user-auth.md
 │   └── analytics.md
