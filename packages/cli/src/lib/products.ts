@@ -375,7 +375,7 @@ export async function generateProductsTs(projectDir: string): Promise<GenerateRe
   if (!sandboxResult.success && !productionResult.success) {
     return {
       success: false,
-      error: "No products files found. Create products.sandbox.json or products.production.json first.",
+      error: "No products files found. Create polar/products.sandbox.json or polar/products.production.json first.",
     };
   }
 
