@@ -17,16 +17,17 @@ Examples:
 ## Process
 
 1. **Parse argument**: Check if the argument matches a GitHub issue URL (`https://github.com/<owner>/<repo>/issues/<number>`). If so, extract the issue number and store the full URL for use in the Post-Completion section. Use the extracted issue number alongside the feature name for the spec filename. If the argument is a plain feature name, proceed without GitHub issue context.
-2. **Start with context**: Ask what the user already knows about the feature
-3. **JTBD Discovery**: Understand the job-to-be-done
-4. **Scope Definition**: Clarify boundaries and constraints
-5. **Requirements Gathering**: Identify specific requirements
-6. **Acceptance Criteria**: Define what success looks like
-7. **Edge Cases**: Explore error states and edge cases
-8. **Technical Hints**: Identify files, patterns, dependencies
-9. **Test Requirements**: Derive test cases from acceptance criteria
-10. **Write Spec**: Create `specs/<feature-name>.md`
-11. **Label issue** *(GitHub URL only)*: Run `gh issue edit <number> --add-label spec-ready` to mark the issue as ready for implementation. If the label doesn't exist, create it first: `gh label create spec-ready --description "Spec created, ready for implementation" --color 0E8A16`. If labeling fails (no gh CLI, permissions error), warn the user but do not block — the spec is already written successfully.
+2. **Fetch issue context** *(GitHub URL only)*: Run `gh issue view <number> --json title,body,labels` to fetch the issue details. Use the issue title and body as starting context for the interview — skip asking "what is this feature about" questions since the issue already describes it. If the fetch fails (gh CLI not installed, not authenticated, private repo), warn the user and continue with the normal interview flow.
+3. **Start with context**: Ask what the user already knows about the feature
+4. **JTBD Discovery**: Understand the job-to-be-done
+5. **Scope Definition**: Clarify boundaries and constraints
+6. **Requirements Gathering**: Identify specific requirements
+7. **Acceptance Criteria**: Define what success looks like
+8. **Edge Cases**: Explore error states and edge cases
+9. **Technical Hints**: Identify files, patterns, dependencies
+10. **Test Requirements**: Derive test cases from acceptance criteria
+11. **Write Spec**: Create `specs/<feature-name>.md`
+12. **Label issue** *(GitHub URL only)*: Run `gh issue edit <number> --add-label spec-ready` to mark the issue as ready for implementation. If the label doesn't exist, create it first: `gh label create spec-ready --description "Spec created, ready for implementation" --color 0E8A16`. If labeling fails (no gh CLI, permissions error), warn the user but do not block — the spec is already written successfully.
 
 ## Interview Questions (use AskUserQuestionTool)
 
