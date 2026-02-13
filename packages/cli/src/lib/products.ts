@@ -228,7 +228,7 @@ export async function writeProductsFile(
   env: string,
   products: Product[]
 ): Promise<WriteProductsResult> {
-  const filePath = join(projectDir, `products.${env}.json`);
+  const filePath = join(projectDir, `polar/products.${env}.json`);
 
   try {
     // Check if file exists and has $schema wrapper
@@ -260,7 +260,7 @@ export async function writeProductsFile(
     return {
       success: false,
       path: filePath,
-      error: `Failed to write products.${env}.json: ${errorMessage}`,
+      error: `Failed to write polar/products.${env}.json: ${errorMessage}`,
     };
   }
 }

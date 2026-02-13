@@ -467,14 +467,14 @@ describe("products", () => {
       ]);
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe("/project/products.sandbox.json");
+      expect(result.path).toBe("/project/polar/products.sandbox.json");
       expect(mockWriteFile).toHaveBeenCalledWith(
-        "/project/products.sandbox.json",
+        "/project/polar/products.sandbox.json",
         expect.stringContaining('"$schema"'),
         "utf-8"
       );
       expect(mockWriteFile).toHaveBeenCalledWith(
-        "/project/products.sandbox.json",
+        "/project/polar/products.sandbox.json",
         expect.stringContaining('"products"'),
         "utf-8"
       );
@@ -492,7 +492,7 @@ describe("products", () => {
 
       expect(result.success).toBe(true);
       expect(mockWriteFile).toHaveBeenCalledWith(
-        "/project/products.sandbox.json",
+        "/project/polar/products.sandbox.json",
         expect.stringContaining('"$schema": "./custom.schema.json"'),
         "utf-8"
       );
@@ -535,7 +535,7 @@ describe("products", () => {
         validProduct,
       ]);
 
-      expect(result.path).toBe("/project/products.production.json");
+      expect(result.path).toBe("/project/polar/products.production.json");
     });
   });
 
