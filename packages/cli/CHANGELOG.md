@@ -1,3 +1,10 @@
+# [eniem-cli-v1.1.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.0.0...eniem-cli-v1.1.0) (2026-02-13)
+
+
+### Features
+
+* consolidate CLAUDE.md into AGENTS.md with symlinks ([#25](https://github.com/eniem-dev/eniem/issues/25)) ([2f59d6b](https://github.com/eniem-dev/eniem/commit/2f59d6b04ab6e7db573a10270ba677f6abd0fd0c))
+
 # eniem-cli-v1.0.0 (2026-02-12)
 
 
