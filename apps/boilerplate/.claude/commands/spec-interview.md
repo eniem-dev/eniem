@@ -8,21 +8,24 @@ Create a specification file through structured interview using AskUserQuestionTo
 
 ## Usage
 
-`/spec-interview <feature-name>`
+`/spec-interview <feature-name-or-github-url>`
 
-Example: `/spec-interview analytics-dashboard`
+Examples:
+- `/spec-interview analytics-dashboard`
+- `/spec-interview https://github.com/eniem-dev/eniem/issues/42`
 
 ## Process
 
-1. **Start with context**: Ask what the user already knows about the feature
-2. **JTBD Discovery**: Understand the job-to-be-done
-3. **Scope Definition**: Clarify boundaries and constraints
-4. **Requirements Gathering**: Identify specific requirements
-5. **Acceptance Criteria**: Define what success looks like
-6. **Edge Cases**: Explore error states and edge cases
-7. **Technical Hints**: Identify files, patterns, dependencies
-8. **Test Requirements**: Derive test cases from acceptance criteria
-9. **Write Spec**: Create `specs/<feature-name>.md`
+1. **Parse argument**: Check if the argument matches a GitHub issue URL (`https://github.com/<owner>/<repo>/issues/<number>`). If so, extract the issue number and store the full URL for use in the Post-Completion section. Use the extracted issue number alongside the feature name for the spec filename. If the argument is a plain feature name, proceed without GitHub issue context.
+2. **Start with context**: Ask what the user already knows about the feature
+3. **JTBD Discovery**: Understand the job-to-be-done
+4. **Scope Definition**: Clarify boundaries and constraints
+5. **Requirements Gathering**: Identify specific requirements
+6. **Acceptance Criteria**: Define what success looks like
+7. **Edge Cases**: Explore error states and edge cases
+8. **Technical Hints**: Identify files, patterns, dependencies
+9. **Test Requirements**: Derive test cases from acceptance criteria
+10. **Write Spec**: Create `specs/<feature-name>.md`
 
 ## Interview Questions (use AskUserQuestionTool)
 
@@ -127,6 +130,12 @@ After interview, create `specs/<feature-name>.md`:
 - [ ] Test: [derived from acceptance criterion 1]
 - [ ] Test: [derived from acceptance criterion 2]
 - [ ] Test: [edge case test]
+
+<!-- Include this section ONLY if a GitHub issue URL was provided as argument -->
+## Post-Completion
+
+- [ ] Close GitHub issue: <github-issue-url>
+- [ ] PR description includes: Closes #<issue-number>
 ```
 
 ## Guardrails
@@ -138,3 +147,4 @@ After interview, create `specs/<feature-name>.md`:
 - The spec captures WHAT and WHY, not HOW
 - Explore the codebase to fill Technical Hints section
 - Derive Test Requirements directly from Acceptance Criteria
+- Only include the Post-Completion section when a GitHub issue URL was provided as argument; omit it entirely for plain feature names
