@@ -104,6 +104,56 @@ else
   assert "Includes fallback install method (npm install -g @beads/bd)" "fail"
 fi
 
+# ===== Boilerplate loop.sh tests =====
+BOILERPLATE_SH="$SCRIPT_DIR/../apps/boilerplate/.eni/loop.sh"
+
+if [ -f "$BOILERPLATE_SH" ]; then
+  echo ""
+  echo "Testing check_beads in apps/boilerplate/.eni/loop.sh"
+  echo "====================================================="
+
+  if grep -q "check_beads()" "$BOILERPLATE_SH"; then
+    assert "[boilerplate] check_beads() function is defined" "pass"
+  else
+    assert "[boilerplate] check_beads() function is defined" "fail"
+  fi
+
+  if grep -q 'command -v bd' "$BOILERPLATE_SH"; then
+    assert "[boilerplate] Uses 'command -v bd'" "pass"
+  else
+    assert "[boilerplate] Uses 'command -v bd'" "fail"
+  fi
+
+  if grep -q '! -d.*\.beads' "$BOILERPLATE_SH"; then
+    assert "[boilerplate] Checks .beads/ directory with -d flag" "pass"
+  else
+    assert "[boilerplate] Checks .beads/ directory with -d flag" "fail"
+  fi
+
+  BP_PLAN_BLOCK=$(sed -n '/^  plan)/,/^  ;;/p' "$BOILERPLATE_SH")
+  if echo "$BP_PLAN_BLOCK" | grep -q "check_beads"; then
+    assert "[boilerplate] check_beads in plan block" "pass"
+  else
+    assert "[boilerplate] check_beads in plan block" "fail"
+  fi
+
+  BP_BUILD_BLOCK=$(sed -n '/^  build)/,/^  ;;/p' "$BOILERPLATE_SH")
+  if echo "$BP_BUILD_BLOCK" | grep -q "check_beads"; then
+    assert "[boilerplate] check_beads in build block" "pass"
+  else
+    assert "[boilerplate] check_beads in build block" "fail"
+  fi
+
+  if bash "$BOILERPLATE_SH" help > /dev/null 2>&1; then
+    assert "[boilerplate] help command runs successfully" "pass"
+  else
+    assert "[boilerplate] help command runs successfully" "fail"
+  fi
+else
+  echo ""
+  echo "SKIP: apps/boilerplate/.eni/loop.sh not found"
+fi
+
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
 if [ "$FAIL" -gt 0 ]; then
