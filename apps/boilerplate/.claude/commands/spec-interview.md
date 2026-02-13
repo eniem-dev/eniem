@@ -26,6 +26,7 @@ Examples:
 8. **Technical Hints**: Identify files, patterns, dependencies
 9. **Test Requirements**: Derive test cases from acceptance criteria
 10. **Write Spec**: Create `specs/<feature-name>.md`
+11. **Label issue** *(GitHub URL only)*: Run `gh issue edit <number> --add-label spec-ready` to mark the issue as ready for implementation. If the label doesn't exist, create it first: `gh label create spec-ready --description "Spec created, ready for implementation" --color 0E8A16`. If labeling fails (no gh CLI, permissions error), warn the user but do not block — the spec is already written successfully.
 
 ## Interview Questions (use AskUserQuestionTool)
 
