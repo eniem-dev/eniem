@@ -140,6 +140,13 @@ After interview, create `specs/<feature-name>.md`:
 - [ ] PR description includes: Closes #<issue-number>
 ```
 
+## Edge Cases
+
+- **Invalid GitHub URL** (e.g., not matching `https://github.com/<owner>/<repo>/issues/<number>`): treat as a plain feature name — no Post-Completion section, no labeling, no auto-fetch
+- **gh CLI not installed or not authenticated**: warn the user, skip auto-fetch (step 2) and labeling (step 12), but still include the Post-Completion section with the GitHub URL since the user can close the issue manually
+- **Issue URL from a different repo**: use the URL as-is in the Post-Completion section; labeling is attempted on that repo (may fail if no permissions)
+- **Backward compatibility**: a plain feature name (e.g., `analytics-dashboard`) works exactly as before — no Post-Completion, no labeling, no auto-fetch, standard interview flow
+
 ## Guardrails
 
 - Ask questions using AskUserQuestionTool with clear options
