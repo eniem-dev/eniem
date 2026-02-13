@@ -1,3 +1,10 @@
+# [eniem-cli-v1.2.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.1.0...eniem-cli-v1.2.0) (2026-02-13)
+
+
+### Features
+
+* cleanup AI workflow artifacts from sub-projects ([#21](https://github.com/eniem-dev/eniem/issues/21)) ([#26](https://github.com/eniem-dev/eniem/issues/26)) ([4de92a0](https://github.com/eniem-dev/eniem/commit/4de92a00597d96aa540fe6443959523af9ba6140))
+
 # [eniem-cli-v1.1.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.0.0...eniem-cli-v1.1.0) (2026-02-13)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "eniem-cli",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Interactive CLI wizard for scaffolding Eniem projects",
   "author": {
     "name": "0xtiby",
