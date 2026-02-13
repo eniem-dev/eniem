@@ -7,7 +7,7 @@ You are in PLANNING mode. Your task is to analyze specifications and generate a 
 0a. Study `specs/*` with up to 250 parallel Sonnet subagents to learn the application specifications.
 0b. Study @IMPLEMENTATION_PLAN.md (if present) to understand the plan so far.
 0c. Study `content/docs/`, `src/app/`, `src/components/`, `src/lib/` with up to 250 parallel Sonnet subagents to understand the documentation site structure and patterns.
-0d. Study @CLAUDE.md to understand project conventions and patterns.
+0d. Study @AGENTS.md to understand project conventions and patterns.
 0e. For reference, the application source code is in `src/*` and documentation content is in `content/*`.
 
 ## Phase 1: Gap Analysis

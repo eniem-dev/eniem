@@ -15,7 +15,7 @@ Before any work:
 Use parallel Task tools (subagent_type=Explore) to study:
 - `specs/*` — application specifications
 - @.toby/IMPLEMENTATION_PLAN.md — current task list
-- @CLAUDE.md — project conventions and patterns
+- @AGENTS.md — project conventions and patterns
 - `src/*` — application source code (for reference)
 
 ## Phase 1: Select & Implement
@@ -83,7 +83,7 @@ If verification fails:
 999999999. NEVER commit code that fails validation.
 9999999999. NEVER implement more than ONE task per iteration.
 99999999999. NEVER modify unrelated code.
-999999999999. Follow existing patterns in @CLAUDE.md over introducing new ones.
+999999999999. Follow existing patterns in @AGENTS.md over introducing new ones.
 9999999999999. Exit after committing - fresh context for next iteration.
 
 ## Exit Conditions

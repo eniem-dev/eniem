@@ -113,8 +113,8 @@ is_refined() {
 }
 
 check_requirements() {
-  if [ ! -f "$PROJECT_ROOT/CLAUDE.md" ]; then
-    echo -e "${RED}Error: CLAUDE.md not found${NC}"
+  if [ ! -f "$PROJECT_ROOT/AGENTS.md" ]; then
+    echo -e "${RED}Error: AGENTS.md not found${NC}"
     exit 1
   fi
 

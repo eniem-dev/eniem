@@ -11,7 +11,7 @@ You are in WORK-SCOPED PLANNING mode. Your task is to create a focused implement
 0a. Study `specs/*` with up to 250 parallel Sonnet subagents, focusing on specs relevant to the work scope above.
 0b. Study @IMPLEMENTATION_PLAN.md (if present) to understand the plan so far.
 0c. Study `content/docs/`, `src/app/`, `src/components/`, `src/lib/` with up to 250 parallel Sonnet subagents to understand the documentation site structure and patterns.
-0d. Study @CLAUDE.md to understand project conventions and patterns.
+0d. Study @AGENTS.md to understand project conventions and patterns.
 0e. For reference, the application source code is in `src/*` and documentation content is in `content/*`.
 
 ## Phase 1: Scoped Gap Analysis

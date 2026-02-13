@@ -13,7 +13,7 @@ Use parallel Task tools (subagent_type=Explore) to study:
 - `specs/*` — focusing on specs relevant to the work scope above
 - @.eni/IMPLEMENTATION_PLAN.md (if present) — current plan state
 - `src/lib/*` — shared utilities and components
-- @CLAUDE.md — project conventions and patterns
+- @AGENTS.md — project conventions and patterns
 - `src/*` — application source code (for reference)
 
 ## Phase 1: Scoped Gap Analysis
