@@ -112,6 +112,21 @@ is_refined() {
   echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_PLAN_REFINED:::"
 }
 
+check_beads() {
+  if ! command -v bd &> /dev/null; then
+    echo -e "${RED}Error: bd (beads) is not installed${NC}"
+    echo -e "Install with: ${YELLOW}eniem ai init${NC}"
+    echo -e "Or manually: ${YELLOW}npm install -g @beads/bd${NC}"
+    exit 1
+  fi
+
+  if [ ! -d "$PROJECT_ROOT/.beads" ]; then
+    echo -e "${RED}Error: .beads/ directory not found — beads not initialized${NC}"
+    echo -e "Initialize with: ${YELLOW}eniem ai init${NC}"
+    exit 1
+  fi
+}
+
 check_requirements() {
   if [ ! -f "$PROJECT_ROOT/AGENTS.md" ]; then
     echo -e "${RED}Error: AGENTS.md not found${NC}"
@@ -168,6 +183,7 @@ case "${1:-}" in
       exit 1
     fi
 
+    check_beads
     check_requirements
     echo -e "${GREEN}=== Planning Mode: ${SPEC_NAME} ===${NC}"
     $INTERACTIVE && echo -e "${BLUE}Interactive mode enabled${NC}"
