@@ -154,7 +154,7 @@ export async function readProductsFile(
   projectDir: string,
   env: string
 ): Promise<ReadProductsResult | ReadProductsError> {
-  const filePath = join(projectDir, `products.${env}.json`);
+  const filePath = join(projectDir, `polar/products.${env}.json`);
 
   try {
     const content = await readFile(filePath, "utf-8");
@@ -169,7 +169,7 @@ export async function readProductsFile(
     } else {
       return {
         success: false,
-        error: `products.${env}.json must contain an array of products (either directly or in a "products" property)`,
+        error: `polar/products.${env}.json must contain an array of products (either directly or in a "products" property)`,
       };
     }
 
@@ -192,23 +192,23 @@ export async function readProductsFile(
       if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return {
           success: false,
-          error: `products.${env}.json not found. Create the file first or run from an eniem project directory.`,
+          error: `polar/products.${env}.json not found. Create the file first or run from an eniem project directory.`,
         };
       }
       if (error instanceof SyntaxError) {
         return {
           success: false,
-          error: `products.${env}.json contains invalid JSON: ${error.message}`,
+          error: `polar/products.${env}.json contains invalid JSON: ${error.message}`,
         };
       }
       return {
         success: false,
-        error: `Failed to read products.${env}.json: ${error.message}`,
+        error: `Failed to read polar/products.${env}.json: ${error.message}`,
       };
     }
     return {
       success: false,
-      error: `Failed to read products.${env}.json: Unknown error`,
+      error: `Failed to read polar/products.${env}.json: Unknown error`,
     };
   }
 }
@@ -228,7 +228,7 @@ export async function writeProductsFile(
   env: string,
   products: Product[]
 ): Promise<WriteProductsResult> {
-  const filePath = join(projectDir, `products.${env}.json`);
+  const filePath = join(projectDir, `polar/products.${env}.json`);
 
   try {
     // Check if file exists and has $schema wrapper
@@ -260,7 +260,7 @@ export async function writeProductsFile(
     return {
       success: false,
       path: filePath,
-      error: `Failed to write products.${env}.json: ${errorMessage}`,
+      error: `Failed to write polar/products.${env}.json: ${errorMessage}`,
     };
   }
 }
@@ -375,7 +375,7 @@ export async function generateProductsTs(projectDir: string): Promise<GenerateRe
   if (!sandboxResult.success && !productionResult.success) {
     return {
       success: false,
-      error: "No products files found. Create products.sandbox.json or products.production.json first.",
+      error: "No products files found. Create polar/products.sandbox.json or polar/products.production.json first.",
     };
   }
 

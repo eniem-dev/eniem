@@ -104,7 +104,7 @@ describe("ProductsCommand", () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(mockReadFile).toHaveBeenCalledWith(
-        "/test/project/products.production.json",
+        "/test/project/polar/products.production.json",
         "utf-8"
       );
     });
@@ -117,7 +117,7 @@ describe("ProductsCommand", () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(mockReadFile).toHaveBeenCalledWith(
-        "/test/project/products.sandbox.json",
+        "/test/project/polar/products.sandbox.json",
         "utf-8"
       );
     });
