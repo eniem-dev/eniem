@@ -14,33 +14,29 @@ This file is **auto-generated**—you should never edit it manually. When you up
 The generated file exports TypeScript types that your components consume:
 
 ```typescript
-// GeneratedProduct - Full product data from Polar
-export interface GeneratedProduct {
-  name: string;
-  slug: string;
-  description: string | null;
-  polarProductId: string;
-  prices: {
-    monthly: { amount: number; currency: string } | null;
-    yearly: { amount: number; currency: string } | null;
-  };
+// ProductDisplay - Display configuration for UI rendering
+export interface ProductDisplay {
+  title: string;
+  subtitle?: string;
+  price: string;
+  period?: string;
+  badge: string | null;
   features: string[];
   highlighted: boolean;
+  cta: string;
 }
 
-// ProductDisplay - Formatted for UI rendering
-export type ProductDisplay = {
-  name: string;
+// GeneratedProduct - Full product identity + metadata
+export interface GeneratedProduct {
   slug: string;
-  description: string | null;
-  monthlyPrice: string | null;
-  yearlyPrice: string | null;
-  features: string[];
-  highlighted: boolean;
-};
+  productId: string | null;
+  name: string;
+  type: "subscription" | "one_time" | "free";
+  display: ProductDisplay;
+}
 ```
 
-**Why two types?** `GeneratedProduct` stores raw data (amounts in cents, both price variants). `ProductDisplay` is UI-ready—prices formatted as strings like "$9/month" with the active billing interval already selected.
+**Why two types?** `GeneratedProduct` holds the full product identity—slug, Polar product ID, name, and billing type. `ProductDisplay` is a nested object within each product that contains all the UI rendering configuration: formatted prices, feature lists, badges, and call-to-action text. Note that `productId` is `null` for unconfigured products (e.g. production products before Polar IDs are set), which is used by `getCheckoutProducts()` to filter them out.
 
 ## Environment Configuration
 
@@ -51,113 +47,111 @@ export const sandboxProducts: GeneratedProduct[] = [/* ... */];
 export const productionProducts: GeneratedProduct[] = [/* ... */];
 ```
 
-Your app selects the correct set based on environment:
+The `getProducts()` helper selects the correct set based on environment:
 
 ```typescript
-const products = env.payment.polarServer === "sandbox"
-  ? sandboxProducts
-  : productionProducts;
+export function getProducts(env: "sandbox" | "production"): GeneratedProduct[] {
+  return env === "sandbox" ? sandboxProducts : productionProducts;
+}
 ```
 
-This enables testing with sandbox products in development while production uses real Polar product IDs.
+Pass `env.payment.polarServer` from your app config:
+
+```typescript
+import { getDisplayProducts } from "@/features/subscription";
+import { env } from "@/config";
+
+const products = getDisplayProducts(env.payment.polarServer);
+```
+
+Sandbox products have real Polar `productId` values for testing checkout flows. Production products start with `productId: null` until you configure them in the Polar dashboard—`getCheckoutProducts()` filters these out automatically.
 
 ## Data Flow
 
 ```
-┌─────────────────────────┐
-│  products.generated.ts  │  ← CLI syncs from Polar
-└───────────┬─────────────┘
-            │
-            ▼
-┌─────────────────────────┐
-│   getDisplayProducts()  │  ← Filters & formats for UI
-└───────────┬─────────────┘
-            │
-    ┌───────┴───────┐
-    ▼               ▼
-┌─────────┐   ┌──────────────┐
-│ Pricing │   │  ChoosePlan  │
-│  Page   │   │    Page      │
-└────┬────┘   └──────┬───────┘
-     │               │
-     └───────┬───────┘
-             ▼
-     ┌─────────────┐
-     │ PricingCard │  ← Renders product details
-     └──────┬──────┘
-            │
-            ▼
-     ┌─────────────┐
-     │  BuyButton  │  ← Initiates checkout
-     └─────────────┘
+┌──────────────────────────────┐
+│    products.generated.ts     │  ← CLI syncs from Polar
+└──────────────┬───────────────┘
+               │
+       ┌───────┴────────┐
+       ▼                ▼
+┌──────────────┐  ┌──────────────────┐
+│ getDisplay   │  │ getCheckout      │
+│ Products()   │  │ Products()       │
+└──────┬───────┘  └──────┬───────────┘
+       │                 │
+   ┌───┴────┐            ▼
+   ▼        ▼      ┌──────────────┐
+┌────────┐ ┌────────────────┐     │ BetterAuth   │
+│Pricing │ │ChoosePlan      │     │ checkout     │
+│ Page   │ │ Content        │     │ config       │
+└───┬────┘ └───┬────────────┘     └──────────────┘
+    │          │
+    │     (has plan selection?)
+    │      ├─ yes → auto-checkout
+    │      └─ no  ─┐
+    └──────┬───────┘
+           ▼
+    ┌─────────────┐
+    │ PricingCard  │  ← product.display → props
+    └──────┬──────┘
+           ▼
+    ┌─────────────┐
+    │  BuyButton   │  ← slug-based checkout
+    └─────────────┘
 ```
+
+**Two consumption paths:**
+- **PricingPage** calls `getDisplayProducts(env)` and renders each product as a `PricingCard`. Display fields are mapped to props: `product.display.title` → `name`, `product.display.price` → `price`, `product.display.features` → `features`, etc.
+- **ChoosePlanContent** receives the same products. If the URL contains a plan selection (from an unauthenticated BuyButton redirect), it auto-triggers `authClient.checkout()` on mount. Otherwise it falls back to showing PricingCards.
 
 ## Product Filtering
 
 Not all products should appear on the pricing page. `getDisplayProducts()` filters products:
 
 ```typescript
-export function getDisplayProducts(
-  billingInterval: "monthly" | "yearly"
-): ProductDisplay[] {
-  return products
-    .filter((product) => product.features.length > 0) // Must have features
-    .map((product) => ({
-      name: product.name,
-      slug: product.slug,
-      description: product.description,
-      monthlyPrice: formatPrice(product.prices.monthly),
-      yearlyPrice: formatPrice(product.prices.yearly),
-      features: product.features,
-      highlighted: product.highlighted,
-    }));
+export function getDisplayProducts(env: "sandbox" | "production") {
+  return getProducts(env).filter((p) => p.display.features.length > 0);
 }
 ```
 
-**Why filter by features?** Products without features are typically internal (API-only checkout) or incomplete. Filtering ensures only customer-facing products with displayable feature lists appear in the UI.
+This returns `GeneratedProduct[]`—the full product objects, not just display data. Components then access `product.display.title`, `product.display.price`, etc. for rendering.
+
+**Why filter by `display.features`?** Products without display features are typically internal (API-only checkout) or incomplete. Filtering ensures only customer-facing products with displayable feature lists appear in the UI.
 
 ## Checkout Integration
 
 The `BuyButton` component initiates checkout using the product slug:
 
 ```tsx
-import { BuyButton } from "@/components/buy-button";
-
-// In PricingCard
-<BuyButton slug={product.slug} label="Get Started" />
+<BuyButton slug={product.slug} label={product.display.cta} />
 ```
 
-The slug maps to a `productId` configured in BetterAuth's checkout plugin:
+`BuyButton` handles two flows depending on authentication state:
 
-```typescript
-// lib/auth.ts
-checkout({
-  products: [
-    { productId: "polar-uuid-here", slug: "pro-monthly" },
-    { productId: "polar-uuid-here", slug: "pro-yearly" },
-  ],
-  // ...
-})
-```
+- **Authenticated users**: Calls `authClient.checkout({ slug })` to start a Polar checkout session directly.
+- **Unauthenticated users**: Redirects to the signup page with the selected plan encoded in the URL via `appendPlanSelectionToUrl`, so the plan is preserved through registration.
 
-**Why slugs instead of product IDs?** Slugs are human-readable and stable across environments. The same slug ("pro-monthly") maps to different Polar product IDs in sandbox vs production, configured in your auth setup.
+The BetterAuth checkout plugin is auto-configured using `getCheckoutProducts()` (see below), so you don't need to manually list product IDs in your auth config.
+
+**Why slugs instead of product IDs?** Slugs are human-readable and stable across environments. The same slug ("pro-monthly") maps to different Polar product IDs in sandbox vs production.
 
 ## Checkout Products
 
-For BetterAuth integration, `getCheckoutProducts()` returns only products that can complete checkout:
+For BetterAuth integration, `getCheckoutProducts()` returns only products with a valid Polar product ID:
 
 ```typescript
-export function getCheckoutProducts(): { productId: string; slug: string }[] {
-  return products
-    .filter((product) => product.polarProductId) // Must have Polar ID
-    .map((product) => ({
-      productId: product.polarProductId,
-      slug: product.slug,
+export function getCheckoutProducts(env: "sandbox" | "production") {
+  return getProducts(env)
+    .filter((p) => p.productId !== null)
+    .map((p) => ({
+      productId: p.productId as string,
+      slug: p.slug,
     }));
 }
 ```
 
-This array is passed to BetterAuth's `checkout()` plugin, ensuring only valid products can initiate payment flows.
+Products with `productId: null` (unconfigured in the Polar dashboard) are excluded. This array is passed to BetterAuth's `polar.checkout.products` config, ensuring only valid products can initiate payment flows.
 
 ## Related
 
