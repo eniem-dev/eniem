@@ -62,13 +62,23 @@ If `git worktree remove` fails for a specific worktree (e.g., uncommitted change
 
 After processing all matched worktrees, report the total count of worktrees removed and branches deleted.
 
-### Step 5: Sync beads
+### Step 5: Delete remote branches
+
+For each branch that was deleted locally in Step 4, also delete it from the remote:
+
+```bash
+git push origin --delete feat/<epic-name>
+```
+
+If the remote branch has already been deleted (e.g., GitHub auto-deleted it on PR merge), the push will fail. Ignore this gracefully — it simply means the remote is already clean. Do not show error output to the user for already-deleted remote branches.
+
+### Step 6: Sync beads
 
 ```bash
 bd sync
 ```
 
-### Step 6: Confirm clean state
+### Step 7: Confirm clean state
 
 ```bash
 git status
