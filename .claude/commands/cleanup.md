@@ -78,13 +78,20 @@ If the remote branch has already been deleted (e.g., GitHub auto-deleted it on P
 bd sync
 ```
 
-### Step 7: Confirm clean state
+### Step 7: Confirm clean state and print summary
 
 ```bash
 git status
 ```
 
-Report what was cleaned up (worktrees removed, branches deleted) or that nothing needed cleanup.
+Print a final summary of all actions taken:
+
+- If worktrees were removed: `Removed N worktrees: feat/epic-a, feat/epic-b, ...`
+- If remote branches were deleted: `Deleted N remote branches`
+- If some worktrees were skipped due to errors: `Skipped M worktrees (uncommitted changes)`
+- If nothing was cleaned: `Nothing to clean up — no merged worktrees detected.`
+
+The summary should be fully automatic with no confirmation prompts or interactive selection at any point during execution.
 
 ## Edge Cases
 
