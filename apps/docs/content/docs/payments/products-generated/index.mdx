@@ -14,33 +14,29 @@ This file is **auto-generated**—you should never edit it manually. When you up
 The generated file exports TypeScript types that your components consume:
 
 ```typescript
-// GeneratedProduct - Full product data from Polar
-export interface GeneratedProduct {
-  name: string;
-  slug: string;
-  description: string | null;
-  polarProductId: string;
-  prices: {
-    monthly: { amount: number; currency: string } | null;
-    yearly: { amount: number; currency: string } | null;
-  };
+// ProductDisplay - Display configuration for UI rendering
+export interface ProductDisplay {
+  title: string;
+  subtitle?: string;
+  price: string;
+  period?: string;
+  badge: string | null;
   features: string[];
   highlighted: boolean;
+  cta: string;
 }
 
-// ProductDisplay - Formatted for UI rendering
-export type ProductDisplay = {
-  name: string;
+// GeneratedProduct - Full product identity + metadata
+export interface GeneratedProduct {
   slug: string;
-  description: string | null;
-  monthlyPrice: string | null;
-  yearlyPrice: string | null;
-  features: string[];
-  highlighted: boolean;
-};
+  productId: string | null;
+  name: string;
+  type: "subscription" | "one_time" | "free";
+  display: ProductDisplay;
+}
 ```
 
-**Why two types?** `GeneratedProduct` stores raw data (amounts in cents, both price variants). `ProductDisplay` is UI-ready—prices formatted as strings like "$9/month" with the active billing interval already selected.
+**Why two types?** `GeneratedProduct` holds the full product identity—slug, Polar product ID, name, and billing type. `ProductDisplay` is a nested object within each product that contains all the UI rendering configuration: formatted prices, feature lists, badges, and call-to-action text. Note that `productId` is `null` for unconfigured products (e.g. production products before Polar IDs are set), which is used by `getCheckoutProducts()` to filter them out.
 
 ## Environment Configuration
 
@@ -51,15 +47,24 @@ export const sandboxProducts: GeneratedProduct[] = [/* ... */];
 export const productionProducts: GeneratedProduct[] = [/* ... */];
 ```
 
-Your app selects the correct set based on environment:
+The `getProducts()` helper selects the correct set based on environment:
 
 ```typescript
-const products = env.payment.polarServer === "sandbox"
-  ? sandboxProducts
-  : productionProducts;
+export function getProducts(env: "sandbox" | "production"): GeneratedProduct[] {
+  return env === "sandbox" ? sandboxProducts : productionProducts;
+}
 ```
 
-This enables testing with sandbox products in development while production uses real Polar product IDs.
+Pass `env.payment.polarServer` from your app config:
+
+```typescript
+import { getDisplayProducts } from "@/features/subscription";
+import { env } from "@/config";
+
+const products = getDisplayProducts(env.payment.polarServer);
+```
+
+Sandbox products have real Polar `productId` values for testing checkout flows. Production products start with `productId: null` until you configure them in the Polar dashboard—`getCheckoutProducts()` filters these out automatically.
 
 ## Data Flow
 
