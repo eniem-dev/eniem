@@ -10,11 +10,11 @@ Automatically detect merged feature branches, remove their worktrees and local b
 
 ### Step 1: Switch to main and pull latest
 
+If currently on a feature branch (not main), switch to main first. If currently inside a worktree directory, navigate to the main repo root before switching.
+
 ```bash
 git checkout main && git pull
 ```
-
-If currently inside a worktree, exit to the repo root first.
 
 ### Step 2: Detect merged feature branches
 
@@ -85,6 +85,14 @@ git status
 ```
 
 Report what was cleaned up (worktrees removed, branches deleted) or that nothing needed cleanup.
+
+## Edge Cases
+
+- **Dirty worktrees:** If `git worktree remove` fails because a worktree has uncommitted changes, report the failure with the worktree path and error message, skip it, and continue with remaining worktrees
+- **beads-sync worktree:** The worktree at `.git/beads-worktrees/beads-sync` must NEVER be touched — it is managed by the beads daemon. Only worktrees under `.worktrees/feat/` are candidates for cleanup
+- **No merged branches:** If no merged feature branches are found, output "Nothing to clean up — no merged worktrees detected." and skip to the sync/status steps
+- **Idempotent:** Running this command twice in a row is safe — the second run will find nothing to clean up since worktrees and branches were already removed
+- **Starting from feature branch:** The command works regardless of the current branch — Step 1 switches to main before scanning
 
 ## Guardrails
 
