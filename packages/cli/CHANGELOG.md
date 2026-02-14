@@ -1,3 +1,10 @@
+# [eniem-cli-v1.3.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.2.0...eniem-cli-v1.3.0) (2026-02-14)
+
+
+### Features
+
+* 6-polar-config-dedicated-folder ([#28](https://github.com/eniem-dev/eniem/issues/28)) ([e999e70](https://github.com/eniem-dev/eniem/commit/e999e70a8a5fcf89a186b8e3eeef701b6bcaad97))
+
 # [eniem-cli-v1.2.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.1.0...eniem-cli-v1.2.0) (2026-02-13)
 
 
