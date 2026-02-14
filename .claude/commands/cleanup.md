@@ -26,35 +26,41 @@ git branch --merged main
 
 Filter for branches matching the `feat/*` pattern. Ignore `main` itself and any other non-feature branches.
 
-### Step 3: Identify merged worktrees
+### Step 3: Identify all merged worktrees
 
-Cross-reference merged feature branches with active worktrees in `.worktrees/feat/`:
+Enumerate all active worktrees and cross-reference with merged branches:
 
 ```bash
 git worktree list
 ```
 
-For each worktree in `.worktrees/feat/`, check if its branch appears in the merged branch list from Step 2. Collect matched worktrees for removal.
+Build a list of ALL worktrees under `.worktrees/feat/` whose branch appears in the merged branch list from Step 2. Only include worktrees in `.worktrees/feat/` — ignore any other worktree paths.
 
 **Important:** Do NOT touch the beads-sync worktree at `.git/beads-worktrees/beads-sync`.
 
-### Step 4: Remove merged worktrees and branches
+**Important:** Worktrees outside `.worktrees/feat/` (e.g., the main worktree) must be ignored.
 
-For each merged worktree found:
+### Step 4: Remove all merged worktrees and branches
+
+If no merged worktrees were found in Step 3, report "Nothing to clean up — no merged worktrees detected." and continue to Step 5.
+
+Otherwise, iterate over ALL matched worktrees and for each one:
 
 1. Remove the worktree:
    ```bash
    git worktree remove .worktrees/feat/<epic-name>
    ```
 
-2. Delete the local branch:
+2. Delete the corresponding local branch:
    ```bash
    git branch -d feat/<epic-name>
    ```
 
-If `git worktree remove` fails (e.g., uncommitted changes), report the error and skip that worktree.
+3. Report what was removed (worktree path and branch name).
 
-If no merged worktrees are found, report "Nothing to clean up — no merged worktrees detected." and continue to Step 5.
+If `git worktree remove` fails for a specific worktree (e.g., uncommitted changes), report the error, skip that worktree, and continue with the remaining ones.
+
+After processing all matched worktrees, report the total count of worktrees removed and branches deleted.
 
 ### Step 5: Sync beads
 
