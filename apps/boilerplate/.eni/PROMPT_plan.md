@@ -74,9 +74,9 @@ bd create --type=task \
 
 **Task granularity:** Each task should take ~2 minutes. If longer, break it down.
 
-### Tracer Bullet First
+### Tracer Bullet Phase
 
-The **FIRST task** must be a tracer bullet: a tiny end-to-end slice that touches all layers.
+The **first tasks** form a tracer bullet phase: one or more tasks that together build a minimal end-to-end slice touching all layers.
 
 From _The Pragmatic Programmer_: Don't build horizontal layers in isolation. Build one vertical slice first, test it, get feedback, then expand.
 
@@ -84,16 +84,22 @@ From _The Pragmatic Programmer_: Don't build horizontal layers in isolation. Bui
 - ❌ Wrong: Schema → all queries → all actions → all UI
 - ✅ Right: Schema + one query + one action + one UI = tracer bullet, then expand
 
-**Tracer bullet task pattern:**
-```
-Title: "[Tracer] Implement [minimal e2e slice]"
-Description: "End-to-end slice validating architecture"
-```
+**How many tracer tasks?** Use the ~2 min granularity rule and your judgment:
+- If the vertical slice fits in one task (~2 min), create one tracer task.
+- If distinct layers (e.g., DB migration, API endpoint, UI component) each need meaningful work, split into multiple tracer tasks.
 
-After the tracer bullet validates the approach, create remaining tasks that expand horizontally.
+**Multi-task tracer example** (credits system):
+```
+Task 1: "Add credits column to user schema and seed data"
+Task 2: "Create getCredits API query and deductCredits action"
+Task 3: "Add credits display badge to user profile page"
+```
+All three are tracer tasks forming the minimal vertical slice. Non-tracer tasks expand from here.
+
+After the tracer phase validates the approach, create remaining tasks that expand horizontally.
 
 **Standard structure:**
-1. **Tracer bullet** — minimal e2e slice (DB → API → UI if applicable)
+1. **Tracer phase** (1+ tasks) — minimal e2e slice (DB → API → UI if applicable)
 2. Schema issues: Remaining data model changes
 3. Backend issues: Queries, actions, handlers
 4. Frontend issues: Components, pages
@@ -109,6 +115,7 @@ bd dep add <issue> <depends-on>
 Patterns:
 - Schema → API → UI
 - Utils → features using them
+- **Tracer → non-tracer:** All non-tracer tasks must depend on the last tracer task. This ensures the vertical slice validates the architecture before horizontal expansion begins.
 
 ### Step 6: Output Summary
 
