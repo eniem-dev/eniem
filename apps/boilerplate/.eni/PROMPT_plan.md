@@ -20,7 +20,18 @@ Read `specs/{{SPEC_NAME}}.md` and extract:
 - UI/UX flows (screens, interactions)
 - Acceptance criteria (verification)
 
-### Step 2: Check for Duplicates
+### Step 2: Explore Codebase
+
+Before creating issues, validate assumptions against actual code:
+
+- **Find files to modify:** Search for existing files related to the spec's entities and flows
+- **Identify patterns:** Look at similar features already implemented for structure to follow
+- **Check reusable code:** Find existing utilities, helpers, or components that can be reused
+- **Verify data model:** Compare spec entities against current `prisma/schema.prisma`
+
+This ensures the Files and Patterns sections in issue designs are accurate, not guessed.
+
+### Step 3: Check for Duplicates
 
 ```bash
 bd list --status=open
@@ -29,7 +40,7 @@ bd list --type=epic
 
 Skip if beads already exist for this spec.
 
-### Step 3: Create Epic
+### Step 4: Create Epic
 
 ```bash
 bd create --type=epic \
@@ -40,7 +51,7 @@ bd create --type=epic \
 
 Note the epic ID (e.g., `beads-001`).
 
-### Step 4: Create Issues
+### Step 5: Create Issues
 
 For each logical work unit, create an issue:
 
@@ -106,7 +117,7 @@ After the tracer phase validates the approach, create remaining tasks that expan
 
 **Note:** Branch creation and PR are handled by the build prompt, not here.
 
-### Step 5: Add Dependencies
+### Step 6: Add Dependencies
 
 ```bash
 bd dep add <issue> <depends-on>
@@ -117,7 +128,7 @@ Patterns:
 - Utils → features using them
 - **Tracer → non-tracer:** All non-tracer tasks must depend on the last tracer task. This ensures the vertical slice validates the architecture before horizontal expansion begins.
 
-### Step 6: Output Summary
+### Step 7: Output Summary
 
 ```markdown
 ## Beads Created for: {{SPEC_NAME}}
