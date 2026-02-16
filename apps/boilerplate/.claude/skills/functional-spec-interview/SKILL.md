@@ -17,13 +17,14 @@ Example: `/functional-spec user-onboarding`
 
 1. **Context Discovery** - Understand what user already knows
 2. **Problem & Users** - Who has the problem, why it matters
-3. **User Stories** - What users can do (behaviors)
-4. **Business Rules** - Conditions and logic governing the feature
-5. **Data Model** - What data exists and how it transforms
-6. **UI/UX Flows** - Screens, interactions, states
-7. **Edge Cases** - Error states, limits, exceptions
-8. **Acceptance Criteria** - How to verify success
-9. **Write Spec** - Output to `specs/<feature-name>.md`
+3. **Scope Definition** - What's in, what's out, boundaries
+4. **User Stories** - What users can do (behaviors)
+5. **Business Rules** - Conditions and logic governing the feature
+6. **Data Model** - What data exists and how it transforms
+7. **UI/UX Flows** - Screens, interactions, states
+8. **Edge Cases** - Error states, limits, exceptions
+9. **Acceptance Criteria** - How to verify success
+10. **Write Spec** - Output to `specs/<feature-name>.md`
 
 ## Interview Guidelines
 
@@ -64,7 +65,26 @@ Start here. Understand what's already known.
 - What's the cost of not solving it?
 - How will users' lives improve?
 
-### 3. User Stories
+### 3. Scope Definition
+
+Draw clear boundaries before going deeper.
+
+**Inclusions:**
+- What should this feature include?
+- What are the must-have behaviors for v1?
+- Are there related features this touches?
+
+**Exclusions:**
+- What should it explicitly NOT do?
+- What's a future phase vs this phase?
+- Any adjacent features we should avoid scope-creeping into?
+
+**Constraints:**
+- Any non-functional requirements? (performance, accessibility, device support)
+- Platform or browser constraints?
+- Data volume expectations?
+
+### 4. User Stories
 
 Extract concrete behaviors users can perform.
 
@@ -76,7 +96,7 @@ Format: "As a [user], I can [action] so that [benefit]"
 - What happens next? And after that?
 - Are there different paths for different users?
 
-### 4. Business Rules
+### 5. Business Rules
 
 Uncover the logic and conditions.
 
@@ -87,7 +107,7 @@ Uncover the logic and conditions.
 - Are there time-based rules? (expiration, scheduling)
 - What validates input? What's rejected?
 
-### 5. Data Model
+### 6. Data Model
 
 Understand what data exists and transforms.
 
@@ -106,7 +126,7 @@ Understand what data exists and transforms.
 - Where does it go?
 - What transformations happen?
 
-### 6. UI/UX Flows
+### 7. UI/UX Flows
 
 Detail the interface and interactions.
 
@@ -133,7 +153,7 @@ Detail the interface and interactions.
 - Keyboard shortcuts?
 - Mobile considerations?
 
-### 7. Edge Cases
+### 8. Edge Cases
 
 Explore boundaries and failures.
 
@@ -149,7 +169,7 @@ Explore boundaries and failures.
 - What if list has 10,000 items?
 - What about concurrent access?
 
-### 8. Acceptance Criteria
+### 9. Acceptance Criteria
 
 Define testable success conditions.
 

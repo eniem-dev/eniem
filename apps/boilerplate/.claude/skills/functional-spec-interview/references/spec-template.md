@@ -15,6 +15,21 @@ Use this template when writing the functional specification.
 **Problem:** [What problem they face]
 **Impact:** [Cost of not solving / benefit of solving]
 
+## Scope
+
+### Included
+- [What this feature covers]
+- [Must-have behaviors for v1]
+
+### Excluded
+- [Explicitly not in this version]
+- [Future phase considerations]
+
+### Constraints
+- [Non-functional requirements: performance, accessibility]
+- [Platform/browser/device constraints]
+- [Data volume expectations]
+
 ## User Stories
 
 ### Primary Flow
@@ -129,11 +144,6 @@ Use this template when writing the functional specification.
 ### [User Story 2]
 
 - [ ] **Given** [precondition], **when** [action], **then** [result]
-
-## Out of Scope
-
-- [Feature/behavior explicitly not included]
-- [Future consideration]
 
 ## Open Questions
 
