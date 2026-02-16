@@ -4,16 +4,16 @@ description: Post-merge cleanup — remove merged worktrees and branches, sync b
 
 # Cleanup After PR Merge
 
-Automatically detect merged feature branches, remove their worktrees and local branches, and leave the repo in a clean state on main.
+Automatically detect merged feature branches, remove their worktrees and local branches, and leave the repo in a clean state on quality.
 
 ## Process
 
-### Step 1: Switch to main and pull latest
+### Step 1: Switch to quality and pull latest
 
-If currently on a feature branch (not main), switch to main first. If currently inside a worktree directory, navigate to the main repo root before switching.
+If currently on a feature branch (not quality), switch to quality first. If currently inside a worktree directory, navigate to the main repo root before switching.
 
 ```bash
-git checkout main && git pull
+git checkout quality && git pull
 ```
 
 ### Step 2: Detect merged feature branches
@@ -29,10 +29,10 @@ Then detect merged branches using **two methods** (union of both results):
 **Method A — Git merge detection** (catches regular merges):
 
 ```bash
-git branch --merged main
+git branch --merged quality
 ```
 
-Filter for branches matching the `feat/*` pattern. Ignore `main` itself and any other non-feature branches.
+Filter for branches matching the `feat/*` pattern. Ignore `quality`, `main`, and any other non-feature branches.
 
 **Method B — GitHub PR detection** (catches squash merges and rebase merges):
 
@@ -40,7 +40,7 @@ Filter for branches matching the `feat/*` pattern. Ignore `main` itself and any 
 gh pr list --state merged --limit 50 --json headRefName
 ```
 
-Cross-reference with local `feat/*` branches. A local branch is considered merged if a merged PR exists with the same `headRefName`.
+Cross-reference with local `feat/*` branches. A local branch is considered merged if a merged PR exists (into `quality`) with the same `headRefName`.
 
 The final list of merged branches is the **union** of both methods.
 
@@ -132,12 +132,12 @@ The summary should be fully automatic with no confirmation prompts or interactiv
 - **beads-sync worktree:** The worktree at `.git/beads-worktrees/beads-sync` must NEVER be touched — it is managed by the beads daemon. Only worktrees under `.worktrees/feat/` are candidates for cleanup
 - **No merged branches:** If no merged feature branches are found, output "Nothing to clean up — no merged branches detected." and skip to the sync/status steps
 - **Idempotent:** Running this command twice in a row is safe — the second run will find nothing to clean up since worktrees and branches were already removed
-- **Starting from feature branch:** The command works regardless of the current branch — Step 1 switches to main before scanning
+- **Starting from feature branch:** The command works regardless of the current branch — Step 1 switches to quality before scanning
 - **gh CLI unavailable:** If `gh` is not installed or not authenticated, fall back to Method A only (`git branch --merged`) and warn that squash-merged branches may not be detected
 
 ## Guardrails
 
-- Never remove worktrees whose branches have NOT been merged into main
+- Never remove worktrees whose branches have NOT been merged into quality
 - Never touch the `beads-sync` worktree in `.git/beads-worktrees/`
 - If a worktree has uncommitted changes, skip it and report the issue
 - This command is idempotent — running it twice is safe
