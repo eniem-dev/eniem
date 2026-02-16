@@ -5,11 +5,6 @@ You are in PLANNING mode. Translate a spec into beads epics and issues.
 **Spec:** `specs/{{SPEC_NAME}}.md`
 **Iteration:** {{ITERATION}}
 
-**Monorepo structure:**
-- `apps/boilerplate` — Main product (Next.js 15, BetterAuth, Polar, Prisma)
-- `apps/docs` — Documentation site (Next.js 16, Fumadocs)
-- `packages/cli` — CLI scaffolding tool (Ink 5, React 18)
-
 ---
 
 ## Iteration 1: Create Beads
@@ -72,9 +67,7 @@ bd create --type=task \
 - [ ] [Specific deliverable 2]
 
 ## Files
-- \`apps/boilerplate/path/to/file.ts\` (create|modify)
-- \`packages/cli/path/to/file.ts\` (create|modify)
-- \`apps/docs/path/to/file.ts\` (create|modify)
+- \`path/to/file.ts\` (create|modify)
 
 ## Patterns
 - See \`path/to/example/\` for reference
@@ -83,10 +76,7 @@ bd create --type=task \
 [Expected test cases: what to test and expected outcomes]
 
 ## Verify
-[command to run — use turborepo filters when targeting specific packages]
-\`pnpm turbo build --filter=@eniem/boilerplate\`
-\`pnpm turbo build --filter=eniem-cli\`
-\`pnpm turbo build --filter=@eniem/docs\`" \
+[command to run]" \
   --notes="Epic: [epic-id]" \
   --priority=2
 ```
@@ -94,8 +84,6 @@ bd create --type=task \
 **Design field is REQUIRED** with all 5 sections. This enables any model to execute.
 
 **Task granularity:** Each task should take ~2 minutes. If longer, break it down.
-
-**Monorepo paths:** Always use full paths from monorepo root (e.g., `apps/boilerplate/src/...`, `packages/cli/src/...`).
 
 ### Tracer Bullet Phase
 
@@ -187,8 +175,6 @@ Review each issue against the spec:
 - [ ] Design fields have ALL 6 sections (Context, Acceptance Criteria, Files, Patterns, Tests, Verify)?
 - [ ] Tests section present in design field with expected test cases?
 - [ ] Verification commands are testable?
-- [ ] File paths use monorepo-relative paths (e.g., `apps/boilerplate/src/...`)?
-- [ ] Verify commands use turborepo filters where appropriate?
 
 ### Step 3: Update Issues
 
