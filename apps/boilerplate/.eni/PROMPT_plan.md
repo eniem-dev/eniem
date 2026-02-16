@@ -5,6 +5,11 @@ You are in PLANNING mode. Translate a spec into beads epics and issues.
 **Spec:** `specs/{{SPEC_NAME}}.md`
 **Iteration:** {{ITERATION}}
 
+**Monorepo structure:**
+- `apps/boilerplate` — Main product (Next.js 15, BetterAuth, Polar, Prisma)
+- `apps/docs` — Documentation site (Next.js 16, Fumadocs)
+- `packages/cli` — CLI scaffolding tool (Ink 5, React 18)
+
 ---
 
 ## Iteration 1: Create Beads
@@ -20,7 +25,18 @@ Read `specs/{{SPEC_NAME}}.md` and extract:
 - UI/UX flows (screens, interactions)
 - Acceptance criteria (verification)
 
-### Step 2: Check for Duplicates
+### Step 2: Explore Codebase
+
+Before creating issues, validate assumptions against actual code:
+
+- **Find files to modify:** Search for existing files related to the spec's entities and flows
+- **Identify patterns:** Look at similar features already implemented for structure to follow
+- **Check reusable code:** Find existing utilities, helpers, or components that can be reused
+- **Verify data model:** Compare spec entities against current `prisma/schema.prisma`
+
+This ensures the Files and Patterns sections in issue designs are accurate, not guessed.
+
+### Step 3: Check for Duplicates
 
 ```bash
 bd list --status=open
@@ -29,7 +45,7 @@ bd list --type=epic
 
 Skip if beads already exist for this spec.
 
-### Step 3: Create Epic
+### Step 4: Create Epic
 
 ```bash
 bd create --type=epic \
@@ -40,7 +56,7 @@ bd create --type=epic \
 
 Note the epic ID (e.g., `beads-001`).
 
-### Step 4: Create Issues
+### Step 5: Create Issues
 
 For each logical work unit, create an issue:
 
@@ -56,7 +72,9 @@ bd create --type=task \
 - [ ] [Specific deliverable 2]
 
 ## Files
-- \`path/to/file.ts\` (create|modify)
+- \`apps/boilerplate/path/to/file.ts\` (create|modify)
+- \`packages/cli/path/to/file.ts\` (create|modify)
+- \`apps/docs/path/to/file.ts\` (create|modify)
 
 ## Patterns
 - See \`path/to/example/\` for reference
@@ -65,7 +83,10 @@ bd create --type=task \
 [Expected test cases: what to test and expected outcomes]
 
 ## Verify
-[command to run]" \
+[command to run — use turborepo filters when targeting specific packages]
+\`pnpm turbo build --filter=@eniem/boilerplate\`
+\`pnpm turbo build --filter=eniem-cli\`
+\`pnpm turbo build --filter=@eniem/docs\`" \
   --notes="Epic: [epic-id]" \
   --priority=2
 ```
@@ -73,6 +94,8 @@ bd create --type=task \
 **Design field is REQUIRED** with all 5 sections. This enables any model to execute.
 
 **Task granularity:** Each task should take ~2 minutes. If longer, break it down.
+
+**Monorepo paths:** Always use full paths from monorepo root (e.g., `apps/boilerplate/src/...`, `packages/cli/src/...`).
 
 ### Tracer Bullet Phase
 
@@ -106,7 +129,7 @@ After the tracer phase validates the approach, create remaining tasks that expan
 
 **Note:** Branch creation and PR are handled by the build prompt, not here.
 
-### Step 5: Add Dependencies
+### Step 6: Add Dependencies
 
 ```bash
 bd dep add <issue> <depends-on>
@@ -117,7 +140,7 @@ Patterns:
 - Utils → features using them
 - **Tracer → non-tracer:** All non-tracer tasks must depend on the last tracer task. This ensures the vertical slice validates the architecture before horizontal expansion begins.
 
-### Step 6: Output Summary
+### Step 7: Output Summary
 
 ```markdown
 ## Beads Created for: {{SPEC_NAME}}
@@ -164,6 +187,8 @@ Review each issue against the spec:
 - [ ] Design fields have ALL 6 sections (Context, Acceptance Criteria, Files, Patterns, Tests, Verify)?
 - [ ] Tests section present in design field with expected test cases?
 - [ ] Verification commands are testable?
+- [ ] File paths use monorepo-relative paths (e.g., `apps/boilerplate/src/...`)?
+- [ ] Verify commands use turborepo filters where appropriate?
 
 ### Step 3: Update Issues
 
