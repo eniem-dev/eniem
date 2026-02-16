@@ -24,9 +24,24 @@ Filter: `pnpm turbo build --filter=@eniem/boilerplate`
 Each package manages its own dependency versions (React 18 in CLI, React 19 in apps).
 Do NOT try to unify React/Zod versions across packages.
 
+## Branching Strategy
+
+This repo uses a **quality branch** as an integration gate before `main`.
+
+- **Feature branches** → PR to `quality` (NOT `main`)
+- **`quality` → `main`** → triggers releases
+
+**When starting new work, ALWAYS branch from `quality`:**
+```bash
+git checkout quality && git pull
+git checkout -b feat/<feature-name>
+```
+
+**NEVER create feature branches from `main`.**
+
 ## Release
-- **CLI**: Conventional commits on `packages/cli/**` → auto-publish to npm
-- **Boilerplate**: Tag `boilerplate@x.y.z` → syncs to customer repo
+- **CLI**: Conventional commits on `packages/cli/**` → auto-publish to npm (triggered on merge to `main`)
+- **Boilerplate**: Auto-tagged on merge from `quality` to `main` via conventional commits → syncs to customer repo
 - **Docs**: Push to main → deploy via Vercel/Netlify
 
 ## Beads (Issue Tracking)
