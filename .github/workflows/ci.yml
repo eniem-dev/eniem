@@ -22,4 +22,12 @@ jobs:
 
       - run: cp apps/boilerplate/.env.example apps/boilerplate/.env
 
+      - name: Copy starter env files
+        run: |
+          for dir in apps/starters/*/; do
+            if [ -f "$dir/.env.example" ]; then
+              cp "$dir/.env.example" "$dir/.env"
+            fi
+          done
+
       - run: pnpm turbo build lint typecheck test
