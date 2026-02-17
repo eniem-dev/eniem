@@ -47,7 +47,7 @@ jobs:
       - name: Rsync starters to temp dir
         run: |
           mkdir -p /tmp/starters
-          rsync -a --exclude node_modules --exclude .next --exclude .worktrees --exclude .beads --exclude specs --exclude .claude apps/starters/ /tmp/starters/
+          rsync -a --exclude node_modules --exclude .next --exclude .worktrees --exclude .beads --exclude specs --exclude .claude --exclude .eni --exclude .github apps/starters/ /tmp/starters/
 
       - name: Generate standalone lock files
         run: |

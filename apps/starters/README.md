@@ -6,7 +6,7 @@ Example projects that demonstrate specific eniem use cases. Each starter is a st
 
 | Starter | Description |
 |---------|-------------|
-| [eniem-polar-benefits-sample](./eniem-polar-benefits-sample/) | Demonstrates Polar benefits integration — downloadables, GitHub repo access, and subscription management. |
+| [eniem-polar-benefits](./eniem-polar-benefits/) | Demonstrates Polar benefits integration — downloadables, GitHub repo access, and subscription management. |
 
 ## Usage
 
