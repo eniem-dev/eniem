@@ -341,7 +341,7 @@ bd ready              # Find available work
 bd show <id>          # View issue details
 bd update <id> --status in_progress  # Claim work
 bd close <id>         # Complete work
-bd sync --from-main   # Sync beads from main
+bd sync --full        # Full sync with git
 ```
 
 ### Beads Hygiene
@@ -362,7 +362,7 @@ bd sync --from-main   # Sync beads from main
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync --from-main
+   bd sync --full                      # exports & commits to beads-sync branch
    git push
    ```
 5. **Verify** - `git status` must show "up to date with origin"
