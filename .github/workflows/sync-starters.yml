@@ -1,0 +1,94 @@
+name: Sync Starters
+
+on:
+  push:
+    tags:
+      - "starters@*"
+
+jobs:
+  sync:
+    name: Extract & Sync Starters
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/starters@}" >> "$GITHUB_OUTPUT"
+
+      - name: Build changelog
+        id: changelog
+        run: |
+          CURRENT_TAG="${GITHUB_REF#refs/tags/}"
+          PREV_TAG=$(git tag -l 'starters@*' --sort=-v:refname | grep -v "^${CURRENT_TAG}$" | head -1)
+          if [ -n "$PREV_TAG" ]; then
+            LOG=$(git log "${PREV_TAG}..${CURRENT_TAG}" --oneline -- apps/starters/)
+          else
+            LOG=$(git log "${CURRENT_TAG}" --oneline -- apps/starters/)
+          fi
+          EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+          echo "log<<$EOF" >> "$GITHUB_OUTPUT"
+          echo "$LOG" >> "$GITHUB_OUTPUT"
+          echo "$EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: Rsync starters to temp dir
+        run: |
+          mkdir -p /tmp/starters
+          rsync -a --exclude node_modules --exclude .next --exclude .worktrees --exclude .beads --exclude specs --exclude .claude --exclude .eni --exclude .github apps/starters/ /tmp/starters/
+
+      - name: Generate standalone lock files
+        run: |
+          for dir in /tmp/starters/*/; do
+            if [ -f "$dir/package.json" ]; then
+              echo "Generating lockfile for $(basename "$dir")"
+              (cd "$dir" && pnpm install --lockfile-only)
+            fi
+          done
+
+      - name: Setup deploy key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STARTERS_DEPLOY_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Clone customer repo
+        env:
+          GIT_SSH_COMMAND: "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
+        run: git clone git@github.com:eniem-dev/eniem-starters.git /tmp/customer-repo
+
+      - name: Swap .git directory
+        run: |
+          rm -rf /tmp/starters/.git
+          mv /tmp/customer-repo/.git /tmp/starters/.git
+
+      - name: Commit, tag, and push if changes exist
+        env:
+          GIT_SSH_COMMAND: "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no"
+        working-directory: /tmp/starters
+        run: |
+          git add -A
+          git diff --cached --quiet || (
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            BODY="${{ steps.changelog.outputs.log }}"
+            if [ -n "$BODY" ]; then
+              git commit -m "release: v${{ steps.version.outputs.version }}" -m "$BODY"
+            else
+              git commit -m "release: v${{ steps.version.outputs.version }}"
+            fi
+            git tag -a "v${{ steps.version.outputs.version }}" -m "v${{ steps.version.outputs.version }}"
+            git push --follow-tags
+          )
