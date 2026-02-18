@@ -5,15 +5,8 @@ import meow from "meow";
 import { ConfigProvider, type AppConfig } from "./config/index.js";
 import { Wizard } from "./Wizard.js";
 import { ProductsCommand } from "./commands/products.js";
-import { runAiSetup } from "./commands/ai-setup.js";
-import { runAiPlan, executePlanLoop } from "./commands/ai-plan.js";
-import { AiPlanSelector } from "./commands/ai-plan-selector.js";
-import { runAiBuild } from "./commands/ai-build.js";
-import { runLand } from "./commands/land.js";
-import { runDoctor } from "./commands/doctor.js";
-import { runStatus } from "./commands/status.js";
+import { AiCommand } from "./commands/ai.js";
 import type { PolarEnvironment } from "./lib/polar.js";
-import { printDeprecationNotice } from "./lib/deprecation.js";
 
 // Handle unhandled promise rejections globally
 process.on("unhandledRejection", (reason) => {
@@ -32,44 +25,50 @@ process.on("uncaughtException", (error) => {
 const require = createRequire(import.meta.url);
 const pkg = require("../package.json") as { name: string; version: string };
 
-const HELP_TEXT = `
-  eni project <name>          Scaffold a new project
-  eni products                Manage Polar products
-  eni ai setup                Bootstrap AI workflow files
-  eni ai plan [spec] [N]      Plan a spec into beads issues
-  eni ai build [epic] [N]     Build ready tasks autonomously
-  eni land                    Sync and push all work
-  eni doctor                  Check environment health
-  eni status                  Show project dashboard
-  eni version                 Show version
-  eni help                    Show this help
+const cli = meow(
+  `
+  Usage
+    $ eniem-cli [project-name]
+    $ eniem-cli products [--env=sandbox|production] [--prod] [--token=<polar-token>]
+    $ eniem-cli ai init [--force]
 
-Options:
-  --git-host                  SSH host alias for git clone (default: github.com)
-  --env                       Environment for products command (default: sandbox)
-  --prod                      Shorthand for --env=production
-  --token                     Polar access token (bypasses .env lookup)
-  --force                     Skip confirmation prompts
-  --update                    Refresh .claude/ only, preserve prompts
-  -d, --debug                 Show tool calls in ai commands
-`;
+  Commands
+    products       Manage Polar products interactively
+    ai init        Initialize or update AI workflow files (.eni, .claude, specs/)
 
-const cli = meow(HELP_TEXT, {
-  importMeta: import.meta,
-  autoHelp: false,
-  autoVersion: false,
-  flags: {
-    gitHost: { type: "string", default: "github.com" },
-    env: { type: "string", default: "sandbox" },
-    prod: { type: "boolean", default: false },
-    token: { type: "string" },
-    force: { type: "boolean", default: false },
-    update: { type: "boolean", default: false },
-    debug: { type: "boolean", shortFlag: "d", default: false },
-    help: { type: "boolean", shortFlag: "h" },
-    version: { type: "boolean", shortFlag: "v" },
-  },
-});
+  Options
+    --git-host     SSH host alias for git clone (default: github.com)
+    --env          Environment for products command (default: sandbox)
+    --prod         Shorthand for --env=production
+    --token        Polar access token (bypasses .env lookup)
+    --force        Skip confirmation when updating existing AI workflow
+    --help, -h     Show this help message
+    --version, -v  Show version number
+
+  Examples
+    $ eniem-cli my-app
+    $ eniem-cli --git-host 0xtiby my-app
+    $ eniem-cli products
+    $ eniem-cli products --prod
+    $ eniem-cli products --prod --token=polar_xxx
+    $ eniem-cli ai init
+    $ eniem-cli ai init --force
+`,
+  {
+    importMeta: import.meta,
+    autoHelp: true,
+    autoVersion: true,
+    flags: {
+      gitHost: { type: "string", default: "github.com" },
+      env: { type: "string", default: "sandbox" },
+      prod: { type: "boolean", default: false },
+      token: { type: "string" },
+      force: { type: "boolean", default: false },
+      help: { type: "boolean", shortFlag: "h" },
+      version: { type: "boolean", shortFlag: "v" },
+    },
+  }
+);
 
 const LOGO = `
 ███████╗███╗   ██╗██╗███████╗███╗   ███╗
@@ -98,6 +97,8 @@ interface AppProps {
 
 const App = ({ initialProjectName, gitHost }: AppProps) => {
   const handleWizardComplete = (config: AppConfig, destination: string) => {
+    // Config is now available for env generation
+    // destination is the path where the project was cloned
     console.log("Final config:", JSON.stringify(config, null, 2));
     console.log("Project cloned to:", destination);
   };
@@ -112,11 +113,6 @@ const App = ({ initialProjectName, gitHost }: AppProps) => {
   );
 };
 
-function printHelp(): void {
-  console.log(HELP_TEXT);
-}
-
-// Extract CLI inputs and flags
 const command = cli.input[0];
 const subcommand = cli.input[1];
 const gitHost = cli.flags.gitHost;
@@ -128,159 +124,40 @@ const forceFlag = cli.flags.force;
 // Determine environment: --prod takes precedence
 const resolvedEnv = prodFlag ? "production" : envFlag;
 
-// Handle --version and --help flags (since autoHelp/autoVersion are disabled)
-if (cli.flags.version) {
-  console.log(pkg.version);
-  process.exit(0);
+// Validate env flag
+const validEnvs = ["sandbox", "production"];
+if (!validEnvs.includes(resolvedEnv)) {
+  console.error(`\x1b[31m✗ Invalid environment: ${resolvedEnv}\x1b[0m`);
+  console.error(`  Valid options: sandbox, production`);
+  process.exit(1);
 }
+const env = resolvedEnv as PolarEnvironment;
 
-if (cli.flags.help) {
-  printHelp();
-  process.exit(0);
-}
-
-// Show deprecation notice if invoked as eniem-cli
-printDeprecationNotice(process.argv[1] ?? "", cli.input);
-
-// Validate env flag for commands that use it
-function getValidatedEnv(): PolarEnvironment {
-  const validEnvs = ["sandbox", "production"];
-  if (!validEnvs.includes(resolvedEnv)) {
-    console.error(`\x1b[31m✗ Invalid environment: ${resolvedEnv}\x1b[0m`);
-    console.error(`  Valid options: sandbox, production`);
-    process.exit(1);
-  }
-  return resolvedEnv as PolarEnvironment;
-}
-
-// Route commands
-switch (command) {
-  case "project": {
-    const projectName = subcommand;
-    render(<App initialProjectName={projectName} gitHost={gitHost} />);
-    break;
-  }
-
-  case "products": {
-    const env = getValidatedEnv();
-    const projectDir = process.cwd();
-    render(
-      <Box flexDirection="column">
-        <Header />
-        <ProductsCommand env={env} projectDir={projectDir} accessToken={tokenFlag} />
-      </Box>
-    );
-    break;
-  }
-
-  case "ai": {
-    switch (subcommand) {
-      case "setup":
-      case "init": {
-        const targetDir = process.cwd();
-        const updateFlag = cli.flags.update;
-        void runAiSetup({ targetDir, gitHost, force: forceFlag, update: updateFlag });
-        break;
-      }
-      case "plan": {
-        const specArg = cli.input[2];
-        const iterArg = cli.input[specArg ? 3 : 2];
-        const iterations = iterArg ? parseInt(iterArg, 10) : undefined;
-        const planDebug = cli.flags.debug;
-        const planCwd = process.cwd();
-
-        if (iterations !== undefined && isNaN(iterations)) {
-          console.error(`\x1b[31mError: invalid iteration count: ${iterArg}\x1b[0m`);
-          process.exit(1);
-        }
-
-        void (async () => {
-          const result = await runAiPlan({
-            specName: specArg,
-            iterations,
-            debug: planDebug,
-            cwd: planCwd,
-          });
-
-          if (result.needsSelector) {
-            const inkInstance = render(
-              <AiPlanSelector
-                specs={result.specs}
-                onSelect={(selected) => {
-                  inkInstance.unmount();
-                  void executePlanLoop(
-                    selected,
-                    iterations ?? 3,
-                    planDebug,
-                    planCwd,
-                  );
-                }}
-              />,
-            );
-          }
-        })();
-        break;
-      }
-      case "build": {
-        const epicArg = cli.input[2];
-        const buildIterArg = cli.input[epicArg ? 3 : 2];
-        const buildIterations = buildIterArg
-          ? parseInt(buildIterArg, 10)
-          : undefined;
-        const buildDebug = cli.flags.debug;
-        const buildCwd = process.cwd();
-
-        if (buildIterations !== undefined && isNaN(buildIterations)) {
-          console.error(
-            `\x1b[31mError: invalid iteration count: ${buildIterArg}\x1b[0m`,
-          );
-          process.exit(1);
-        }
-
-        void runAiBuild({
-          epicName: epicArg,
-          iterations: buildIterations,
-          debug: buildDebug,
-          cwd: buildCwd,
-        });
-        break;
-      }
-      default:
-        console.error(`\x1b[31m✗ Unknown ai subcommand: ${subcommand ?? "(none)"}\x1b[0m`);
-        console.error(`  Available: eni ai setup, eni ai plan, eni ai build`);
-        process.exit(1);
-    }
-    break;
-  }
-
-  case "land":
-    void runLand();
-    break;
-
-  case "doctor":
-    void runDoctor();
-    break;
-
-  case "status":
-    void runStatus();
-    break;
-
-  case "version":
-    console.log(pkg.version);
-    break;
-
-  case "help":
-    printHelp();
-    break;
-
-  default: {
-    if (command) {
-      console.error(`\x1b[31m✗ Unknown command: ${command}\x1b[0m`);
-      printHelp();
-      process.exit(1);
-    }
-    // No command: show help
-    printHelp();
-    break;
-  }
+// Check if this is the products command
+if (command === "products") {
+  const projectDir = process.cwd();
+  render(
+    <Box flexDirection="column">
+      <Header />
+      <ProductsCommand env={env} projectDir={projectDir} accessToken={tokenFlag} />
+    </Box>
+  );
+} else if (command === "ai" && subcommand === "init") {
+  // AI init command
+  const targetDir = process.cwd();
+  render(
+    <Box flexDirection="column">
+      <Header />
+      <AiCommand forceFlag={forceFlag} targetDir={targetDir} gitHost={gitHost} />
+    </Box>
+  );
+} else if (command === "ai") {
+  // Show help for ai command if no subcommand
+  console.error(`\x1b[31m✗ Unknown ai subcommand: ${subcommand ?? "(none)"}\x1b[0m`);
+  console.error(`  Usage: eniem-cli ai init [--force]`);
+  process.exit(1);
+} else {
+  // Default: Run the main wizard
+  const projectName = command;
+  render(<App initialProjectName={projectName} gitHost={gitHost} />);
 }
