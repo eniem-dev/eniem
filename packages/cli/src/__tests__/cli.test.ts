@@ -113,10 +113,11 @@ describe("eni CLI routing", () => {
       expect(result.exitCode).toBe(1);
     });
 
-    it("eni ai build prints not yet implemented", async () => {
+    it("eni ai build runs preflight checks", async () => {
       const result = await runCli(["ai", "build"]);
-      expect(result.stdout).toContain("not yet implemented");
-      expect(result.exitCode).toBe(0);
+      // Without .eni/ directory, preflight fails
+      expect(result.stderr).toContain("eni ai setup");
+      expect(result.exitCode).toBe(1);
     });
   });
 

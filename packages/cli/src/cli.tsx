@@ -8,6 +8,7 @@ import { ProductsCommand } from "./commands/products.js";
 import { AiCommand } from "./commands/ai.js";
 import { runAiPlan, executePlanLoop } from "./commands/ai-plan.js";
 import { AiPlanSelector } from "./commands/ai-plan-selector.js";
+import { runAiBuild } from "./commands/ai-build.js";
 import type { PolarEnvironment } from "./lib/polar.js";
 
 // Handle unhandled promise rejections globally
@@ -219,9 +220,30 @@ switch (command) {
         })();
         break;
       }
-      case "build":
-        printStub("eni ai build");
+      case "build": {
+        const epicArg = cli.input[2];
+        const buildIterArg = cli.input[epicArg ? 3 : 2];
+        const buildIterations = buildIterArg
+          ? parseInt(buildIterArg, 10)
+          : undefined;
+        const buildDebug = cli.flags.debug;
+        const buildCwd = process.cwd();
+
+        if (buildIterations !== undefined && isNaN(buildIterations)) {
+          console.error(
+            `\x1b[31mError: invalid iteration count: ${buildIterArg}\x1b[0m`,
+          );
+          process.exit(1);
+        }
+
+        void runAiBuild({
+          epicName: epicArg,
+          iterations: buildIterations,
+          debug: buildDebug,
+          cwd: buildCwd,
+        });
         break;
+      }
       default:
         console.error(`\x1b[31m✗ Unknown ai subcommand: ${subcommand ?? "(none)"}\x1b[0m`);
         console.error(`  Available: eni ai setup, eni ai plan, eni ai build`);
