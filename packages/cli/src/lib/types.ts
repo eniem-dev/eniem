@@ -16,6 +16,10 @@ export interface LoopConfig {
   onToolUse?: (name: string, input: string) => void;
   onIterationStart?: (iteration: number, total: number) => void;
   onIterationEnd?: (iteration: number, elapsed: number) => void;
+  /** Called when the loop finishes (sentinel or max iterations reached) */
+  onLoopComplete?: (sentinel: string | null) => void;
+  /** Called when SIGINT interrupts the loop */
+  onSigint?: (iteration: number, totalElapsed: number) => void;
 }
 
 /** Result of a single loop iteration */

@@ -93,6 +93,8 @@ export function detectSentinel(text: string): Sentinel | null {
 export async function runLoop(config: LoopConfig): Promise<IterationResult[]> {
   const results: IterationResult[] = [];
   const promptContent = await fs.readFile(config.promptFile, "utf-8");
+  const loopStartTime = Date.now();
+  let lastSentinel: Sentinel | null = null;
 
   for (let i = 1; i <= config.maxIterations; i++) {
     config.onIterationStart?.(i, config.maxIterations);
@@ -106,6 +108,13 @@ export async function runLoop(config: LoopConfig): Promise<IterationResult[]> {
 
     const result = await runIteration(prompt, config);
     const elapsed = Date.now() - startTime;
+
+    // SIGINT: report interruption and return
+    if (result.exitCode === 130) {
+      config.onSigint?.(i, Date.now() - loopStartTime);
+      results.push({ iteration: i, exitCode: 130, sentinel: null, elapsed });
+      return results;
+    }
 
     const iterationResult: IterationResult = {
       iteration: i,
@@ -124,6 +133,7 @@ export async function runLoop(config: LoopConfig): Promise<IterationResult[]> {
 
     // Stop on sentinel detection
     if (result.sentinel) {
+      lastSentinel = result.sentinel;
       break;
     }
 
@@ -133,6 +143,7 @@ export async function runLoop(config: LoopConfig): Promise<IterationResult[]> {
     }
   }
 
+  config.onLoopComplete?.(lastSentinel);
   return results;
 }
 
