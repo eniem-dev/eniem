@@ -3,7 +3,40 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "dist/**", "out/**"]
+      "outputs": [".next/**", "dist/**", "out/**"],
+      "env": [
+        "PROJECT_URL",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "DATABASE_URL",
+        "GITHUB_CLIENT_ID",
+        "GITHUB_CLIENT_SECRET",
+        "TWITTER_CLIENT_ID",
+        "TWITTER_CLIENT_SECRET",
+        "LANDING_MODE",
+        "DIGITALOCEAN_SPACES_ENDPOINT",
+        "DIGITALOCEAN_SPACES_REGION",
+        "DIGITALOCEAN_SPACES_BUCKET",
+        "DIGITALOCEAN_SPACES_ACCESS_KEY_ID",
+        "DIGITALOCEAN_SPACES_SECRET_ACCESS_KEY",
+        "DIGITALOCEAN_SPACES_CDN",
+        "MAX_FILE_SIZE_MB",
+        "POLAR_ACCESS_TOKEN",
+        "POLAR_SERVER",
+        "POLAR_WEBHOOK_SECRET",
+        "POLAR_ORGANIZATION_ID",
+        "RESEND_API_KEY",
+        "EMAIL_FROM_ADDRESS",
+        "EMAIL_BRAND_LOGO_URL",
+        "SUPPORT_EMAIL",
+        "NEXT_PUBLIC_SITE_URL",
+        "NEXT_PUBLIC_APP_NAME",
+        "NEXT_PUBLIC_ANALYTICS_PROVIDER",
+        "NEXT_PUBLIC_UMAMI_WEBSITE_ID",
+        "NEXT_PUBLIC_UMAMI_HOST",
+        "NEXT_PUBLIC_POSTHOG_KEY",
+        "NEXT_PUBLIC_POSTHOG_HOST"
+      ]
     },
     "dev": {
       "cache": false,
