@@ -110,8 +110,9 @@ Follow:
 After implementing, validate using turborepo:
 1. Run `Verify:` command from task notes - must pass
 2. Run `pnpm turbo build` - must pass (or use `--filter` for targeted builds)
-3. Run `pnpm turbo lint` - must pass
-4. Run `pnpm test` - must pass
+3. Run `pnpm turbo typecheck` - must pass
+4. Run `pnpm turbo lint` - must pass
+5. Run `pnpm test` - must pass
 
 If validation fails, fix and re-validate. Do NOT proceed until passing.
 
@@ -176,7 +177,7 @@ When no ready tasks remain for this epic/scope:
    [List beads closed for this epic - from bd list --status=done]
 
    ### Testing
-   - `pnpm turbo build && pnpm turbo lint` passing
+   - `pnpm turbo build && pnpm turbo typecheck && pnpm turbo lint` passing
    - Manual: [describe what was manually tested]
    EOF
    )"

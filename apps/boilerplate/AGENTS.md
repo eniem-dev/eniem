@@ -357,7 +357,7 @@ bd sync --full        # Full sync with git
 **When ending a work session**, complete ALL steps below. Work is NOT complete until `git push` succeeds.
 
 1. **File issues for remaining work** - Create beads for anything needing follow-up
-2. **Run quality gates** (if code changed) - `pnpm build && pnpm lint`
+2. **Run quality gates** (if code changed) - `pnpm build && pnpm typecheck && pnpm lint`
 3. **Update issue status** - `bd close` finished work
 4. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
