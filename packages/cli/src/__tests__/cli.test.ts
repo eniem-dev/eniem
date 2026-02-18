@@ -91,10 +91,10 @@ describe("eni CLI routing", () => {
     // eni land is tested via unit tests — integration test skipped because
     // the command runs bd sync + git push which require a real environment
 
-    it("eni doctor prints not yet implemented", async () => {
+    it("eni doctor runs health checks", async () => {
       const result = await runCli(["doctor"]);
-      expect(result.stdout).toContain("not yet implemented");
-      expect(result.exitCode).toBe(0);
+      // Doctor always prints a summary line with check counts
+      expect(result.stdout).toMatch(/\d+\/\d+ checks passed/);
     });
 
     it("eni status prints not yet implemented", async () => {
