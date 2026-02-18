@@ -11,6 +11,7 @@ import { AiPlanSelector } from "./commands/ai-plan-selector.js";
 import { runAiBuild } from "./commands/ai-build.js";
 import { runLand } from "./commands/land.js";
 import { runDoctor } from "./commands/doctor.js";
+import { runStatus } from "./commands/status.js";
 import type { PolarEnvironment } from "./lib/polar.js";
 
 // Handle unhandled promise rejections globally
@@ -112,10 +113,6 @@ const App = ({ initialProjectName, gitHost }: AppProps) => {
 
 function printHelp(): void {
   console.log(HELP_TEXT);
-}
-
-function printStub(commandName: string): void {
-  console.log(`\x1b[33m⚠ '${commandName}' is not yet implemented.\x1b[0m`);
 }
 
 // Extract CLI inputs and flags
@@ -261,7 +258,7 @@ switch (command) {
     break;
 
   case "status":
-    printStub("eni status");
+    void runStatus();
     break;
 
   case "version":

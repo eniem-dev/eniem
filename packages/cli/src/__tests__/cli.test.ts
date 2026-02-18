@@ -97,9 +97,10 @@ describe("eni CLI routing", () => {
       expect(result.stdout).toMatch(/\d+\/\d+ checks passed/);
     });
 
-    it("eni status prints not yet implemented", async () => {
+    it("eni status shows project dashboard", async () => {
       const result = await runCli(["status"]);
-      expect(result.stdout).toContain("not yet implemented");
+      // Status always prints branch info when in a git repo
+      expect(result.stdout).toContain("Branch:");
       expect(result.exitCode).toBe(0);
     });
 
