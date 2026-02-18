@@ -6,8 +6,12 @@ import {
   checkEniExists,
   sparseCloneBoilerplate,
   copyAiFiles,
+  copyClaudeFilesOnly,
   ensureSpecsFolder,
   cleanupTempDir,
+  detectLegacyFiles,
+  removeLegacyFiles,
+  initBeads,
 } from "../ai-init.js";
 
 vi.mock("execa", () => ({
@@ -267,6 +271,143 @@ describe("ai-init", () => {
       await expect(
         cleanupTempDir("/non/existent/path")
       ).resolves.not.toThrow();
+    });
+  });
+
+  describe("copyClaudeFilesOnly", () => {
+    it("copies only .claude/ folder and ignores .eni/", async () => {
+      const sourceDir = path.join(tempDir, "source");
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(sourceDir);
+      await fs.mkdir(targetDir);
+
+      // Create source .eni/ and .claude/
+      const eniDir = path.join(sourceDir, ".eni");
+      await fs.mkdir(eniDir);
+      await fs.writeFile(path.join(eniDir, "PROMPT_plan.md"), "# Plan\n");
+
+      const claudeDir = path.join(sourceDir, ".claude");
+      await fs.mkdir(claudeDir);
+      await fs.writeFile(path.join(claudeDir, "settings.json"), "{}");
+
+      // Create existing target .eni/ with custom content
+      const targetEni = path.join(targetDir, ".eni");
+      await fs.mkdir(targetEni);
+      await fs.writeFile(path.join(targetEni, "PROMPT_plan.md"), "# Custom Plan\n");
+
+      const result = await copyClaudeFilesOnly(sourceDir, targetDir);
+
+      expect(result.success).toBe(true);
+      expect(result.copiedFiles).toContain(".claude/settings.json");
+      expect(result.copiedFiles.some((f) => f.startsWith(".eni"))).toBe(false);
+
+      // .eni/ should be untouched
+      const customContent = await fs.readFile(
+        path.join(targetDir, ".eni", "PROMPT_plan.md"),
+        "utf-8"
+      );
+      expect(customContent).toBe("# Custom Plan\n");
+    });
+
+    it("returns error when .claude/ not in source", async () => {
+      const sourceDir = path.join(tempDir, "source");
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(sourceDir);
+      await fs.mkdir(targetDir);
+
+      const result = await copyClaudeFilesOnly(sourceDir, targetDir);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(".claude/ not found");
+    });
+  });
+
+  describe("detectLegacyFiles", () => {
+    it("detects loop.sh and check_beads.test.sh", async () => {
+      const eniDir = path.join(tempDir, ".eni");
+      await fs.mkdir(eniDir);
+      await fs.writeFile(path.join(eniDir, "loop.sh"), "#!/bin/bash\n");
+      await fs.writeFile(path.join(eniDir, "check_beads.test.sh"), "#!/bin/bash\n");
+
+      const found = await detectLegacyFiles(tempDir);
+      expect(found).toContain("loop.sh");
+      expect(found).toContain("check_beads.test.sh");
+    });
+
+    it("returns empty array when no legacy files exist", async () => {
+      const eniDir = path.join(tempDir, ".eni");
+      await fs.mkdir(eniDir);
+
+      const found = await detectLegacyFiles(tempDir);
+      expect(found).toEqual([]);
+    });
+
+    it("returns empty when .eni/ does not exist", async () => {
+      const found = await detectLegacyFiles(tempDir);
+      expect(found).toEqual([]);
+    });
+  });
+
+  describe("removeLegacyFiles", () => {
+    it("removes specified legacy files from .eni/", async () => {
+      const eniDir = path.join(tempDir, ".eni");
+      await fs.mkdir(eniDir);
+      await fs.writeFile(path.join(eniDir, "loop.sh"), "#!/bin/bash\n");
+      await fs.writeFile(path.join(eniDir, "check_beads.test.sh"), "#!/bin/bash\n");
+
+      const removed = await removeLegacyFiles(tempDir, ["loop.sh", "check_beads.test.sh"]);
+      expect(removed).toEqual([".eni/loop.sh", ".eni/check_beads.test.sh"]);
+
+      await expect(fs.access(path.join(eniDir, "loop.sh"))).rejects.toThrow();
+      await expect(fs.access(path.join(eniDir, "check_beads.test.sh"))).rejects.toThrow();
+    });
+
+    it("handles already-removed files gracefully", async () => {
+      const eniDir = path.join(tempDir, ".eni");
+      await fs.mkdir(eniDir);
+
+      const removed = await removeLegacyFiles(tempDir, ["loop.sh"]);
+      expect(removed).toEqual([]);
+    });
+  });
+
+  describe("initBeads", () => {
+    it("returns 'exists' when .beads/ already exists", async () => {
+      await fs.mkdir(path.join(tempDir, ".beads"));
+
+      const result = await initBeads(tempDir);
+      expect(result.status).toBe("exists");
+    });
+
+    it("returns 'no-bd' when bd is not installed", async () => {
+      vi.mocked(execa).mockRejectedValue(new Error("ENOENT"));
+
+      const result = await initBeads(tempDir);
+      expect(result.status).toBe("no-bd");
+    });
+
+    it("returns 'initialized' when bd onboard succeeds", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(execa).mockResolvedValue({} as any);
+
+      const result = await initBeads(tempDir);
+      expect(result.status).toBe("initialized");
+      expect(execa).toHaveBeenCalledWith("bd", ["onboard"], { cwd: tempDir });
+    });
+
+    it("returns 'error' when bd onboard fails", async () => {
+      let callCount = 0;
+      /* eslint-disable @typescript-eslint/no-explicit-any */
+      const mockFn = (async () => {
+        callCount++;
+        if (callCount === 1) return {}; // bd --version succeeds
+        throw new Error("onboard failed"); // bd onboard fails
+      }) as any;
+      /* eslint-enable @typescript-eslint/no-explicit-any */
+      vi.mocked(execa).mockImplementation(mockFn);
+
+      const result = await initBeads(tempDir);
+      expect(result.status).toBe("error");
+      expect(result.error).toContain("onboard failed");
     });
   });
 });
