@@ -86,7 +86,7 @@ describe("printDeprecationNotice", () => {
   it("prints banner when invoked as eniem-cli", () => {
     const printed = printDeprecationNotice("/usr/local/bin/eniem-cli", []);
     expect(printed).toBe(true);
-    const output = stderrSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = stderrSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).toContain("eniem-cli is deprecated");
     expect(output).toContain("npm install -g eniem");
   });
@@ -95,7 +95,7 @@ describe("printDeprecationNotice", () => {
     const printed = printDeprecationNotice("/usr/local/bin/eni", []);
     expect(printed).toBe(false);
     // Only empty calls should not contain deprecation text
-    const output = stderrSpy.mock.calls.map((c) => c[0]).join("\n");
+    const output = stderrSpy.mock.calls.map((c: unknown[]) => c[0]).join("\n");
     expect(output).not.toContain("deprecated");
   });
 

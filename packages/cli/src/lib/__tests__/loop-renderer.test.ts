@@ -66,7 +66,7 @@ describe("createRenderer", () => {
     callbacks.onText!("Hello world");
     cleanup();
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).toContain("Hello world\n");
   });
 
@@ -80,7 +80,7 @@ describe("createRenderer", () => {
     callbacks.onToolUse!("Read", "src/auth.ts");
     cleanup();
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).not.toContain("Read");
     expect(output).not.toContain("src/auth.ts");
   });
@@ -95,7 +95,7 @@ describe("createRenderer", () => {
     callbacks.onToolUse!("Read", "src/auth.ts");
     cleanup();
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).toContain("\u2192 Read: src/auth.ts");
   });
 
@@ -109,7 +109,7 @@ describe("createRenderer", () => {
     callbacks.onToolUse!("Bash", "pnpm turbo build --filter=eniem-cli");
     cleanup();
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).toContain(
       "\u2192 Bash: pnpm turbo build --filter=eniem-cli",
     );
@@ -124,7 +124,7 @@ describe("createRenderer", () => {
     callbacks.onIterationStart!(1, 3);
     cleanup();
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).toContain("--- Iteration 1 of 3 ---");
   });
 
@@ -137,7 +137,7 @@ describe("createRenderer", () => {
     callbacks.onIterationEnd!(1, 134000);
     cleanup();
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).toContain("--- Iteration 1 of 3 (2m 14s) ---");
   });
 
@@ -149,7 +149,7 @@ describe("createRenderer", () => {
 
     onLoopComplete(":::ENI_PLAN_REFINED:::");
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).toContain("=== Plan Complete ===");
   });
 
@@ -161,7 +161,7 @@ describe("createRenderer", () => {
 
     onLoopComplete(":::ENI_ALL_TASKS_COMPLETE:::");
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).toContain("=== All Tasks Complete ===");
   });
 
@@ -173,7 +173,7 @@ describe("createRenderer", () => {
 
     onLoopComplete(null);
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).not.toContain("===");
   });
 
@@ -185,7 +185,7 @@ describe("createRenderer", () => {
 
     onSigint(2, 271000);
 
-    const output = stdoutWriteSpy.mock.calls.map((c) => c[0]).join("");
+    const output = stdoutWriteSpy.mock.calls.map((c: unknown[]) => c[0]).join("");
     expect(output).toContain(
       "Interrupted after iteration 2 of 10 (4m 31s elapsed).",
     );

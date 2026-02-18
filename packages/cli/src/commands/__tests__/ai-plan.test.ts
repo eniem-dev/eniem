@@ -32,7 +32,7 @@ describe("runAiPlan", () => {
     vi.clearAllMocks();
     mockExit = vi
       .spyOn(process, "exit")
-      .mockImplementation((() => {}) as unknown as (code?: number) => never);
+      .mockImplementation((() => {}) as unknown as (code?: string | number | null | undefined) => never);
   });
 
   afterEach(() => {

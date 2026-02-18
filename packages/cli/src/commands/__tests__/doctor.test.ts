@@ -50,7 +50,7 @@ describe("runDoctor", () => {
         return Promise.reject(new Error("ENOENT"));
       }
       return Promise.resolve({ stdout: tool?.version ?? "1.0.0" });
-    }) as typeof execa);
+    }) as unknown as typeof execa);
   }
 
   function mockFsAccess(existing: string[]) {
@@ -124,7 +124,7 @@ describe("runDoctor", () => {
         return Promise.reject(new Error("not a git repo"));
       }
       return Promise.resolve({ stdout: "1.0.0" });
-    }) as typeof execa);
+    }) as unknown as typeof execa);
 
     await runDoctor();
 

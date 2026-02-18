@@ -89,7 +89,7 @@ describe("runAiBuild", () => {
     vi.clearAllMocks();
     mockExit = vi
       .spyOn(process, "exit")
-      .mockImplementation((() => {}) as unknown as (code?: number) => never);
+      .mockImplementation((() => {}) as unknown as (code?: string | number | null | undefined) => never);
     mockLog = vi.spyOn(console, "log").mockImplementation(() => {});
   });
 

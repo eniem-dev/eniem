@@ -48,7 +48,7 @@ describe("runStatus", () => {
       }
       // Default: resolve with empty stdout
       return Promise.resolve({ stdout: "" });
-    }) as typeof execa);
+    }) as unknown as typeof execa);
   }
 
   it("shows 'Not in a git repository' when not in a git repo", async () => {
