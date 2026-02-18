@@ -68,7 +68,7 @@ jobs:
               if [ "$BUMP" != "major" ]; then
                 BUMP="minor"
               fi
-            elif echo "$msg" | grep -qE '^fix(\(.+\))?:'; then
+            elif echo "$msg" | grep -qE '^(fix|chore|docs|refactor|style|perf|test|build|ci)(\(.+\))?:'; then
               if [ "$BUMP" = "none" ]; then
                 BUMP="patch"
               fi
@@ -76,7 +76,7 @@ jobs:
           done <<< "$COMMITS"
 
           if [ "$BUMP" = "none" ]; then
-            echo "No conventional commits (feat/fix) found — skipping"
+            echo "No conventional commits found — skipping"
             exit 0
           fi
 
