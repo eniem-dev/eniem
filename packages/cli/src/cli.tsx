@@ -5,7 +5,7 @@ import meow from "meow";
 import { ConfigProvider, type AppConfig } from "./config/index.js";
 import { Wizard } from "./Wizard.js";
 import { ProductsCommand } from "./commands/products.js";
-import { AiCommand } from "./commands/ai.js";
+import { runAiSetup } from "./commands/ai-setup.js";
 import { runAiPlan, executePlanLoop } from "./commands/ai-plan.js";
 import { AiPlanSelector } from "./commands/ai-plan-selector.js";
 import { runAiBuild } from "./commands/ai-build.js";
@@ -46,6 +46,7 @@ Options:
   --prod                      Shorthand for --env=production
   --token                     Polar access token (bypasses .env lookup)
   --force                     Skip confirmation prompts
+  --update                    Refresh .claude/ only, preserve prompts
   -d, --debug                 Show tool calls in ai commands
 `;
 
@@ -59,6 +60,7 @@ const cli = meow(HELP_TEXT, {
     prod: { type: "boolean", default: false },
     token: { type: "string" },
     force: { type: "boolean", default: false },
+    update: { type: "boolean", default: false },
     debug: { type: "boolean", shortFlag: "d", default: false },
     help: { type: "boolean", shortFlag: "h" },
     version: { type: "boolean", shortFlag: "v" },
@@ -173,12 +175,8 @@ switch (command) {
       case "setup":
       case "init": {
         const targetDir = process.cwd();
-        render(
-          <Box flexDirection="column">
-            <Header />
-            <AiCommand forceFlag={forceFlag} targetDir={targetDir} gitHost={gitHost} />
-          </Box>
-        );
+        const updateFlag = cli.flags.update;
+        void runAiSetup({ targetDir, gitHost, force: forceFlag, update: updateFlag });
         break;
       }
       case "plan": {

@@ -5,6 +5,7 @@ import * as os from "os";
 
 const REPO_PATH = "eniem-dev/eniem-boilerplate.git";
 const FOLDERS_TO_COPY = [".eni", ".claude"];
+const LEGACY_FILES = ["loop.sh", "check_beads.test.sh"];
 
 export interface AiInitResult {
   success: boolean;
@@ -189,5 +190,118 @@ export async function cleanupTempDir(tempDir: string): Promise<void> {
     await fs.rm(tempDir, { recursive: true, force: true });
   } catch {
     // Ignore cleanup errors
+  }
+}
+
+/**
+ * Copies only .claude/ folder from source to target directory.
+ * Used for --update mode — preserves .eni/PROMPT_*.md files.
+ */
+export async function copyClaudeFilesOnly(
+  sourceDir: string,
+  targetDir: string,
+): Promise<{ success: boolean; copiedFiles: string[]; error?: string }> {
+  const copiedFiles: string[] = [];
+
+  try {
+    const sourcePath = path.join(sourceDir, ".claude");
+    const targetPath = path.join(targetDir, ".claude");
+
+    try {
+      await fs.access(sourcePath);
+    } catch {
+      return { success: false, copiedFiles, error: ".claude/ not found in boilerplate" };
+    }
+
+    // Remove existing .claude/ in target (clean copy)
+    try {
+      await fs.rm(targetPath, { recursive: true, force: true });
+    } catch {
+      // Ignore if doesn't exist
+    }
+
+    await copyDir(sourcePath, targetPath, ".claude", copiedFiles);
+    return { success: true, copiedFiles };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    return { success: false, copiedFiles, error: errorMessage };
+  }
+}
+
+/**
+ * Detects legacy loop.sh and check_beads.test.sh files in .eni/
+ */
+export async function detectLegacyFiles(
+  targetDir: string,
+): Promise<string[]> {
+  const found: string[] = [];
+
+  for (const file of LEGACY_FILES) {
+    const filePath = path.join(targetDir, ".eni", file);
+    try {
+      await fs.access(filePath);
+      found.push(file);
+    } catch {
+      // Not found, skip
+    }
+  }
+
+  return found;
+}
+
+/**
+ * Removes legacy files from .eni/
+ */
+export async function removeLegacyFiles(
+  targetDir: string,
+  files: string[],
+): Promise<string[]> {
+  const removed: string[] = [];
+
+  for (const file of files) {
+    const filePath = path.join(targetDir, ".eni", file);
+    try {
+      await fs.access(filePath);
+      await fs.rm(filePath, { force: true });
+      removed.push(`.eni/${file}`);
+    } catch {
+      // File doesn't exist, skip
+    }
+  }
+
+  return removed;
+}
+
+/**
+ * Initializes beads if bd is available and .beads/ doesn't exist.
+ * Returns status: 'initialized', 'exists', 'no-bd', or 'error'.
+ */
+export async function initBeads(
+  targetDir: string,
+): Promise<{ status: "initialized" | "exists" | "no-bd" | "error"; error?: string }> {
+  // Check if .beads/ already exists
+  try {
+    await fs.access(path.join(targetDir, ".beads"));
+    return { status: "exists" };
+  } catch {
+    // .beads/ doesn't exist, continue
+  }
+
+  // Check if bd is installed
+  try {
+    await execa("bd", ["--version"]);
+  } catch {
+    return { status: "no-bd" };
+  }
+
+  // Run bd onboard
+  try {
+    await execa("bd", ["onboard"], { cwd: targetDir });
+    return { status: "initialized" };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    return { status: "error", error: errorMessage };
   }
 }
