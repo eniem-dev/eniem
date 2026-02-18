@@ -1,6 +1,6 @@
 <!-- CLAUDE.md is a symlink to this file -->
 
-# ENIEM - Development Guide
+# Eniem - Development Guide
 
 NEVER COMMENT IN FRENCH. Even if the user talks in French.
 

@@ -1,6 +1,6 @@
 # Eniem Starters
 
-Example projects that demonstrate specific eniem use cases. Each starter is a standalone Next.js application you can clone and run independently.
+Example projects demonstrating specific Eniem use cases. Each starter is a standalone Next.js application you can clone and run independently.
 
 ## Available Starters
 
