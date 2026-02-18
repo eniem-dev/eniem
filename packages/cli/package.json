@@ -19,6 +19,7 @@
     "access": "public"
   },
   "bin": {
+    "eni": "./dist/cli.js",
     "eniem-cli": "./dist/cli.js"
   },
   "scripts": {
