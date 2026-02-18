@@ -6,6 +6,8 @@ import { ConfigProvider, type AppConfig } from "./config/index.js";
 import { Wizard } from "./Wizard.js";
 import { ProductsCommand } from "./commands/products.js";
 import { AiCommand } from "./commands/ai.js";
+import { runAiPlan, executePlanLoop } from "./commands/ai-plan.js";
+import { AiPlanSelector } from "./commands/ai-plan-selector.js";
 import type { PolarEnvironment } from "./lib/polar.js";
 
 // Handle unhandled promise rejections globally
@@ -178,9 +180,45 @@ switch (command) {
         );
         break;
       }
-      case "plan":
-        printStub("eni ai plan");
+      case "plan": {
+        const specArg = cli.input[2];
+        const iterArg = cli.input[specArg ? 3 : 2];
+        const iterations = iterArg ? parseInt(iterArg, 10) : undefined;
+        const planDebug = cli.flags.debug;
+        const planCwd = process.cwd();
+
+        if (iterations !== undefined && isNaN(iterations)) {
+          console.error(`\x1b[31mError: invalid iteration count: ${iterArg}\x1b[0m`);
+          process.exit(1);
+        }
+
+        void (async () => {
+          const result = await runAiPlan({
+            specName: specArg,
+            iterations,
+            debug: planDebug,
+            cwd: planCwd,
+          });
+
+          if (result.needsSelector) {
+            const inkInstance = render(
+              <AiPlanSelector
+                specs={result.specs}
+                onSelect={(selected) => {
+                  inkInstance.unmount();
+                  void executePlanLoop(
+                    selected,
+                    iterations ?? 3,
+                    planDebug,
+                    planCwd,
+                  );
+                }}
+              />,
+            );
+          }
+        })();
         break;
+      }
       case "build":
         printStub("eni ai build");
         break;
