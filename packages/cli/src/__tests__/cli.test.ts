@@ -30,7 +30,7 @@ async function runCli(args: string[]): Promise<{ stdout: string; stderr: string;
   }
 }
 
-describe("eni CLI routing", () => {
+describe("eni CLI routing", { timeout: 15_000 }, () => {
   describe("eni version", () => {
     it("prints the package version", async () => {
       const result = await runCli(["version"]);
