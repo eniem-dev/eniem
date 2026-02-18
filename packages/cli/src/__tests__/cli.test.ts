@@ -88,11 +88,8 @@ describe("eni CLI routing", () => {
   });
 
   describe("stub commands", () => {
-    it("eni land prints not yet implemented", async () => {
-      const result = await runCli(["land"]);
-      expect(result.stdout).toContain("not yet implemented");
-      expect(result.exitCode).toBe(0);
-    });
+    // eni land is tested via unit tests — integration test skipped because
+    // the command runs bd sync + git push which require a real environment
 
     it("eni doctor prints not yet implemented", async () => {
       const result = await runCli(["doctor"]);

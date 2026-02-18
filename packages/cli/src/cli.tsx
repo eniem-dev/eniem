@@ -9,6 +9,7 @@ import { runAiSetup } from "./commands/ai-setup.js";
 import { runAiPlan, executePlanLoop } from "./commands/ai-plan.js";
 import { AiPlanSelector } from "./commands/ai-plan-selector.js";
 import { runAiBuild } from "./commands/ai-build.js";
+import { runLand } from "./commands/land.js";
 import type { PolarEnvironment } from "./lib/polar.js";
 
 // Handle unhandled promise rejections globally
@@ -251,7 +252,7 @@ switch (command) {
   }
 
   case "land":
-    printStub("eni land");
+    void runLand();
     break;
 
   case "doctor":
