@@ -13,6 +13,7 @@ import { runLand } from "./commands/land.js";
 import { runDoctor } from "./commands/doctor.js";
 import { runStatus } from "./commands/status.js";
 import type { PolarEnvironment } from "./lib/polar.js";
+import { printDeprecationNotice } from "./lib/deprecation.js";
 
 // Handle unhandled promise rejections globally
 process.on("unhandledRejection", (reason) => {
@@ -137,6 +138,9 @@ if (cli.flags.help) {
   printHelp();
   process.exit(0);
 }
+
+// Show deprecation notice if invoked as eniem-cli
+printDeprecationNotice(process.argv[1] ?? "", cli.input);
 
 // Validate env flag for commands that use it
 function getValidatedEnv(): PolarEnvironment {
