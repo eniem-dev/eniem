@@ -5,7 +5,7 @@
 
 ## Overview
 
-The boilerplate contains hardcoded "eniem" branding throughout config files, Docker setup, manifest, env fallbacks, and UI strings. Since the boilerplate is meant to be cloned and rebranded, all these references must be replaced with a normalized `myapp`/`MyApp`/`MYAPP` placeholder convention. This makes it trivially easy for users — whether they scaffold via the CLI or clone directly from GitHub — to find and replace all branding in one shot.
+The boilerplate contains hardcoded "eniem" branding throughout config files, Docker setup, manifest, env fallbacks, and UI strings. Since the boilerplate is meant to be cloned and rebranded, all these references must be replaced with a normalized `myapp`/`MyApp` placeholder convention. `myapp` represents the **project name slug** and `MyApp` represents the **application display name** — two independent values provided by the user. This makes it trivially easy for users — whether they scaffold via the CLI or clone directly from GitHub — to find and replace all branding in one shot.
 
 ## Problem Statement
 
@@ -57,13 +57,13 @@ The boilerplate contains hardcoded "eniem" branding throughout config files, Doc
 
 ### Placeholder Convention
 
-Use a single root keyword `myapp` in consistent casing variants:
+Two placeholders representing two independent user inputs (see [cli-app-name-prompt spec](./cli-app-name-prompt.md)):
 
-| Context | Placeholder | Used in |
-|---------|-------------|---------|
-| Display name / Title Case | `MyApp` | Env fallbacks, UI strings, manifest name, email footer, SIWE prompts |
-| Slug / lowercase | `myapp` | DB names, Docker container, env var values, domain placeholders, manifest id |
-| Domain fallback | `myapp.example.com` | Email from/support addresses (RFC 2606 reserved domain) |
+| Placeholder | Represents | Source | Used in |
+|-------------|-----------|--------|---------|
+| `MyApp` | Application display name | Interactive prompt or `--app-name` flag | Env fallbacks, UI strings, manifest name, email footer, SIWE prompts |
+| `myapp` | Project name slug | CLI argument (`eni project <slug>`) | DB names, Docker container, env var values, domain placeholders, manifest id |
+| `myapp.example.com` | Domain fallback (derived from slug) | — | Email from/support addresses (RFC 2606 reserved domain) |
 
 ### Replacement Mapping
 
@@ -115,11 +115,12 @@ The database credentials in `.env.example` and `docker-compose.yml` must always 
 
 ### README One-Liner
 
-Add a section to the README with a sed command for rebranding:
+Add a section to the README with sed commands for rebranding. Two separate values are needed — the project slug and the display name:
 
 ```bash
-# Replace "myapp"/"MyApp" with your project name
-grep -rl "myapp\|MyApp" . --exclude-dir={node_modules,.git} | xargs sed -i 's/myapp/yourapp/g; s/MyApp/YourApp/g'
+# Replace placeholders with your project slug and app name
+grep -rl "MyApp" . --exclude-dir={node_modules,.git} | xargs sed -i 's/MyApp/Your App Name/g'
+grep -rl "myapp" . --exclude-dir={node_modules,.git} | xargs sed -i 's/myapp/yourslug/g'
 ```
 
 ## Edge Cases
@@ -168,4 +169,4 @@ grep -rl "myapp\|MyApp" . --exclude-dir={node_modules,.git} | xargs sed -i 's/my
 
 ## Open Questions
 
-- [ ] Should the sed one-liner in the README also handle `MYAPP` (full uppercase), or is `myapp`/`MyApp` sufficient since MYAPP doesn't appear in the placeholders?
+None — all requirements are resolved. `MYAPP` (full uppercase) is not needed since no placeholder uses that variant.

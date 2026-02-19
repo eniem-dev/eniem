@@ -1,24 +1,25 @@
 # Replace 'myapp' Placeholders with Customer Project Name at Scaffolding Time
 
 > Depends on [spec #50 — Replace Hardcoded 'eniem' References with Generic Placeholders](./50-replace-eniem-placeholders.md) being completed first.
+> Depends on [cli-app-name-prompt spec](./cli-app-name-prompt.md) for the app name input.
 > GitHub issue: [eniem-dev/eniem#16](https://github.com/eniem-dev/eniem/issues/16)
 
 ## Overview
 
-After spec #50, the boilerplate uses `myapp`/`MyApp` as generic placeholders everywhere. The CLI needs a post-scaffolding step that replaces these placeholders with the customer's actual project name, so the generated project is fully branded out of the box.
+After spec #50, the boilerplate uses `myapp`/`MyApp` as generic placeholders everywhere. The CLI needs a post-scaffolding step that replaces these placeholders with the customer's actual values: `myapp` → **project name slug** (CLI argument) and `MyApp` → **application display name** (collected via the [app name prompt](./cli-app-name-prompt.md) or `--app-name` flag), so the generated project is fully branded out of the box.
 
 ## Problem Statement
 
 **Who:** Customers who scaffold a new project with `eni project <name>`.
-**Problem:** After cloning, the boilerplate contains `myapp`/`MyApp` placeholders that need to be replaced with the customer's project name.
+**Problem:** After cloning, the boilerplate contains `myapp`/`MyApp` placeholders that need to be replaced with the customer's project slug and application display name.
 **Impact:** Without this step, the customer must manually run a sed command or hunt-and-replace before launching.
 
 ## Scope
 
 ### Included
 
-- New CLI post-scaffolding step: search-and-replace `myapp`/`MyApp` with customer's project name
-- Two case-variant passes: `myapp` → lowercase, `MyApp` → Title Case
+- New CLI post-scaffolding step: search-and-replace `myapp`/`MyApp` with customer's values
+- Two passes: `myapp` → project slug, `MyApp` → app display name (two independent inputs)
 - Replacement of file **content** only (not file/directory names)
 - Runs as the **final step** after `pnpm install` and git init
 
@@ -39,25 +40,23 @@ After spec #50, the boilerplate uses `myapp`/`MyApp` as generic placeholders eve
 
 ### Primary Flow
 
-- [ ] As a customer, when I run `eni project my-saas`, after scaffolding completes my project contains `my-saas`/`My-Saas` instead of `myapp`/`MyApp` everywhere
+- [ ] As a customer, when I run `eni project my-saas` and provide app name `My SaaS`, after scaffolding completes my project contains `my-saas` and `My SaaS` instead of `myapp`/`MyApp` everywhere
 - [ ] As a customer, I don't need to manually search-and-replace anything after scaffolding
 
 ## Business Rules
 
 ### Replacement Mapping
 
-Two passes, applied in order:
+Two passes using two independent inputs, applied in order:
 
-| Search | Replace (for project name `my-saas`) | Context |
-|--------|---------------------------------------|---------|
-| `MyApp` | `My-Saas` | Title-case: display names, UI strings, env fallbacks |
-| `myapp` | `my-saas` | Lowercase: DB names, Docker, config values, domains, slugs |
-
-**Case conversion rules:**
-- Lowercase: project name as-is (e.g., `my-saas`)
-- Title Case: capitalize first letter of each segment separated by `-` (e.g., `My-Saas`)
+| Search | Replace | Source | Example (slug `my-saas`, app name `My SaaS`) |
+|--------|---------|--------|-----------------------------------------------|
+| `MyApp` | Application display name | Interactive prompt or `--app-name` flag | `My SaaS` |
+| `myapp` | Project name slug | CLI argument | `my-saas` |
 
 **Pass order:** `MyApp` first (longer/more specific), then `myapp` to avoid partial matches.
+
+**Note:** The app name is collected via the [app name prompt](./cli-app-name-prompt.md). The default suggestion is derived from the project slug (title-cased, hyphens → spaces), but the user can type any custom name.
 
 ### File Processing
 
@@ -78,18 +77,18 @@ The replacement runs as the **final step** in the scaffolding flow, after:
 
 ## What Gets Replaced (Examples)
 
-For a project named `my-saas`:
+For project slug `my-saas` with app name `My SaaS`:
 
 | File | Before | After |
 |------|--------|-------|
-| `.env.example` | `NEXT_PUBLIC_APP_NAME=MyApp` | `NEXT_PUBLIC_APP_NAME=My-Saas` |
+| `.env.example` | `NEXT_PUBLIC_APP_NAME=MyApp` | `NEXT_PUBLIC_APP_NAME=My SaaS` |
 | `.env.example` | `postgresql://myapp:myapp-dev-password@...` | `postgresql://my-saas:my-saas-dev-password@...` |
 | `docker-compose.yml` | `POSTGRES_DB: myapp` | `POSTGRES_DB: my-saas` |
 | `docker-compose.yml` | `container_name: myapp-postgres` | `container_name: my-saas-postgres` |
-| `src/config/env.ts` | `\|\| "MyApp"` | `\|\| "My-Saas"` |
-| `public/manifest.json` | `"name": "MyApp - SaaS Boilerplate"` | `"name": "My-Saas - SaaS Boilerplate"` |
-| `public/manifest.json` | `"short_name": "MyApp"` | `"short_name": "My-Saas"` |
-| Email footer | `"sent by MyApp"` | `"sent by My-Saas"` |
+| `src/config/env.ts` | `\|\| "MyApp"` | `\|\| "My SaaS"` |
+| `public/manifest.json` | `"name": "MyApp - SaaS Boilerplate"` | `"name": "My SaaS - SaaS Boilerplate"` |
+| `public/manifest.json` | `"short_name": "MyApp"` | `"short_name": "My SaaS"` |
+| Email footer | `"sent by MyApp"` | `"sent by My SaaS"` |
 
 ## Edge Cases
 
@@ -105,22 +104,22 @@ For a project named `my-saas`:
 
 | Condition | Expected Behavior |
 |-----------|-------------------|
-| Project name is a single word (e.g., `acme`) | Title Case → `Acme` |
-| Project name has multiple hyphens (e.g., `my-cool-app`) | Title Case → `My-Cool-App` |
-| Project name has no hyphens (e.g., `mysaas`) | Title Case → `Mysaas` |
+| App name contains special characters (e.g., `My SaaS!`) | Accepted as-is (validation is non-empty only, per cli-app-name-prompt spec) |
+| App name equals the slug (e.g., slug `acme`, app name `acme`) | Works fine — both passes replace correctly |
+| App name contains spaces | Replaced as-is — spaces are valid in display contexts |
 | Binary file detected | Skip entirely |
 
 ## Acceptance Criteria
 
 ### Core Replacement
 
-- [ ] **Given** a customer runs `eni project my-saas`, **when** scaffolding completes, **then** `grep -ri "myapp"` finds zero matches in the project
-- [ ] **Given** a customer runs `eni project my-saas`, **when** scaffolding completes, **then** `grep -ri "my-saas\|My-Saas"` matches in all expected files
+- [ ] **Given** a customer runs `eni project my-saas` with app name `My SaaS`, **when** scaffolding completes, **then** `grep -ri "myapp"` finds zero matches in the project
+- [ ] **Given** a customer runs `eni project my-saas` with app name `My SaaS`, **when** scaffolding completes, **then** `grep -ri "my-saas\|My SaaS"` matches in all expected files
 
-### Case Variants
+### Two Independent Values
 
-- [ ] **Given** project name `my-saas`, **when** replacement runs, **then** `MyApp` becomes `My-Saas` and `myapp` becomes `my-saas`
-- [ ] **Given** project name `acme`, **when** replacement runs, **then** `MyApp` becomes `Acme` and `myapp` becomes `acme`
+- [ ] **Given** slug `my-saas` and app name `My SaaS`, **when** replacement runs, **then** `MyApp` becomes `My SaaS` and `myapp` becomes `my-saas`
+- [ ] **Given** slug `acme` and app name `Acme Platform`, **when** replacement runs, **then** `MyApp` becomes `Acme Platform` and `myapp` becomes `acme`
 
 ### Robustness
 
