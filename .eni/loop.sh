@@ -259,7 +259,7 @@ case "${1:-}" in
       echo ""
       echo -e "${BLUE}--- Iteration $i of $MAX_ITERATIONS ---${NC}"
 
-      if ! run_claude "$SCRIPT_DIR/PROMPT_build.md" "" "1" "$EPIC_NAME"; then
+      if ! run_claude "$SCRIPT_DIR/PROMPT_build.md" "" "$i" "$EPIC_NAME"; then
         echo -e "${RED}Build iteration failed${NC}"
         exit 1
       fi

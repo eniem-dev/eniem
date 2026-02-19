@@ -143,7 +143,7 @@ git push -u origin HEAD
 - Line 3: `Progress:` what this commit achieved
 - Line 4: `Next:` remaining work (enables context recovery)
 
-Exit - the loop will restart for the next task.
+**STOP HERE.** Do not pick up another task. Do not run `bd ready` again. The loop engine will restart you for the next task. Your job for this iteration is done.
 
 ## Phase 5: Create PR & Archive Spec
 
@@ -217,7 +217,7 @@ If validation fails:
 
 1. **Tracer bullets** — build small, test immediately, expand from working code
 2. **Branch first** — ensure correct branch before any work
-3. **Single task** — implement ONE task per iteration
+3. **Single task** — implement ONE task per iteration, then STOP (do not loop back to Phase 1)
 4. **Epic filter** — only work on tasks matching epic if specified
 5. **Validate before commit** — never commit failing code
 6. **Close beads** — always `bd close` after committing
