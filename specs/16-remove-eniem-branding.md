@@ -1,5 +1,8 @@
 # Remove 'eniem' Branding from Generated Projects
 
+> **SUPERSEDED** by [spec #50 — Replace Hardcoded 'eniem' References with Generic Placeholders](./50-replace-eniem-placeholders.md)
+> This spec covered CLI-side replacement at scaffolding time. Spec #50 takes the approach of making the boilerplate source itself generic, with CLI adaptation tracked separately.
+
 ## Overview
 
 When a customer runs `eni project <name>`, the CLI clones the boilerplate repo and walks the customer through configuration. After scaffolding completes, the project still contains hardcoded "eniem" branding throughout — in UI strings, config files, Docker setup, manifest, etc. The CLI should add a final post-scaffolding step that automatically detects and replaces all "eniem" variants with the customer's project name, so the generated project is fully rebranded out of the box.
