@@ -6,6 +6,7 @@ import { ConfigProvider, type AppConfig } from "./config/index.js";
 import { Wizard } from "./Wizard.js";
 import { ProductsCommand } from "./commands/products.js";
 import { AiCommand } from "./commands/ai.js";
+import { ReadyCommand } from "./commands/ready.js";
 import type { PolarEnvironment } from "./lib/polar.js";
 
 // Handle unhandled promise rejections globally
@@ -29,10 +30,12 @@ const cli = meow(
   `
   Usage
     $ eniem-cli [project-name]
+    $ eniem-cli ready
     $ eniem-cli products [--env=sandbox|production] [--prod] [--token=<polar-token>]
     $ eniem-cli ai init [--force]
 
   Commands
+    ready          Generate production .env interactively
     products       Manage Polar products interactively
     ai init        Initialize or update AI workflow files (.eni, .claude, specs/)
 
@@ -50,6 +53,7 @@ const cli = meow(
     $ eniem-cli my-app
     $ eniem-cli my-app --app-name "My App"
     $ eniem-cli --git-host 0xtiby my-app
+    $ eniem-cli ready
     $ eniem-cli products
     $ eniem-cli products --prod
     $ eniem-cli products --prod --token=polar_xxx
@@ -144,8 +148,16 @@ if (!validEnvs.includes(resolvedEnv)) {
 }
 const env = resolvedEnv as PolarEnvironment;
 
-// Check if this is the products command
-if (command === "products") {
+// Check if this is the ready command
+if (command === "ready") {
+  const projectDir = process.cwd();
+  render(
+    <Box flexDirection="column">
+      <Header />
+      <ReadyCommand projectDir={projectDir} />
+    </Box>
+  );
+} else if (command === "products") {
   const projectDir = process.cwd();
   render(
     <Box flexDirection="column">
