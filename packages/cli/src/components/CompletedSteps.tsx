@@ -10,7 +10,7 @@ interface CompletedStepsProps {
 
 export const CompletedSteps = ({ config, currentStep }: CompletedStepsProps) => {
   // Define step order (web3 is now part of oauth step)
-  const stepOrder = ["project", "cloning", "oauth", "payment", "storage", "analytics", "env", "git", "install"];
+  const stepOrder = ["project", "cloning", "oauth", "payment", "storage", "analytics", "env", "git", "install", "brand"];
   const currentIndex = stepOrder.indexOf(currentStep);
 
   // Only show if we've progressed past project setup
