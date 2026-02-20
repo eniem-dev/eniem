@@ -29,7 +29,7 @@ export function EmailLayout({ preview, brandLogoUrl, children }: EmailLayoutProp
           </Section>
           {children}
           <Text style={footer}>
-            This email was sent by Eniem. If you didn&apos;t request this, you can safely
+            This email was sent by MyApp. If you didn&apos;t request this, you can safely
             ignore it.
           </Text>
         </Container>
