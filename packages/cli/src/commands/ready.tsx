@@ -390,6 +390,40 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
     return result;
   };
 
+  // Build configured group display names for summary
+  const getConfiguredGroups = (): string[] => {
+    const groups: string[] = [
+      "Core (URL, app name, database, auth)",
+      "Payments (Polar)",
+      "Email (Resend)",
+    ];
+    for (const groupId of selectedGroups) {
+      const group = OPTIONAL_GROUPS.find((g) => g.id === groupId);
+      if (!group) continue;
+      if (groupId === "analytics") {
+        const provider = optionalValues["NEXT_PUBLIC_ANALYTICS_PROVIDER"];
+        if (provider && group.subSelection) {
+          const option = group.subSelection.options.find(
+            (o) => o.value === provider,
+          );
+          groups.push(option ? `${group.name} (${option.label})` : group.name);
+        } else {
+          groups.push(group.name);
+        }
+      } else {
+        groups.push(group.name);
+      }
+    }
+    return groups;
+  };
+
+  // Build skipped group display names for summary
+  const getSkippedGroups = (): string[] => {
+    return skippedGroups
+      .map((id) => OPTIONAL_GROUPS.find((g) => g.id === id)?.name)
+      .filter((name): name is string => !!name);
+  };
+
   const currentVar = REQUIRED_VARS[currentVarIndex];
 
   return (
@@ -516,18 +550,29 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
 
           <Box flexDirection="column" marginTop={1} marginLeft={2}>
             <Text bold>Configured:</Text>
-            {REQUIRED_VARS.map((v) => (
-              <Text key={v.key} color="green">
-                - {v.key}
+            {getConfiguredGroups().map((name) => (
+              <Text key={name} color="green">
+                {"  "}✓ {name}
               </Text>
             ))}
           </Box>
 
+          {getSkippedGroups().length > 0 && (
+            <Box flexDirection="column" marginTop={1} marginLeft={2}>
+              <Text bold>Skipped:</Text>
+              {getSkippedGroups().map((name) => (
+                <Text key={name} dimColor>
+                  {"  "}- {name}
+                </Text>
+              ))}
+            </Box>
+          )}
+
           <Box flexDirection="column" marginTop={1} marginLeft={2}>
             <Text bold>Auto-set:</Text>
             {getAutoSetSummary().map(({ key, value }) => (
-              <Text key={key} color="cyan">
-                - {key} = {value}
+              <Text key={key} dimColor>
+                {"  "}{key} = {value}
               </Text>
             ))}
           </Box>

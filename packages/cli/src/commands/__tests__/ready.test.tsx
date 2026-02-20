@@ -902,4 +902,143 @@ describe("ReadyCommand", () => {
       expect(lastFrame()).toContain("Permission denied");
     });
   });
+
+  describe("Summary Display", () => {
+    it("shows Core, Payments, Email always in Configured section", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Confirm with no optional groups selected
+      stdin.write("\r");
+      await delay(50);
+      await selectFileOutput(stdin);
+      await delay(100);
+
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("Configured:");
+      expect(frame).toContain("Core (URL, app name, database, auth)");
+      expect(frame).toContain("Payments (Polar)");
+      expect(frame).toContain("Email (Resend)");
+    });
+
+    it("shows selected optional groups in Configured section", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select GitHub OAuth (index 0)
+      await selectGroupAtIndex(stdin, 0);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      // Fill GitHub OAuth vars
+      await typeAndSubmit(stdin, "gh_client_id");
+      await typeAndSubmit(stdin, "gh_client_secret");
+      await delay(50);
+
+      await selectFileOutput(stdin);
+      await delay(100);
+
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("GitHub OAuth");
+    });
+
+    it("shows skipped optional groups in Skipped section", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Confirm with no optional groups selected → all skipped
+      stdin.write("\r");
+      await delay(50);
+      await selectFileOutput(stdin);
+      await delay(100);
+
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("Skipped:");
+      expect(frame).toContain("GitHub OAuth");
+      expect(frame).toContain("Twitter/X OAuth");
+      expect(frame).toContain("Analytics");
+    });
+
+    it("shows analytics provider name in Configured when selected", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select Analytics (index 3)
+      await selectGroupAtIndex(stdin, 3);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      // Select Umami (first option)
+      stdin.write("\r");
+      await delay(50);
+
+      // Fill Umami vars
+      await typeAndSubmit(stdin, "https://umami.example.com");
+      await typeAndSubmit(stdin, "website-id-123");
+      await delay(50);
+
+      await selectFileOutput(stdin);
+      await delay(100);
+
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("Analytics (Umami)");
+    });
+
+    it("shows auto-set values with actual entered PROJECT_URL", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+      await selectFileOutput(stdin);
+      await delay(100);
+
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("Auto-set:");
+      expect(frame).toContain("POLAR_SERVER = production");
+      expect(frame).toContain("BETTER_AUTH_URL = https://myapp.com");
+      expect(frame).toContain("NEXT_PUBLIC_SITE_URL = https://myapp.com");
+    });
+
+  });
 });
