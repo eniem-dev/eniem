@@ -298,25 +298,308 @@ describe("ReadyCommand", () => {
     });
   });
 
+  /** Fill all 8 required vars to reach groups_select step */
+  async function fillRequiredVars(stdin: { write: (data: string) => void }) {
+    const values = [
+      "https://myapp.com",
+      "MyApp",
+      "postgres://localhost/myapp",
+      "secret123",
+      "polar_xxx",
+      "whsec_xxx",
+      "org_xxx",
+      "re_xxx",
+    ];
+    for (const val of values) {
+      await typeAndSubmit(stdin, val);
+    }
+  }
+
+  /** Navigate MultiSelect: move down N times and toggle space (with delays for ink) */
+  async function selectGroupAtIndex(
+    stdin: { write: (data: string) => void },
+    index: number,
+  ) {
+    for (let i = 0; i < index; i++) {
+      stdin.write("j"); // down (MultiSelect supports j/k navigation)
+      await delay(20);
+    }
+    stdin.write(" "); // space to toggle
+    await delay(20);
+  }
+
+  describe("Analytics Provider", () => {
+    it("shows analytics provider select when Analytics group is checked", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select Analytics (index 3 in groups list)
+      await selectGroupAtIndex(stdin, 3);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      expect(lastFrame()).toContain("Which analytics provider?");
+    });
+
+    it("does not show analytics select when Analytics is not checked", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Confirm with no groups selected
+      stdin.write("\r");
+      await delay(100);
+
+      expect(lastFrame()).not.toContain("Which analytics provider?");
+      expect(lastFrame()).toContain("Production .env ready!");
+    });
+
+    it("shows Umami vars after selecting Umami provider", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select Analytics group
+      await selectGroupAtIndex(stdin, 3);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      // Select Umami (first option in ink-select-input, just press Enter)
+      stdin.write("\r");
+      await delay(50);
+
+      expect(lastFrame()).toContain("Umami host URL");
+    });
+
+    it("shows PostHog vars after selecting PostHog provider", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select Analytics group
+      await selectGroupAtIndex(stdin, 3);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      // Select PostHog (second option — navigate down then enter)
+      stdin.write("\x1B[B"); // down arrow for ink-select-input
+      await delay(30);
+      stdin.write("\r");
+      await delay(50);
+
+      expect(lastFrame()).toContain("PostHog host URL");
+    });
+
+    it("skips analytics vars when None selected", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select only Analytics group
+      await selectGroupAtIndex(stdin, 3);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      // Select None (third option — down, down, enter)
+      stdin.write("\x1B[B");
+      await delay(30);
+      stdin.write("\x1B[B");
+      await delay(30);
+      stdin.write("\r");
+      await delay(100);
+
+      // Should skip straight to output (no vars to prompt)
+      expect(lastFrame()).toContain("Production .env ready!");
+    });
+
+    it("puts existing provider first in options list", async () => {
+      mockAccess.mockResolvedValue(undefined);
+      mockReadFile.mockResolvedValue(
+        "NEXT_PUBLIC_ANALYTICS_PROVIDER=posthog\nNEXT_PUBLIC_POSTHOG_HOST=https://eu.posthog.com\n",
+      );
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Analytics is already pre-checked from existing env (NEXT_PUBLIC_POSTHOG_HOST)
+      // Just confirm the groups selection to proceed to analytics_provider
+      stdin.write("\r");
+      await delay(50);
+
+      const frame = lastFrame() ?? "";
+      // PostHog should appear first because it's in existing env
+      const lines = frame.split("\n");
+      const posthogLine = lines.findIndex((l: string) =>
+        l.includes("PostHog"),
+      );
+      const umamiLine = lines.findIndex((l: string) => l.includes("Umami"));
+      expect(posthogLine).toBeGreaterThan(-1);
+      expect(posthogLine).toBeLessThan(umamiLine);
+    });
+  });
+
+  describe("Group Vars", () => {
+    it("prompts for group vars after selecting a non-analytics group", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select GitHub OAuth (index 0 — cursor starts here, just toggle)
+      await selectGroupAtIndex(stdin, 0);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      expect(lastFrame()).toContain("GitHub OAuth");
+      expect(lastFrame()).toContain("GitHub OAuth client ID");
+      expect(lastFrame()).toContain("(1/2)");
+    });
+
+    it("advances through group vars sequentially", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select GitHub OAuth (index 0)
+      await selectGroupAtIndex(stdin, 0);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      expect(lastFrame()).toContain("(1/2)");
+      await typeAndSubmit(stdin, "gh_client_id");
+
+      expect(lastFrame()).toContain("(2/2)");
+      expect(lastFrame()).toContain("GitHub OAuth client secret");
+    });
+
+    it("proceeds to output after all group vars entered", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select GitHub OAuth (index 0)
+      await selectGroupAtIndex(stdin, 0);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      // Fill both GitHub OAuth vars
+      await typeAndSubmit(stdin, "gh_client_id");
+      await typeAndSubmit(stdin, "gh_client_secret");
+      await delay(100);
+
+      expect(lastFrame()).toContain("Production .env ready!");
+    });
+
+    it("pre-fills group vars from existing .env", async () => {
+      mockAccess.mockResolvedValue(undefined);
+      mockReadFile.mockResolvedValue(
+        "GITHUB_CLIENT_ID=existing_id\nGITHUB_CLIENT_SECRET=existing_secret\n",
+      );
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // GitHub OAuth is already pre-checked from existing env
+      // Just confirm the groups selection (GitHub OAuth will be selected)
+      stdin.write("\r");
+      await delay(50);
+
+      // The first group var should show with pre-filled value visible
+      expect(lastFrame()).toContain("GitHub OAuth client ID");
+    });
+
+    it("collects vars from multiple selected groups", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Select GitHub OAuth (index 0) and WalletConnect (index 2)
+      await selectGroupAtIndex(stdin, 0); // GitHub — toggle at index 0
+      // Navigate to WalletConnect (index 2) and toggle
+      stdin.write("j"); // move to Twitter (index 1)
+      await delay(20);
+      stdin.write("j"); // move to WalletConnect (index 2)
+      await delay(20);
+      stdin.write(" "); // toggle WalletConnect
+      await delay(20);
+      stdin.write("\r"); // confirm groups
+      await delay(50);
+
+      // Should show GitHub vars first (2 vars) + WalletConnect vars (1 var) = 3 total
+      expect(lastFrame()).toContain("(1/3)");
+      expect(lastFrame()).toContain("GitHub OAuth");
+    });
+  });
+
   describe("Output", () => {
     /** Fill required vars and confirm groups to reach output step */
     async function fillRequiredVarsAndGroups(
       stdin: { write: (data: string) => void },
     ) {
-      const values = [
-        "https://myapp.com",
-        "MyApp",
-        "postgres://localhost/myapp",
-        "secret123",
-        "polar_xxx",
-        "whsec_xxx",
-        "org_xxx",
-        "re_xxx",
-      ];
-
-      for (const val of values) {
-        await typeAndSubmit(stdin, val);
-      }
+      await fillRequiredVars(stdin);
 
       // Confirm group selection (press Enter)
       stdin.write("\r");

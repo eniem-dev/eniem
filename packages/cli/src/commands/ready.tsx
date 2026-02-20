@@ -9,6 +9,7 @@ import {
   SectionHeader,
   StatusMessage,
   MultiSelect,
+  Select,
 } from "../components/index.js";
 import {
   REQUIRED_VARS,
@@ -18,12 +19,51 @@ import {
   generateProductionEnv,
   getPreCheckedGroups,
   type EnvReadyConfig,
+  type GroupVar,
 } from "../lib/env-ready.js";
+
+interface VarToPrompt extends GroupVar {
+  groupName: string;
+}
+
+/**
+ * Builds a flat list of all optional-group vars to prompt.
+ * For analytics, only includes vars for the chosen provider (or nothing for "none").
+ */
+function computeVarsToPrompt(
+  selected: string[],
+  provider: string | null,
+): VarToPrompt[] {
+  const vars: VarToPrompt[] = [];
+  for (const groupId of selected) {
+    const group = OPTIONAL_GROUPS.find((g) => g.id === groupId);
+    if (!group) continue;
+
+    if (group.subSelection) {
+      if (!provider || provider === "none") continue;
+      const option = group.subSelection.options.find(
+        (o) => o.value === provider,
+      );
+      if (option) {
+        for (const v of option.vars) {
+          vars.push({ ...v, groupName: group.name });
+        }
+      }
+    } else {
+      for (const v of group.vars) {
+        vars.push({ ...v, groupName: group.name });
+      }
+    }
+  }
+  return vars;
+}
 
 type ReadyStep =
   | "preflight"
   | "required_vars"
   | "groups_select"
+  | "analytics_provider"
+  | "group_vars"
   | "output"
   | "summary"
   | "complete"
@@ -50,6 +90,15 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
   // Optional groups selection
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [skippedGroups, setSkippedGroups] = useState<string[]>([]);
+
+  // Group variable prompts
+  const [optionalValues, setOptionalValues] = useState<Record<string, string>>(
+    {},
+  );
+  const [groupVarsToPrompt, setGroupVarsToPrompt] = useState<VarToPrompt[]>(
+    [],
+  );
+  const [currentGroupVarIndex, setCurrentGroupVarIndex] = useState(0);
 
   // Reusable input state
   const [inputValue, setInputValue] = useState("");
@@ -121,7 +170,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
 
         const config: EnvReadyConfig = {
           required: requiredValues,
-          optional: {},
+          optional: optionalValues,
           autoSet,
           selectedGroups,
           skippedGroups,
@@ -143,7 +192,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
       };
       writeOutput();
     }
-  }, [step, projectDir, requiredValues, selectedGroups, skippedGroups]);
+  }, [step, projectDir, requiredValues, optionalValues, selectedGroups, skippedGroups]);
 
   // Handle required var submission
   const handleVarSubmit = (value: string) => {
@@ -183,7 +232,102 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
     const skipped = allGroupIds.filter((id) => !selected.includes(id));
     setSelectedGroups(selected);
     setSkippedGroups(skipped);
-    setStep("output");
+
+    if (selected.includes("analytics")) {
+      setStep("analytics_provider");
+    } else {
+      const vars = computeVarsToPrompt(selected, null);
+      if (vars.length > 0) {
+        setGroupVarsToPrompt(vars);
+        setCurrentGroupVarIndex(0);
+        setInputValue(existingEnv[vars[0].key] ?? "");
+        setStep("group_vars");
+      } else {
+        setStep("output");
+      }
+    }
+  };
+
+  // Handle analytics provider sub-selection
+  const handleAnalyticsProviderSelect = (value: string) => {
+    if (value === "none") {
+      // Treat analytics as skipped
+      const updatedSelected = selectedGroups.filter((id) => id !== "analytics");
+      const updatedSkipped = [...skippedGroups, "analytics"];
+      setSelectedGroups(updatedSelected);
+      setSkippedGroups(updatedSkipped);
+
+      const vars = computeVarsToPrompt(updatedSelected, null);
+      if (vars.length > 0) {
+        setGroupVarsToPrompt(vars);
+        setCurrentGroupVarIndex(0);
+        setInputValue(existingEnv[vars[0].key] ?? "");
+        setStep("group_vars");
+      } else {
+        setStep("output");
+      }
+    } else {
+      // Auto-set NEXT_PUBLIC_ANALYTICS_PROVIDER
+      const analyticsGroup = OPTIONAL_GROUPS.find((g) => g.id === "analytics");
+      const option = analyticsGroup?.subSelection?.options.find(
+        (o) => o.value === value,
+      );
+      if (option?.autoSet) {
+        setOptionalValues((prev) => ({ ...prev, ...option.autoSet }));
+      }
+
+      const vars = computeVarsToPrompt(selectedGroups, value);
+      if (vars.length > 0) {
+        setGroupVarsToPrompt(vars);
+        setCurrentGroupVarIndex(0);
+        setInputValue(existingEnv[vars[0].key] ?? "");
+        setStep("group_vars");
+      } else {
+        setStep("output");
+      }
+    }
+  };
+
+  // Handle group variable submission
+  const handleGroupVarSubmit = (value: string) => {
+    const trimmed = value.trim();
+    const currentGroupVar = groupVarsToPrompt[currentGroupVarIndex];
+    if (!currentGroupVar) return;
+
+    setOptionalValues((prev) => ({ ...prev, [currentGroupVar.key]: trimmed }));
+
+    const nextIndex = currentGroupVarIndex + 1;
+    if (nextIndex < groupVarsToPrompt.length) {
+      setCurrentGroupVarIndex(nextIndex);
+      const nextVar = groupVarsToPrompt[nextIndex];
+      setInputValue(nextVar ? (existingEnv[nextVar.key] ?? "") : "");
+    } else {
+      setInputValue("");
+      setStep("output");
+    }
+  };
+
+  // Build analytics provider options — existing provider first
+  const getAnalyticsProviderOptions = () => {
+    const analyticsGroup = OPTIONAL_GROUPS.find((g) => g.id === "analytics");
+    if (!analyticsGroup?.subSelection) return [];
+
+    const options = analyticsGroup.subSelection.options.map((o) => ({
+      label: o.label,
+      value: o.value,
+    }));
+    options.push({ label: "None", value: "none" });
+
+    const existingProvider = existingEnv["NEXT_PUBLIC_ANALYTICS_PROVIDER"];
+    if (existingProvider) {
+      const idx = options.findIndex((o) => o.value === existingProvider);
+      if (idx > 0) {
+        const [item] = options.splice(idx, 1);
+        options.unshift(item);
+      }
+    }
+
+    return options;
   };
 
   // Build auto-set display for summary
@@ -254,6 +398,32 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
             }))}
             onSubmit={handleGroupsSubmit}
             initialSelected={getPreCheckedGroups(existingEnv)}
+          />
+        </Box>
+      )}
+
+      {step === "analytics_provider" && (
+        <Box flexDirection="column" marginTop={1}>
+          <Select
+            label="Which analytics provider?"
+            options={getAnalyticsProviderOptions()}
+            onSelect={handleAnalyticsProviderSelect}
+          />
+        </Box>
+      )}
+
+      {step === "group_vars" && groupVarsToPrompt[currentGroupVarIndex] && (
+        <Box flexDirection="column" marginTop={1}>
+          <Text dimColor>
+            ({currentGroupVarIndex + 1}/{groupVarsToPrompt.length}){" "}
+            {groupVarsToPrompt[currentGroupVarIndex].groupName}
+          </Text>
+          <TextInput
+            label={groupVarsToPrompt[currentGroupVarIndex].promptLabel}
+            value={inputValue}
+            onChange={setInputValue}
+            onSubmit={handleGroupVarSubmit}
+            placeholder={groupVarsToPrompt[currentGroupVarIndex].key}
           />
         </Box>
       )}
