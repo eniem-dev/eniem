@@ -3,18 +3,18 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16
-    container_name: eniem-postgres
+    container_name: myapp-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: eniem
-      POSTGRES_USER: eniem
-      POSTGRES_PASSWORD: eniem-dev-password
+      POSTGRES_DB: myapp
+      POSTGRES_USER: myapp
+      POSTGRES_PASSWORD: myapp-dev-password
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U eniem -d eniem"]
+      test: ["CMD-SHELL", "pg_isready -U myapp -d myapp"]
       interval: 10s
       timeout: 5s
       retries: 5
