@@ -12,6 +12,7 @@ import {
   EnvStep,
   GitStep,
   InstallStep,
+  BrandStep,
 } from "./steps/index.js";
 
 type WizardStep =
@@ -24,6 +25,7 @@ type WizardStep =
   | "env"
   | "git"
   | "install"
+  | "brand"
   | "complete";
 
 interface WizardProps {
@@ -82,8 +84,11 @@ export const Wizard = ({ initialProjectName, initialAppName, gitHost, onComplete
   };
 
   const handleInstallComplete = () => {
+    setStep("brand");
+  };
+
+  const handleBrandComplete = () => {
     setStep("complete");
-    // Build final config with all collected values
     const finalConfig: AppConfig = {
       ...config,
     };
@@ -136,6 +141,15 @@ export const Wizard = ({ initialProjectName, initialAppName, gitHost, onComplete
         />
       )}
 
+      {step === "brand" && config.project && (
+        <BrandStep
+          destination={projectDestination}
+          slug={config.project.name}
+          appName={config.project.appName || config.project.name}
+          onComplete={handleBrandComplete}
+        />
+      )}
+
       {step === "complete" && (
         <Box flexDirection="column" marginTop={1}>
           <SectionHeader title="Setup Complete" />
@@ -161,6 +175,7 @@ export const Wizard = ({ initialProjectName, initialAppName, gitHost, onComplete
             <StatusMessage status={config.analytics?.enabled ? "success" : "skip"}>
               Analytics: {config.analytics?.enabled ? config.analytics.provider : "Skipped"}
             </StatusMessage>
+            <StatusMessage status="success">Branding: Applied</StatusMessage>
           </Box>
           <Box marginTop={1}>
             <Text dimColor>  cd {config.project?.name} && pnpm dev</Text>
