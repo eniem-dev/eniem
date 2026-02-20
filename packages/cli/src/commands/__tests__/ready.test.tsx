@@ -3,6 +3,15 @@ import { render } from "ink-testing-library";
 import React from "react";
 import { ReadyCommand } from "../ready.js";
 
+// Mock useApp to prevent exit() from unmounting the component in tests
+vi.mock("ink", async () => {
+  const actual = await vi.importActual("ink");
+  return {
+    ...actual,
+    useApp: () => ({ exit: vi.fn() }),
+  };
+});
+
 // Mock fs/promises
 vi.mock("fs/promises", () => ({
   access: vi.fn(),
