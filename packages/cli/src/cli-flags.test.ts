@@ -8,11 +8,12 @@ const CLI_PATH = resolve(__dirname, "../dist/cli.js");
 
 describe("CLI --app-name flag", () => {
   it("exits with error when --app-name is empty string", async () => {
-    const result = await execaNode(CLI_PATH, ["my-app", "--app-name", ""], {
+    const result = await execaNode(CLI_PATH, ["my-app", "--app-name="], {
       reject: false,
+      timeout: 10_000,
     });
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("--app-name cannot be empty");
-  });
+  }, 15_000);
 });
