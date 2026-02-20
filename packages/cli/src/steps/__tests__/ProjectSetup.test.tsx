@@ -25,25 +25,41 @@ describe("ProjectSetup", () => {
     expect(lastFrame()).toContain("my-eniem-app");
   });
 
-  it("calls onComplete immediately with initial name", () => {
-    const handleComplete = vi.fn();
-    render(<ProjectSetup initialName="my-app" onComplete={handleComplete} />);
-    expect(handleComplete).toHaveBeenCalledWith({ name: "my-app" });
+  it("shows app name prompt after project name step when initialName provided", () => {
+    const { lastFrame } = render(
+      <ProjectSetup initialName="my-app" onComplete={() => {}} />
+    );
+    expect(lastFrame()).toContain("App name:");
   });
 
-  it("shows done state when initial name provided", () => {
+  it("shows derived default as pre-filled value", () => {
     const { lastFrame } = render(
-      <ProjectSetup initialName="test-project" onComplete={() => {}} />
+      <ProjectSetup initialName="project-zero" onComplete={() => {}} />
+    );
+    expect(lastFrame()).toContain("Project Zero");
+  });
+
+  it("calls onComplete immediately when both initialName and initialAppName provided", () => {
+    const handleComplete = vi.fn();
+    render(<ProjectSetup initialName="my-app" initialAppName="My App" onComplete={handleComplete} />);
+    expect(handleComplete).toHaveBeenCalledWith({ name: "my-app", appName: "My App" });
+  });
+
+  it("shows done state when both initial values provided", () => {
+    const { lastFrame } = render(
+      <ProjectSetup initialName="test-project" initialAppName="Test Project" onComplete={() => {}} />
     );
     expect(lastFrame()).toContain("Name: test-project");
-    expect(lastFrame()).toContain("✓");
+    expect(lastFrame()).toContain("App name: Test Project");
   });
 
-  it("accepts initialAppName prop alongside initialName", () => {
+  it("skips app name prompt when initialAppName provided with initialName", () => {
     const { lastFrame } = render(
       <ProjectSetup initialName="my-app" initialAppName="My App" onComplete={() => {}} />
     );
+    // Should be in done state showing both confirmed values
     expect(lastFrame()).toContain("Name: my-app");
+    expect(lastFrame()).toContain("App name: My App");
   });
 
   it("renders name prompt when initialAppName provided without initialName", () => {
@@ -51,5 +67,21 @@ describe("ProjectSetup", () => {
       <ProjectSetup initialAppName="My App" onComplete={() => {}} />
     );
     expect(lastFrame()).toContain("Project name:");
+  });
+
+  it("does not show app name input during name step", () => {
+    const { lastFrame } = render(
+      <ProjectSetup onComplete={() => {}} />
+    );
+    expect(lastFrame()).not.toContain("App name:");
+  });
+
+  it("shows confirmed name above app name input", () => {
+    const { lastFrame } = render(
+      <ProjectSetup initialName="my-app" onComplete={() => {}} />
+    );
+    // Should show both the confirmed name and the app name input
+    expect(lastFrame()).toContain("Name: my-app");
+    expect(lastFrame()).toContain("App name:");
   });
 });
