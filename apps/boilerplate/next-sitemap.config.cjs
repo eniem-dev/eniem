@@ -1,6 +1,6 @@
 /** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://eniem.dev",
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://myapp.example.com",
   generateRobotsTxt: true,
   changefreq: "daily",
   priority: 0.7,
@@ -66,8 +66,8 @@ module.exports = {
     ],
     additionalSitemaps: [
       // Add dynamic sitemaps here when implemented
-      // 'https://eniem.dev/server-sitemap-blog.xml',
-      // 'https://eniem.dev/server-sitemap-products.xml',
+      // 'https://myapp.example.com/server-sitemap-blog.xml',
+      // 'https://myapp.example.com/server-sitemap-products.xml',
     ],
   },
 };

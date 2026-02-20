@@ -1,6 +1,6 @@
 {
-  "name": "ENIEM - Web3 SaaS Boilerplate",
-  "short_name": "ENIEM",
+  "name": "MyApp - SaaS Boilerplate",
+  "short_name": "MyApp",
   "description": "The ultimate Web3 SaaS boilerplate with Next.js, Parse Server, Stripe, and crypto wallet authentication.",
   "start_url": "/",
   "display": "standalone",
@@ -8,7 +8,7 @@
   "theme_color": "#000000",
   "orientation": "portrait-primary",
   "scope": "/",
-  "id": "eniem-web3-saas",
+  "id": "myapp",
   "categories": [
     "business",
     "developer",
