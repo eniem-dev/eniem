@@ -61,6 +61,22 @@ describe("env-ready", () => {
         DATABASE_URL: "postgres://user:pass@host/db?opt=val",
       });
     });
+
+    it("returns empty object for empty file", async () => {
+      vi.mocked(fs.readFile).mockResolvedValue("");
+
+      const result = await parseEnvFile("/path/.env");
+
+      expect(result).toEqual({});
+    });
+
+    it("propagates error when file does not exist", async () => {
+      vi.mocked(fs.readFile).mockRejectedValue(
+        new Error("ENOENT: no such file or directory"),
+      );
+
+      await expect(parseEnvFile("/path/.env")).rejects.toThrow("ENOENT");
+    });
   });
 
   describe("generateProductionEnv", () => {
@@ -130,6 +146,18 @@ describe("env-ready", () => {
       expect(output).toContain("BETTER_AUTH_URL=https://myapp.com");
       expect(output).toContain("NEXT_PUBLIC_SITE_URL=https://myapp.com");
       expect(output).toContain("POLAR_SERVER=production");
+    });
+
+    it("excludes all optional vars when no groups selected", () => {
+      const output = generateProductionEnv(baseConfig);
+
+      expect(output).not.toContain("GITHUB_CLIENT_ID");
+      expect(output).not.toContain("TWITTER_CLIENT_ID");
+      expect(output).not.toContain("NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID");
+      expect(output).not.toContain("NEXT_PUBLIC_ANALYTICS_PROVIDER");
+      expect(output).not.toContain("DIGITALOCEAN_SPACES_ENDPOINT");
+      expect(output).not.toContain("EMAIL_FROM_ADDRESS");
+      expect(output).not.toContain("LANDING_MODE");
     });
 
     it("outputs analytics sub-selection vars for umami", () => {
@@ -210,6 +238,22 @@ describe("env-ready", () => {
 
       expect(analytics?.subSelection).toBeDefined();
       expect(analytics?.subSelection?.options).toHaveLength(2);
+    });
+
+    it("each optional group has expected var count", () => {
+      const expectedVarCounts: Record<string, number> = {
+        "github-oauth": 2,
+        "twitter-oauth": 2,
+        walletconnect: 1,
+        analytics: 0, // vars come from sub-selection options
+        "file-uploads": 7,
+        "email-branding": 3,
+        "site-config": 1,
+      };
+
+      for (const group of OPTIONAL_GROUPS) {
+        expect(group.vars).toHaveLength(expectedVarCounts[group.id]);
+      }
     });
   });
 });
