@@ -8,19 +8,16 @@ You are in BUILD mode. Implement one task from beads, validate, and commit.
 
 Before any work, create or enter a git worktree for isolation.
 
-**Set worktree path based on epic:**
-```bash
-if [ -n "{{EPIC_NAME}}" ]; then
-  BRANCH="feat/{{EPIC_NAME}}"
-  WORKTREE=".worktrees/feat/{{EPIC_NAME}}"
-else
-  BRANCH="build-$(date +%Y%m%d)"
-  WORKTREE=".worktrees/$BRANCH"
-fi
-```
+**Branch and worktree are pre-computed by loop.sh:**
+- **Branch:** `{{BRANCH}}`
+- **Worktree:** `{{WORKTREE}}`
+- **Epic mode:** `{{IS_EPIC}}`
 
 **Create worktree if it doesn't exist:**
 ```bash
+BRANCH="{{BRANCH}}"
+WORKTREE="{{WORKTREE}}"
+
 if [ ! -d "$WORKTREE" ]; then
   # Create worktree with new branch (or existing branch if it exists)
   git worktree add "$WORKTREE" -b "$BRANCH" 2>/dev/null || git worktree add "$WORKTREE" "$BRANCH"
@@ -55,7 +52,8 @@ If blocked tasks exist, **STOP** and report. Do not waste cycles on dependent wo
 bd ready
 ```
 
-**If epic specified:** Only consider tasks matching `{{EPIC_NAME}}` in their title or notes.
+**Epic mode (`{{IS_EPIC}}` = true):** Only consider tasks matching `{{EPIC_NAME}}` in their title or notes.
+**Session mode (`{{IS_EPIC}}` = false):** Work all ready tasks regardless of epic.
 
 If no ready tasks:
 1. Run `bd blocked` to see what's waiting
@@ -134,7 +132,7 @@ git push -u origin HEAD
 
 **STOP HERE.** Do not pick up another task. Do not run `bd ready` again. The loop engine will restart you for the next task. Your job for this iteration is done.
 
-## Phase 5: Create PR & Archive Spec
+## Phase 5: Create PR & Archive Specs
 
 When no ready tasks remain for this epic/scope:
 
@@ -164,22 +162,24 @@ When no ready tasks remain for this epic/scope:
    )"
    ```
 
-4. Archive the spec:
+4. Archive fully-closed epic specs:
+   Check which epics are now fully closed and archive their spec files:
    ```bash
+   # List all epics
+   bd list --type=epic
+   # For each epic, check if all its child tasks are closed
+   # If an epic is fully closed and specs/<epic-name>.md exists, archive it:
    mkdir -p specs/archive
-   mv specs/{{EPIC_NAME}}.md specs/archive/
+   mv specs/<epic-name>.md specs/archive/
+   ```
+   Commit all archived specs together:
+   ```bash
    git add specs/
-   git commit -m "chore: archive specs/{{EPIC_NAME}}.md"
+   git commit -m "chore: archive completed epic specs"
    git push
    ```
 
-5. Clean up worktree:
-   ```bash
-   cd ..  # Exit worktree directory
-   git worktree remove "$WORKTREE"
-   ```
-
-6. Output completion signal:
+5. Output completion signal:
    ```
    :::ENI_ALL_TASKS_COMPLETE:::
    ```
