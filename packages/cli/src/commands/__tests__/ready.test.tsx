@@ -1041,4 +1041,76 @@ describe("ReadyCommand", () => {
     });
 
   });
+
+  describe("Edge Cases", () => {
+    it("sets exitCode 1 when no .env.example found", async () => {
+      const originalExitCode = process.exitCode;
+      mockAccess.mockRejectedValue(new Error("ENOENT"));
+
+      const { lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+
+      await delay(50);
+
+      expect(lastFrame()).toContain("No .env.example found");
+      expect(process.exitCode).toBe(1);
+
+      // Clean up
+      process.exitCode = originalExitCode;
+    });
+
+    it("accepts empty values for required vars", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+
+      await delay(50);
+      expect(lastFrame()).toContain("(1/8)");
+
+      // Submit empty value — should advance, not show error
+      stdin.write("\r");
+      await delay(50);
+
+      expect(lastFrame()).toContain("(2/8)");
+      expect(lastFrame()).not.toContain("is required");
+    });
+
+    it("produces valid output when all optional groups skipped", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await fillRequiredVars(stdin);
+
+      // Skip all groups (press Enter without selecting any)
+      stdin.write("\r");
+      await delay(50);
+
+      // Select file output
+      stdin.write("\r");
+      await delay(100);
+
+      // Should have written a valid file with only required + auto-set vars
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        "/test/project/.env.production",
+        expect.stringContaining("PROJECT_URL=https://myapp.com"),
+        "utf-8",
+      );
+
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("Production .env ready!");
+      expect(frame).toContain("Skipped:");
+      expect(frame).toContain("GitHub OAuth");
+    });
+  });
 });

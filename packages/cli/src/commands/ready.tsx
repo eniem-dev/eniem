@@ -1,4 +1,4 @@
-import { Box, Text } from "ink";
+import { Box, Text, useApp } from "ink";
 import React, { useState, useEffect, useRef } from "react";
 import { writeFile } from "fs/promises";
 import { access, constants } from "fs/promises";
@@ -113,11 +113,27 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
 
   // Reusable input state
   const [inputValue, setInputValue] = useState("");
-  const [inputError, setInputError] = useState<string | undefined>(undefined);
 
   // Refs to prevent duplicate effect runs
   const isPreflightRef = useRef(false);
   const isOutputRef = useRef(false);
+
+  // Ctrl+C graceful exit
+  const { exit } = useApp();
+  useEffect(() => {
+    const handler = () => exit();
+    process.on("SIGINT", handler);
+    return () => {
+      process.removeListener("SIGINT", handler);
+    };
+  }, [exit]);
+
+  // Exit the Ink app on terminal states so the process terminates
+  useEffect(() => {
+    if (step === "error" || step === "aborted" || step === "summary") {
+      exit();
+    }
+  }, [step, exit]);
 
   // Step 1: Preflight — check .env.example exists, parse existing .env
   useEffect(() => {
@@ -130,10 +146,11 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
           await access(envExamplePath, constants.R_OK);
         } catch {
           setError(
-            "No .env.example found in current directory. Run this command from your project root.",
+            "No .env.example found. Run this command from your project root.",
           );
           setStep("error");
           isPreflightRef.current = false;
+          process.exitCode = 1;
           return;
         }
 
@@ -218,20 +235,12 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
 
   // Handle required var submission
   const handleVarSubmit = (value: string) => {
-    const trimmed = value.trim();
     const currentVar = REQUIRED_VARS[currentVarIndex];
-
     if (!currentVar) return;
 
-    if (!trimmed) {
-      setInputError(`${currentVar.key} is required`);
-      return;
-    }
-
-    // Save value
-    const updated = { ...requiredValues, [currentVar.key]: trimmed };
+    // Save value (empty values are allowed per spec)
+    const updated = { ...requiredValues, [currentVar.key]: value.trim() };
     setRequiredValues(updated);
-    setInputError(undefined);
 
     // Move to next var or finish
     const nextIndex = currentVarIndex + 1;
@@ -464,7 +473,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
             onChange={setInputValue}
             onSubmit={handleVarSubmit}
             placeholder={currentVar.key}
-            error={inputError}
+
           />
         </Box>
       )}
