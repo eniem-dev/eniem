@@ -12,6 +12,22 @@ You are in PLANNING mode. Translate a spec into beads epics and issues.
 
 ---
 
+## Path Discovery Rules (CRITICAL)
+
+**NEVER guess or invent file paths.** Always verify paths exist before referencing them.
+
+Before referencing ANY file path:
+1. Use Glob to find files matching a pattern
+2. Use Grep to search for specific code
+3. Verify the file exists before adding it to a beads design field or editing it
+
+Wrong: `src/features/credits/components/CreditsBadge.tsx` (guessed)
+Right: Run `Glob("**/CreditsBadge*")` first, then use the actual path returned
+
+For new files (create): verify the parent directory exists first.
+
+---
+
 ## Iteration 1: Create Beads
 
 If this is iteration 1, create the epic and all issues.
@@ -72,9 +88,9 @@ bd create --type=task \
 - [ ] [Specific deliverable 2]
 
 ## Files
-- \`apps/boilerplate/path/to/file.ts\` (create|modify)
-- \`packages/cli/path/to/file.ts\` (create|modify)
-- \`apps/docs/path/to/file.ts\` (create|modify)
+- \`apps/boilerplate/path/to/file.ts\` (modify) — verified via Glob
+- \`packages/cli/path/to/new-file.ts\` (create) — parent dir verified
+- \`apps/docs/path/to/file.ts\` (modify) — verified via Glob
 
 ## Patterns
 - See \`path/to/example/\` for reference
