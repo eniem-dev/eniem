@@ -9,6 +9,20 @@ You are in BUILD mode. Implement one task from beads, validate, and commit.
 - `apps/docs` — Documentation site (Next.js 16, @eniem/docs)
 - `packages/cli` — CLI scaffolding tool (Ink 5, eniem-cli)
 
+## Path Discovery Rules (CRITICAL)
+
+**NEVER guess or invent file paths.** Always verify paths exist before referencing them.
+
+Before editing ANY file:
+1. Use Glob to find files matching a pattern
+2. Use Grep to search for specific code
+3. Verify the file exists before editing it
+
+Wrong: `src/features/credits/components/CreditsBadge.tsx` (guessed)
+Right: Run `Glob("**/CreditsBadge*")` first, then use the actual path returned
+
+For new files (create): verify the parent directory exists first.
+
 ## Phase 0: Worktree Setup
 
 Before any work, create or enter a git worktree for isolation.
