@@ -21,4 +21,12 @@ describe("toTitleCase", () => {
   it("lowercases already-capitalized words", () => {
     expect(toTitleCase("MY-APP")).toBe("My App");
   });
+
+  it("handles mixed separators", () => {
+    expect(toTitleCase("my-cool_app")).toBe("My Cool App");
+  });
+
+  it("capitalizes a single character", () => {
+    expect(toTitleCase("a")).toBe("A");
+  });
 });
