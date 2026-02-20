@@ -22,7 +22,16 @@ describe("env", () => {
       expect(content).toContain("DATABASE_URL=postgresql://eniem:eniem-dev-password@localhost:5432/eniem");
     });
 
-    it("uses provided project name", () => {
+    it("uses appName when provided", () => {
+      const config: AppConfig = {
+        project: { name: "my-app", appName: "My App" },
+      };
+      const content = generateEnvContent(config);
+
+      expect(content).toContain("NEXT_PUBLIC_APP_NAME=My App");
+    });
+
+    it("falls back to project name when appName is not set", () => {
       const config: AppConfig = {
         project: { name: "my-app" },
       };
