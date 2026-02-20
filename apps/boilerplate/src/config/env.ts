@@ -4,7 +4,7 @@ export const env = {
     process.env.PROJECT_URL ||
     process.env.NEXT_PUBLIC_SITE_URL ||
     "http://localhost:3000",
-  appName: process.env.NEXT_PUBLIC_APP_NAME || "Eniem",
+  appName: process.env.NEXT_PUBLIC_APP_NAME || "MyApp",
 
   // Better Auth Configuration
   betterAuth: {
@@ -63,7 +63,7 @@ export const env = {
   // Email Configuration (Resend)
   email: {
     resendApiKey: process.env.RESEND_API_KEY,
-    fromAddress: process.env.EMAIL_FROM_ADDRESS || "no-reply@eniem.dev",
+    fromAddress: process.env.EMAIL_FROM_ADDRESS || "no-reply@myapp.example.com",
     brandLogoUrl: process.env.EMAIL_BRAND_LOGO_URL,
   },
 
@@ -83,6 +83,6 @@ export const env = {
 
   // Support Configuration
   support: {
-    email: process.env.SUPPORT_EMAIL || process.env.EMAIL_FROM_ADDRESS || "support@eniem.dev",
+    email: process.env.SUPPORT_EMAIL || process.env.EMAIL_FROM_ADDRESS || "support@myapp.example.com",
   },
 } as const;
