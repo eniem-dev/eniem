@@ -11,12 +11,28 @@ vi.mock("fs/promises", () => ({
   constants: { R_OK: 4 },
 }));
 
+// Mock fs (existsSync for overwrite check)
+vi.mock("fs", () => ({
+  existsSync: vi.fn().mockReturnValue(false),
+}));
+
+// Mock clipboardy
+vi.mock("clipboardy", () => ({
+  default: {
+    write: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 // Re-import to get mocked versions
 import { access, readFile, writeFile } from "fs/promises";
+import { existsSync } from "fs";
+import clipboard from "clipboardy";
 
 const mockAccess = vi.mocked(access);
 const mockReadFile = vi.mocked(readFile);
 const mockWriteFile = vi.mocked(writeFile);
+const mockExistsSync = vi.mocked(existsSync);
+const mockClipboardWrite = vi.mocked(clipboard.write);
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -34,6 +50,8 @@ async function typeAndSubmit(
 describe("ReadyCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockExistsSync.mockReturnValue(false);
+    mockClipboardWrite.mockResolvedValue(undefined);
   });
 
   describe("Preflight", () => {
@@ -263,11 +281,10 @@ describe("ReadyCommand", () => {
       expect(githubLine).toContain("◉");
     });
 
-    it("proceeds to output after confirming group selection", async () => {
+    it("shows output choice after confirming group selection", async () => {
       mockAccess
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error("ENOENT"));
-      mockWriteFile.mockResolvedValue(undefined);
 
       const { stdin, lastFrame } = render(
         <ReadyCommand projectDir="/test/project" />,
@@ -294,7 +311,7 @@ describe("ReadyCommand", () => {
       stdin.write("\r");
       await delay(100);
 
-      expect(lastFrame()).toContain("Production .env ready!");
+      expect(lastFrame()).toContain("Where should the production env be saved?");
     });
   });
 
@@ -328,6 +345,22 @@ describe("ReadyCommand", () => {
     await delay(20);
   }
 
+  /** Select file output in output_choice step */
+  async function selectFileOutput(stdin: { write: (data: string) => void }) {
+    stdin.write("\r"); // Select first option (.env.production file)
+    await delay(50);
+  }
+
+  /** Select clipboard output in output_choice step */
+  async function selectClipboardOutput(
+    stdin: { write: (data: string) => void },
+  ) {
+    stdin.write("\x1B[B"); // Down arrow to "Copy to clipboard"
+    await delay(30);
+    stdin.write("\r");
+    await delay(50);
+  }
+
   describe("Analytics Provider", () => {
     it("shows analytics provider select when Analytics group is checked", async () => {
       mockAccess
@@ -352,7 +385,6 @@ describe("ReadyCommand", () => {
       mockAccess
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error("ENOENT"));
-      mockWriteFile.mockResolvedValue(undefined);
 
       const { stdin, lastFrame } = render(
         <ReadyCommand projectDir="/test/project" />,
@@ -365,7 +397,7 @@ describe("ReadyCommand", () => {
       await delay(100);
 
       expect(lastFrame()).not.toContain("Which analytics provider?");
-      expect(lastFrame()).toContain("Production .env ready!");
+      expect(lastFrame()).toContain("Where should the production env be saved?");
     });
 
     it("shows Umami vars after selecting Umami provider", async () => {
@@ -420,7 +452,6 @@ describe("ReadyCommand", () => {
       mockAccess
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error("ENOENT"));
-      mockWriteFile.mockResolvedValue(undefined);
 
       const { stdin, lastFrame } = render(
         <ReadyCommand projectDir="/test/project" />,
@@ -441,8 +472,8 @@ describe("ReadyCommand", () => {
       stdin.write("\r");
       await delay(100);
 
-      // Should skip straight to output (no vars to prompt)
-      expect(lastFrame()).toContain("Production .env ready!");
+      // Should skip straight to output choice (no vars to prompt)
+      expect(lastFrame()).toContain("Where should the production env be saved?");
     });
 
     it("puts existing provider first in options list", async () => {
@@ -519,11 +550,10 @@ describe("ReadyCommand", () => {
       expect(lastFrame()).toContain("GitHub OAuth client secret");
     });
 
-    it("proceeds to output after all group vars entered", async () => {
+    it("shows output choice after all group vars entered", async () => {
       mockAccess
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error("ENOENT"));
-      mockWriteFile.mockResolvedValue(undefined);
 
       const { stdin, lastFrame } = render(
         <ReadyCommand projectDir="/test/project" />,
@@ -541,7 +571,7 @@ describe("ReadyCommand", () => {
       await typeAndSubmit(stdin, "gh_client_secret");
       await delay(100);
 
-      expect(lastFrame()).toContain("Production .env ready!");
+      expect(lastFrame()).toContain("Where should the production env be saved?");
     });
 
     it("pre-fills group vars from existing .env", async () => {
@@ -594,15 +624,205 @@ describe("ReadyCommand", () => {
     });
   });
 
+  describe("Output Choice", () => {
+    /** Fill required vars, confirm groups, reach output_choice */
+    async function reachOutputChoice(
+      stdin: { write: (data: string) => void },
+    ) {
+      await fillRequiredVars(stdin);
+      stdin.write("\r"); // Confirm group selection
+      await delay(50);
+    }
+
+    it("shows two output options", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await reachOutputChoice(stdin);
+
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain(".env.production file");
+      expect(frame).toContain("Copy to clipboard");
+    });
+
+    it("writes file when file option selected", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await reachOutputChoice(stdin);
+      await selectFileOutput(stdin);
+      await delay(100);
+
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        "/test/project/.env.production",
+        expect.stringContaining("PROJECT_URL=https://myapp.com"),
+        "utf-8",
+      );
+      expect(lastFrame()).toContain("Production .env ready!");
+      expect(lastFrame()).toContain(".env.production");
+    });
+
+    it("copies to clipboard when clipboard option selected", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await reachOutputChoice(stdin);
+      await selectClipboardOutput(stdin);
+      await delay(100);
+
+      expect(mockClipboardWrite).toHaveBeenCalledWith(
+        expect.stringContaining("PROJECT_URL=https://myapp.com"),
+      );
+      expect(mockWriteFile).not.toHaveBeenCalled();
+      expect(lastFrame()).toContain("Production .env ready!");
+      expect(lastFrame()).toContain("Copied to clipboard");
+    });
+
+    it("falls back to stdout when clipboard copy fails", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockClipboardWrite.mockRejectedValue(new Error("No clipboard"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await reachOutputChoice(stdin);
+      await selectClipboardOutput(stdin);
+      await delay(100);
+
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("Failed to copy to clipboard");
+      expect(frame).toContain("Outputting to stdout instead");
+      expect(frame).toContain("PROJECT_URL=https://myapp.com");
+    });
+  });
+
+  describe("Overwrite Confirm", () => {
+    /** Fill required vars, confirm groups, reach output_choice */
+    async function reachOutputChoice(
+      stdin: { write: (data: string) => void },
+    ) {
+      await fillRequiredVars(stdin);
+      stdin.write("\r"); // Confirm group selection
+      await delay(50);
+    }
+
+    it("shows overwrite confirmation when .env.production exists", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockExistsSync.mockReturnValue(true);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await reachOutputChoice(stdin);
+      await selectFileOutput(stdin);
+      await delay(50);
+
+      expect(lastFrame()).toContain("Found existing .env.production. Overwrite?");
+    });
+
+    it("writes file when overwrite confirmed", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockExistsSync.mockReturnValue(true);
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await reachOutputChoice(stdin);
+      await selectFileOutput(stdin);
+      await delay(50);
+
+      // Confirm overwrite (press 'y')
+      stdin.write("y");
+      await delay(100);
+
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        "/test/project/.env.production",
+        expect.stringContaining("PROJECT_URL=https://myapp.com"),
+        "utf-8",
+      );
+      expect(lastFrame()).toContain("Production .env ready!");
+    });
+
+    it("aborts when overwrite declined", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockExistsSync.mockReturnValue(true);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await reachOutputChoice(stdin);
+      await selectFileOutput(stdin);
+      await delay(50);
+
+      // Decline overwrite (press 'n')
+      stdin.write("n");
+      await delay(100);
+
+      expect(mockWriteFile).not.toHaveBeenCalled();
+      expect(lastFrame()).toContain("Aborted. No changes made.");
+    });
+
+    it("defaults to No on overwrite confirmation", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockExistsSync.mockReturnValue(true);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+      await delay(50);
+      await reachOutputChoice(stdin);
+      await selectFileOutput(stdin);
+      await delay(50);
+
+      // Press Enter without choosing (default is No)
+      stdin.write("\r");
+      await delay(100);
+
+      expect(mockWriteFile).not.toHaveBeenCalled();
+      expect(lastFrame()).toContain("Aborted. No changes made.");
+    });
+  });
+
   describe("Output", () => {
-    /** Fill required vars and confirm groups to reach output step */
+    /** Fill required vars, confirm groups, select file output */
     async function fillRequiredVarsAndGroups(
       stdin: { write: (data: string) => void },
     ) {
       await fillRequiredVars(stdin);
-
-      // Confirm group selection (press Enter)
-      stdin.write("\r");
+      stdin.write("\r"); // Confirm group selection
+      await delay(50);
+      await selectFileOutput(stdin); // Select file output
       await delay(50);
     }
 

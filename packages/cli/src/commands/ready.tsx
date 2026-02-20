@@ -2,7 +2,9 @@ import { Box, Text } from "ink";
 import React, { useState, useEffect, useRef } from "react";
 import { writeFile } from "fs/promises";
 import { access, constants } from "fs/promises";
+import { existsSync } from "fs";
 import { join } from "path";
+import clipboard from "clipboardy";
 import {
   TextInput,
   Spinner,
@@ -10,6 +12,7 @@ import {
   StatusMessage,
   MultiSelect,
   Select,
+  Confirm,
 } from "../components/index.js";
 import {
   REQUIRED_VARS,
@@ -64,9 +67,12 @@ type ReadyStep =
   | "groups_select"
   | "analytics_provider"
   | "group_vars"
+  | "output_choice"
+  | "overwrite_confirm"
   | "output"
   | "summary"
   | "complete"
+  | "aborted"
   | "error";
 
 interface ReadyCommandProps {
@@ -99,6 +105,11 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
     [],
   );
   const [currentGroupVarIndex, setCurrentGroupVarIndex] = useState(0);
+
+  // Output method (file vs clipboard)
+  const [outputMethod, setOutputMethod] = useState<"file" | "clipboard">("file");
+  const [generatedContent, setGeneratedContent] = useState("");
+  const [clipboardFailed, setClipboardFailed] = useState(false);
 
   // Reusable input state
   const [inputValue, setInputValue] = useState("");
@@ -153,7 +164,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
     }
   }, [step, projectDir]);
 
-  // Step 3: Output — write .env.production
+  // Step 3: Output — write file or copy to clipboard
   useEffect(() => {
     if (step === "output" && !isOutputRef.current) {
       isOutputRef.current = true;
@@ -177,22 +188,33 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
         };
 
         const content = generateProductionEnv(config);
-        const outputPath = join(projectDir, ".env.production");
 
-        try {
-          await writeFile(outputPath, content, "utf-8");
-          setStep("summary");
-        } catch (err) {
-          setError(
-            `Failed to write .env.production: ${err instanceof Error ? err.message : String(err)}`,
-          );
-          setStep("error");
+        if (outputMethod === "clipboard") {
+          try {
+            await clipboard.write(content);
+            setStep("summary");
+          } catch {
+            setGeneratedContent(content);
+            setClipboardFailed(true);
+            setStep("summary");
+          }
+        } else {
+          const outputPath = join(projectDir, ".env.production");
+          try {
+            await writeFile(outputPath, content, "utf-8");
+            setStep("summary");
+          } catch (err) {
+            setError(
+              `Failed to write .env.production: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            setStep("error");
+          }
         }
         isOutputRef.current = false;
       };
       writeOutput();
     }
-  }, [step, projectDir, requiredValues, optionalValues, selectedGroups, skippedGroups]);
+  }, [step, projectDir, requiredValues, optionalValues, selectedGroups, skippedGroups, outputMethod]);
 
   // Handle required var submission
   const handleVarSubmit = (value: string) => {
@@ -243,7 +265,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
         setInputValue(existingEnv[vars[0].key] ?? "");
         setStep("group_vars");
       } else {
-        setStep("output");
+        setStep("output_choice");
       }
     }
   };
@@ -264,7 +286,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
         setInputValue(existingEnv[vars[0].key] ?? "");
         setStep("group_vars");
       } else {
-        setStep("output");
+        setStep("output_choice");
       }
     } else {
       // Auto-set NEXT_PUBLIC_ANALYTICS_PROVIDER
@@ -283,7 +305,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
         setInputValue(existingEnv[vars[0].key] ?? "");
         setStep("group_vars");
       } else {
-        setStep("output");
+        setStep("output_choice");
       }
     }
   };
@@ -303,7 +325,32 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
       setInputValue(nextVar ? (existingEnv[nextVar.key] ?? "") : "");
     } else {
       setInputValue("");
+      setStep("output_choice");
+    }
+  };
+
+  // Handle output destination selection
+  const handleOutputChoice = (value: string) => {
+    if (value === "clipboard") {
+      setOutputMethod("clipboard");
       setStep("output");
+    } else {
+      setOutputMethod("file");
+      const outputPath = join(projectDir, ".env.production");
+      if (existsSync(outputPath)) {
+        setStep("overwrite_confirm");
+      } else {
+        setStep("output");
+      }
+    }
+  };
+
+  // Handle overwrite confirmation
+  const handleOverwriteConfirm = (confirmed: boolean) => {
+    if (confirmed) {
+      setStep("output");
+    } else {
+      setStep("aborted");
     }
   };
 
@@ -428,8 +475,37 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
         </Box>
       )}
 
+      {step === "output_choice" && (
+        <Box flexDirection="column" marginTop={1}>
+          <Select
+            label="Where should the production env be saved?"
+            options={[
+              { label: ".env.production file", value: "file" },
+              { label: "Copy to clipboard", value: "clipboard" },
+            ]}
+            onSelect={handleOutputChoice}
+          />
+        </Box>
+      )}
+
+      {step === "overwrite_confirm" && (
+        <Box flexDirection="column" marginTop={1}>
+          <Confirm
+            label="Found existing .env.production. Overwrite?"
+            onConfirm={handleOverwriteConfirm}
+            defaultValue={false}
+          />
+        </Box>
+      )}
+
       {step === "output" && (
-        <Spinner label="Writing .env.production..." />
+        <Spinner
+          label={
+            outputMethod === "clipboard"
+              ? "Copying to clipboard..."
+              : "Writing .env.production..."
+          }
+        />
       )}
 
       {step === "summary" && (
@@ -456,11 +532,35 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
             ))}
           </Box>
 
-          <Box marginTop={1}>
-            <Text dimColor>
-              Output: <Text color="cyan">.env.production</Text>
-            </Text>
-          </Box>
+          {clipboardFailed ? (
+            <Box flexDirection="column" marginTop={1}>
+              <StatusMessage status="skip">
+                Failed to copy to clipboard. Outputting to stdout instead:
+              </StatusMessage>
+              <Box marginTop={1}>
+                <Text>{generatedContent}</Text>
+              </Box>
+            </Box>
+          ) : (
+            <Box marginTop={1}>
+              <Text dimColor>
+                Output:{" "}
+                <Text color="cyan">
+                  {outputMethod === "clipboard"
+                    ? "Copied to clipboard"
+                    : ".env.production"}
+                </Text>
+              </Text>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {step === "aborted" && (
+        <Box flexDirection="column" marginTop={1}>
+          <StatusMessage status="skip">
+            Aborted. No changes made.
+          </StatusMessage>
         </Box>
       )}
 
