@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { replacePlaceholders } from "../replace.js";
-import { mkdtemp, mkdir, writeFile, readFile, rm } from "fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, rm, chmod } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 
@@ -157,6 +157,28 @@ describe("replacePlaceholders", () => {
 
     const content = await readFile(join(tempDir, "config.ts"), "utf-8");
     expect(content).toBe("Cool SaaS is the display name, cool-saas is the slug");
+  });
+
+  it("handles file read errors gracefully and continues", async () => {
+    await writeFile(join(tempDir, "good.txt"), "myapp");
+    await writeFile(join(tempDir, "bad.txt"), "myapp");
+    await chmod(join(tempDir, "bad.txt"), 0o000);
+
+    const onProgress = vi.fn();
+    const result = await replacePlaceholders({
+      destination: tempDir,
+      slug: "acme",
+      appName: "Acme",
+      onProgress,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.filesModified).toBe(1);
+    expect(onProgress).toHaveBeenCalledWith(
+      expect.stringContaining("Warning: skipping"),
+    );
+
+    await chmod(join(tempDir, "bad.txt"), 0o644);
   });
 
   it("returns error for non-existent destination", async () => {
