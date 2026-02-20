@@ -38,4 +38,18 @@ describe("ProjectSetup", () => {
     expect(lastFrame()).toContain("Name: test-project");
     expect(lastFrame()).toContain("✓");
   });
+
+  it("accepts initialAppName prop alongside initialName", () => {
+    const { lastFrame } = render(
+      <ProjectSetup initialName="my-app" initialAppName="My App" onComplete={() => {}} />
+    );
+    expect(lastFrame()).toContain("Name: my-app");
+  });
+
+  it("renders name prompt when initialAppName provided without initialName", () => {
+    const { lastFrame } = render(
+      <ProjectSetup initialAppName="My App" onComplete={() => {}} />
+    );
+    expect(lastFrame()).toContain("Project name:");
+  });
 });

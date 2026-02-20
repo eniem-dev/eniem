@@ -9,6 +9,7 @@ interface ProjectConfig {
 
 interface ProjectSetupProps {
   initialName?: string;
+  initialAppName?: string;
   onComplete: (config: ProjectConfig) => void;
 }
 
