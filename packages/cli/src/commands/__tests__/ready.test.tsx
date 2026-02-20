@@ -163,14 +163,13 @@ describe("ReadyCommand", () => {
     });
   });
 
-  describe("Output", () => {
-    it("writes .env.production after all vars collected", async () => {
+  describe("Groups Select", () => {
+    it("shows MultiSelect after all required vars collected", async () => {
       mockAccess
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(new Error("ENOENT"));
-      mockWriteFile.mockResolvedValue(undefined);
 
-      const { stdin } = render(
+      const { stdin, lastFrame } = render(
         <ReadyCommand projectDir="/test/project" />,
       );
 
@@ -191,6 +190,151 @@ describe("ReadyCommand", () => {
         await typeAndSubmit(stdin, val);
       }
 
+      expect(lastFrame()).toContain("Optional feature groups");
+    });
+
+    it("displays all 7 optional groups", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+
+      await delay(50);
+
+      const values = [
+        "https://myapp.com",
+        "MyApp",
+        "postgres://localhost/myapp",
+        "secret123",
+        "polar_xxx",
+        "whsec_xxx",
+        "org_xxx",
+        "re_xxx",
+      ];
+
+      for (const val of values) {
+        await typeAndSubmit(stdin, val);
+      }
+
+      const frame = lastFrame() ?? "";
+      expect(frame).toContain("GitHub OAuth");
+      expect(frame).toContain("Twitter/X OAuth");
+      expect(frame).toContain("WalletConnect (Web3)");
+      expect(frame).toContain("Analytics");
+      expect(frame).toContain("File Uploads (DigitalOcean Spaces)");
+      expect(frame).toContain("Email Branding");
+      expect(frame).toContain("Site Config (Landing Mode)");
+    });
+
+    it("pre-checks groups with existing .env values", async () => {
+      mockAccess.mockResolvedValue(undefined);
+      mockReadFile.mockResolvedValue(
+        "GITHUB_CLIENT_ID=abc123\nGITHUB_CLIENT_SECRET=secret\n",
+      );
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+
+      await delay(50);
+
+      const values = [
+        "https://myapp.com",
+        "MyApp",
+        "postgres://localhost/myapp",
+        "secret123",
+        "polar_xxx",
+        "whsec_xxx",
+        "org_xxx",
+        "re_xxx",
+      ];
+
+      for (const val of values) {
+        await typeAndSubmit(stdin, val);
+      }
+
+      const frame = lastFrame() ?? "";
+      // GitHub OAuth should be pre-selected (◉), others not (○)
+      const lines = frame.split("\n");
+      const githubLine = lines.find((l: string) => l.includes("GitHub OAuth"));
+      expect(githubLine).toContain("◉");
+    });
+
+    it("proceeds to output after confirming group selection", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin, lastFrame } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+
+      await delay(50);
+
+      const values = [
+        "https://myapp.com",
+        "MyApp",
+        "postgres://localhost/myapp",
+        "secret123",
+        "polar_xxx",
+        "whsec_xxx",
+        "org_xxx",
+        "re_xxx",
+      ];
+
+      for (const val of values) {
+        await typeAndSubmit(stdin, val);
+      }
+
+      // Confirm group selection (press Enter with defaults)
+      stdin.write("\r");
+      await delay(100);
+
+      expect(lastFrame()).toContain("Production .env ready!");
+    });
+  });
+
+  describe("Output", () => {
+    /** Fill required vars and confirm groups to reach output step */
+    async function fillRequiredVarsAndGroups(
+      stdin: { write: (data: string) => void },
+    ) {
+      const values = [
+        "https://myapp.com",
+        "MyApp",
+        "postgres://localhost/myapp",
+        "secret123",
+        "polar_xxx",
+        "whsec_xxx",
+        "org_xxx",
+        "re_xxx",
+      ];
+
+      for (const val of values) {
+        await typeAndSubmit(stdin, val);
+      }
+
+      // Confirm group selection (press Enter)
+      stdin.write("\r");
+      await delay(50);
+    }
+
+    it("writes .env.production after all vars collected", async () => {
+      mockAccess
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error("ENOENT"));
+      mockWriteFile.mockResolvedValue(undefined);
+
+      const { stdin } = render(
+        <ReadyCommand projectDir="/test/project" />,
+      );
+
+      await delay(50);
+      await fillRequiredVarsAndGroups(stdin);
       await delay(100);
 
       expect(mockWriteFile).toHaveBeenCalledWith(
@@ -211,22 +355,7 @@ describe("ReadyCommand", () => {
       );
 
       await delay(50);
-
-      const values = [
-        "https://myapp.com",
-        "MyApp",
-        "postgres://localhost/myapp",
-        "secret123",
-        "polar_xxx",
-        "whsec_xxx",
-        "org_xxx",
-        "re_xxx",
-      ];
-
-      for (const val of values) {
-        await typeAndSubmit(stdin, val);
-      }
-
+      await fillRequiredVarsAndGroups(stdin);
       await delay(100);
 
       expect(lastFrame()).toContain("Production .env ready!");
@@ -243,22 +372,7 @@ describe("ReadyCommand", () => {
       );
 
       await delay(50);
-
-      const values = [
-        "https://myapp.com",
-        "MyApp",
-        "postgres://localhost/myapp",
-        "secret123",
-        "polar_xxx",
-        "whsec_xxx",
-        "org_xxx",
-        "re_xxx",
-      ];
-
-      for (const val of values) {
-        await typeAndSubmit(stdin, val);
-      }
-
+      await fillRequiredVarsAndGroups(stdin);
       await delay(100);
 
       expect(lastFrame()).toContain("BETTER_AUTH_URL");
@@ -278,22 +392,7 @@ describe("ReadyCommand", () => {
       );
 
       await delay(50);
-
-      const values = [
-        "https://myapp.com",
-        "MyApp",
-        "postgres://localhost/myapp",
-        "secret123",
-        "polar_xxx",
-        "whsec_xxx",
-        "org_xxx",
-        "re_xxx",
-      ];
-
-      for (const val of values) {
-        await typeAndSubmit(stdin, val);
-      }
-
+      await fillRequiredVarsAndGroups(stdin);
       await delay(100);
 
       expect(lastFrame()).toContain("Failed to write .env.production");

@@ -8,18 +8,22 @@ import {
   Spinner,
   SectionHeader,
   StatusMessage,
+  MultiSelect,
 } from "../components/index.js";
 import {
   REQUIRED_VARS,
+  OPTIONAL_GROUPS,
   AUTO_SET_VARS,
   parseEnvFile,
   generateProductionEnv,
+  getPreCheckedGroups,
   type EnvReadyConfig,
 } from "../lib/env-ready.js";
 
 type ReadyStep =
   | "preflight"
   | "required_vars"
+  | "groups_select"
   | "output"
   | "summary"
   | "complete"
@@ -42,6 +46,10 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
     {},
   );
   const [currentVarIndex, setCurrentVarIndex] = useState(0);
+
+  // Optional groups selection
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+  const [skippedGroups, setSkippedGroups] = useState<string[]>([]);
 
   // Reusable input state
   const [inputValue, setInputValue] = useState("");
@@ -115,8 +123,8 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
           required: requiredValues,
           optional: {},
           autoSet,
-          selectedGroups: [],
-          skippedGroups: [],
+          selectedGroups,
+          skippedGroups,
         };
 
         const content = generateProductionEnv(config);
@@ -135,7 +143,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
       };
       writeOutput();
     }
-  }, [step, projectDir, requiredValues]);
+  }, [step, projectDir, requiredValues, selectedGroups, skippedGroups]);
 
   // Handle required var submission
   const handleVarSubmit = (value: string) => {
@@ -165,8 +173,17 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
       }
     } else {
       setInputValue("");
-      setStep("output");
+      setStep("groups_select");
     }
+  };
+
+  // Handle optional groups selection
+  const handleGroupsSubmit = (selected: string[]) => {
+    const allGroupIds = OPTIONAL_GROUPS.map((g) => g.id);
+    const skipped = allGroupIds.filter((id) => !selected.includes(id));
+    setSelectedGroups(selected);
+    setSkippedGroups(skipped);
+    setStep("output");
   };
 
   // Build auto-set display for summary
@@ -223,6 +240,20 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
             onSubmit={handleVarSubmit}
             placeholder={currentVar.key}
             error={inputError}
+          />
+        </Box>
+      )}
+
+      {step === "groups_select" && (
+        <Box flexDirection="column" marginTop={1}>
+          <MultiSelect
+            label="Optional feature groups (space to toggle, enter to confirm):"
+            items={OPTIONAL_GROUPS.map((g) => ({
+              label: g.label,
+              value: g.id,
+            }))}
+            onSubmit={handleGroupsSubmit}
+            initialSelected={getPreCheckedGroups(existingEnv)}
           />
         </Box>
       )}
