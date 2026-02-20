@@ -14,7 +14,7 @@ export function generateEnvContent(config: AppConfig): string {
   lines.push("# Project Configuration");
   lines.push("PROJECT_URL=http://localhost:3000");
   lines.push("NEXT_PUBLIC_SITE_URL=http://localhost:3000");
-  lines.push(`NEXT_PUBLIC_APP_NAME=${config.project?.name || "eniem"}`);
+  lines.push(`NEXT_PUBLIC_APP_NAME=${config.project?.appName || config.project?.name || "eniem"}`);
 
   // Better Auth Configuration
   lines.push("");

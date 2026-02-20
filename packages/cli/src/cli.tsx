@@ -37,6 +37,7 @@ const cli = meow(
     ai init        Initialize or update AI workflow files (.eni, .claude, specs/)
 
   Options
+    --app-name     Display name for the app (skips interactive prompt)
     --git-host     SSH host alias for git clone (default: github.com)
     --env          Environment for products command (default: sandbox)
     --prod         Shorthand for --env=production
@@ -47,6 +48,7 @@ const cli = meow(
 
   Examples
     $ eniem-cli my-app
+    $ eniem-cli my-app --app-name "My App"
     $ eniem-cli --git-host 0xtiby my-app
     $ eniem-cli products
     $ eniem-cli products --prod
@@ -59,6 +61,7 @@ const cli = meow(
     autoHelp: true,
     autoVersion: true,
     flags: {
+      appName: { type: "string" },
       gitHost: { type: "string", default: "github.com" },
       env: { type: "string", default: "sandbox" },
       prod: { type: "boolean", default: false },
@@ -92,10 +95,11 @@ const Header = () => {
 
 interface AppProps {
   initialProjectName?: string;
+  initialAppName?: string;
   gitHost: string;
 }
 
-const App = ({ initialProjectName, gitHost }: AppProps) => {
+const App = ({ initialProjectName, initialAppName, gitHost }: AppProps) => {
   const handleWizardComplete = (config: AppConfig, destination: string) => {
     // Config is now available for env generation
     // destination is the path where the project was cloned
@@ -107,7 +111,7 @@ const App = ({ initialProjectName, gitHost }: AppProps) => {
     <ConfigProvider>
       <Box flexDirection="column">
         <Header />
-        <Wizard initialProjectName={initialProjectName} gitHost={gitHost} onComplete={handleWizardComplete} />
+        <Wizard initialProjectName={initialProjectName} initialAppName={initialAppName} gitHost={gitHost} onComplete={handleWizardComplete} />
       </Box>
     </ConfigProvider>
   );
@@ -116,10 +120,17 @@ const App = ({ initialProjectName, gitHost }: AppProps) => {
 const command = cli.input[0];
 const subcommand = cli.input[1];
 const gitHost = cli.flags.gitHost;
+const appNameFlag = cli.flags.appName;
 const prodFlag = cli.flags.prod;
 const envFlag = cli.flags.env;
 const tokenFlag = cli.flags.token;
 const forceFlag = cli.flags.force;
+
+// Validate --app-name flag (must be non-empty if provided)
+if (appNameFlag !== undefined && appNameFlag.trim() === "") {
+  console.error(`\x1b[31m✗ --app-name cannot be empty\x1b[0m`);
+  process.exit(1);
+}
 
 // Determine environment: --prod takes precedence
 const resolvedEnv = prodFlag ? "production" : envFlag;
@@ -159,5 +170,5 @@ if (command === "products") {
 } else {
   // Default: Run the main wizard
   const projectName = command;
-  render(<App initialProjectName={projectName} gitHost={gitHost} />);
+  render(<App initialProjectName={projectName} initialAppName={appNameFlag} gitHost={gitHost} />);
 }

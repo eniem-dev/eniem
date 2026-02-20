@@ -2,6 +2,7 @@
 
 export interface ProjectConfig {
   name: string;
+  appName?: string;
 }
 
 export interface AuthConfig {

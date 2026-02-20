@@ -28,11 +28,12 @@ type WizardStep =
 
 interface WizardProps {
   initialProjectName?: string;
+  initialAppName?: string;
   gitHost: string;
   onComplete: (config: AppConfig, destination: string) => void;
 }
 
-export const Wizard = ({ initialProjectName, gitHost, onComplete }: WizardProps) => {
+export const Wizard = ({ initialProjectName, initialAppName, gitHost, onComplete }: WizardProps) => {
   const [step, setStep] = useState<WizardStep>("project");
   const [projectDestination, setProjectDestination] = useState<string>("");
   const { config, setProject, setAuth, setAuthSecret, setOAuth, setPayment, setStorage, setWeb3, setAnalytics } =
@@ -94,7 +95,7 @@ export const Wizard = ({ initialProjectName, gitHost, onComplete }: WizardProps)
       {step !== "project" && step !== "complete" && <CompletedSteps config={config} currentStep={step} />}
 
       {step === "project" && (
-        <ProjectSetup initialName={initialProjectName} onComplete={handleProjectComplete} />
+        <ProjectSetup initialName={initialProjectName} initialAppName={initialAppName} onComplete={handleProjectComplete} />
       )}
 
       {step === "cloning" && config.project && (
