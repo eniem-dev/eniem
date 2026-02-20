@@ -84,4 +84,27 @@ describe("ProjectSetup", () => {
     expect(lastFrame()).toContain("Name: my-app");
     expect(lastFrame()).toContain("App name:");
   });
+
+  it("accepts pre-filled default on Enter", () => {
+    const handleComplete = vi.fn();
+    const { stdin } = render(
+      <ProjectSetup initialName="project-zero" onComplete={handleComplete} />
+    );
+    stdin.write("\r");
+    expect(handleComplete).toHaveBeenCalledWith({ name: "project-zero", appName: "Project Zero" });
+  });
+
+  it("shows error when user submits empty app name", async () => {
+    const handleComplete = vi.fn();
+    const { stdin, lastFrame } = render(
+      <ProjectSetup initialName="my-app" initialAppName="" onComplete={handleComplete} />
+    );
+    // Wait for useInput effect to register stdin listener
+    await new Promise(r => setTimeout(r, 50));
+    // initialAppName="" starts at appName step with empty value
+    stdin.write("\r");
+    await new Promise(r => setTimeout(r, 50));
+    expect(handleComplete).not.toHaveBeenCalled();
+    expect(lastFrame()).toContain("\u2717");
+  });
 });
