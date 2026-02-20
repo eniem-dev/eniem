@@ -73,17 +73,8 @@ export const productSchemaWithValidation = productSchema.refine(
 // Utility Functions
 // ============================================================================
 
-/**
- * Converts a string to kebab-case for use as a slug
- */
-export function toKebabCase(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
-    .replace(/^-+/, "") // Remove leading hyphens
-    .replace(/-+$/, "") // Remove trailing hyphens
-    .replace(/-{2,}/g, "-"); // Replace multiple hyphens with single
-}
+// Re-export toKebabCase for backward compatibility
+export { toKebabCase } from "./string.js";
 
 /**
  * Checks if a slug already exists in a products array
@@ -476,6 +467,13 @@ function generateTsContent(sandboxProducts: Product[], productionProducts: Produ
 }
 
 /**
+ * Escapes a string for safe interpolation in TypeScript string literals
+ */
+function escapeForTs(str: string): string {
+  return str.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+}
+
+/**
  * Generates a single product object literal
  */
 function generateProductLiteral(product: Product): string {
@@ -484,25 +482,25 @@ function generateProductLiteral(product: Product): string {
   const periodStr = formatPeriod(product);
 
   const featuresStr = JSON.stringify(product.display.features);
-  const badgeStr = product.display.badge ? `"${product.display.badge}"` : "null";
-  const subtitleStr = product.display.subtitle ? `"${product.display.subtitle}"` : "undefined";
+  const badgeStr = product.display.badge ? `"${escapeForTs(product.display.badge)}"` : "null";
+  const subtitleStr = product.display.subtitle ? `"${escapeForTs(product.display.subtitle)}"` : "undefined";
   const periodOutput = periodStr ? `"${periodStr}"` : "undefined";
-  const productIdStr = product.polarProductId ? `"${product.polarProductId}"` : "null";
+  const productIdStr = product.polarProductId ? `"${escapeForTs(product.polarProductId)}"` : "null";
 
   return `  {
-    slug: "${product.slug}",
+    slug: "${escapeForTs(product.slug)}",
     productId: ${productIdStr},
-    name: "${product.name}",
+    name: "${escapeForTs(product.name)}",
     type: "${product.type}",
     display: {
-      title: "${product.display.title}",
+      title: "${escapeForTs(product.display.title)}",
       subtitle: ${subtitleStr},
       price: "${priceStr}",
       period: ${periodOutput},
       badge: ${badgeStr},
       features: ${featuresStr},
       highlighted: ${product.display.highlighted},
-      cta: "${product.display.cta}",
+      cta: "${escapeForTs(product.display.cta)}",
     },
   },`;
 }

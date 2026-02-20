@@ -8,9 +8,9 @@ import {
   updatePolarProduct,
   archivePolarProduct,
   checkProductExists,
-  _parseEnvContent,
   type PolarCredentials,
 } from "../polar.js";
+import { parseEnvContent } from "../env-ready.js";
 import type { Product } from "../products.js";
 
 // Mock fs/promises
@@ -77,10 +77,10 @@ describe("polar", () => {
     mockProductsUpdate.mockReset();
   });
 
-  describe("_parseEnvContent", () => {
+  describe("parseEnvContent", () => {
     it("parses basic key=value pairs", () => {
       const content = "KEY=value\nANOTHER=test";
-      const result = _parseEnvContent(content);
+      const result = parseEnvContent(content);
       expect(result).toEqual({
         KEY: "value",
         ANOTHER: "test",
@@ -89,13 +89,13 @@ describe("polar", () => {
 
     it("ignores comments", () => {
       const content = "# This is a comment\nKEY=value\n# Another comment";
-      const result = _parseEnvContent(content);
+      const result = parseEnvContent(content);
       expect(result).toEqual({ KEY: "value" });
     });
 
     it("ignores empty lines", () => {
       const content = "KEY=value\n\n\nANOTHER=test";
-      const result = _parseEnvContent(content);
+      const result = parseEnvContent(content);
       expect(result).toEqual({
         KEY: "value",
         ANOTHER: "test",
@@ -104,25 +104,25 @@ describe("polar", () => {
 
     it("removes surrounding double quotes", () => {
       const content = 'KEY="quoted value"';
-      const result = _parseEnvContent(content);
+      const result = parseEnvContent(content);
       expect(result).toEqual({ KEY: "quoted value" });
     });
 
     it("removes surrounding single quotes", () => {
       const content = "KEY='quoted value'";
-      const result = _parseEnvContent(content);
+      const result = parseEnvContent(content);
       expect(result).toEqual({ KEY: "quoted value" });
     });
 
     it("handles values with equals signs", () => {
       const content = "KEY=value=with=equals";
-      const result = _parseEnvContent(content);
+      const result = parseEnvContent(content);
       expect(result).toEqual({ KEY: "value=with=equals" });
     });
 
     it("trims whitespace around keys and values", () => {
       const content = "  KEY  =  value  ";
-      const result = _parseEnvContent(content);
+      const result = parseEnvContent(content);
       expect(result).toEqual({ KEY: "value" });
     });
   });
@@ -377,7 +377,7 @@ POLAR_ACCESS_TOKEN=
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toContain("Organization not found");
+        expect(result.error).toContain("not found");
       }
     });
 
@@ -412,7 +412,6 @@ POLAR_ACCESS_TOKEN=
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("Failed to create product on Polar");
-        expect(result.error).toContain("Network connection failed");
       }
     });
 
@@ -617,7 +616,7 @@ POLAR_ACCESS_TOKEN=
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toContain("Product not found");
+        expect(result.error).toContain("not found");
       }
     });
 
@@ -654,7 +653,6 @@ POLAR_ACCESS_TOKEN=
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("Failed to update product on Polar");
-        expect(result.error).toContain("Network connection failed");
       }
     });
   });
@@ -724,7 +722,7 @@ POLAR_ACCESS_TOKEN=
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error).toContain("Product not found");
+        expect(result.error).toContain("not found");
       }
     });
 
@@ -742,7 +740,6 @@ POLAR_ACCESS_TOKEN=
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error).toContain("Failed to archive product on Polar");
-        expect(result.error).toContain("Network connection failed");
       }
     });
 

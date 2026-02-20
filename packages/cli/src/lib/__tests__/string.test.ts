@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toTitleCase } from "../string.js";
+import { toTitleCase, toKebabCase } from "../string.js";
 
 describe("toTitleCase", () => {
   it("converts hyphenated string to title case", () => {
@@ -28,5 +28,27 @@ describe("toTitleCase", () => {
 
   it("capitalizes a single character", () => {
     expect(toTitleCase("a")).toBe("A");
+  });
+});
+
+describe("toKebabCase", () => {
+  it("converts spaces to hyphens and lowercases", () => {
+    expect(toKebabCase("Pro Monthly")).toBe("pro-monthly");
+  });
+
+  it("handles special characters", () => {
+    expect(toKebabCase("Hello World!")).toBe("hello-world");
+  });
+
+  it("removes leading/trailing hyphens", () => {
+    expect(toKebabCase("--test--")).toBe("test");
+  });
+
+  it("collapses multiple hyphens", () => {
+    expect(toKebabCase("a   b")).toBe("a-b");
+  });
+
+  it("handles already kebab-case input", () => {
+    expect(toKebabCase("already-kebab")).toBe("already-kebab");
   });
 });

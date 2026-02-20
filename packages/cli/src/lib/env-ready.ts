@@ -194,6 +194,40 @@ export const AUTO_SET_VARS: AutoSetVar[] = [
 // --- Functions ---
 
 /**
+ * Parses .env content string into a key-value object.
+ * Handles basic .env format (KEY=value, # comments, empty lines).
+ * Removes surrounding quotes and trims whitespace from values.
+ */
+export function parseEnvContent(content: string): Record<string, string> {
+  const result: Record<string, string> = {};
+
+  for (const line of content.split("\n")) {
+    const trimmed = line.trim();
+
+    // Skip empty lines and comments
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const eqIndex = trimmed.indexOf("=");
+    if (eqIndex === -1) continue;
+
+    const key = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
+
+    // Remove surrounding quotes if present
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    if (key) result[key] = value;
+  }
+
+  return result;
+}
+
+/**
  * Parses a .env file and returns key-value pairs.
  * Skips comments, blank lines, and malformed lines (no = sign).
  */
@@ -201,21 +235,7 @@ export async function parseEnvFile(
   filePath: string,
 ): Promise<Record<string, string>> {
   const content = await readFile(filePath, "utf-8");
-  const result: Record<string, string> = {};
-
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith("#")) continue;
-
-    const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) continue;
-
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1);
-    if (key) result[key] = value;
-  }
-
-  return result;
+  return parseEnvContent(content);
 }
 
 /**

@@ -1,12 +1,13 @@
-import { render, Box, Text } from "ink";
+import { render, Box } from "ink";
 import React from "react";
-import { createRequire } from "module";
 import meow from "meow";
-import { ConfigProvider, type AppConfig } from "./config/index.js";
+import { ConfigProvider } from "./config/index.js";
+
 import { Wizard } from "./Wizard.js";
 import { ProductsCommand } from "./commands/products.js";
 import { AiCommand } from "./commands/ai.js";
 import { ReadyCommand } from "./commands/ready.js";
+import { Header } from "./components/Header.js";
 import type { PolarEnvironment } from "./lib/polar.js";
 
 // Handle unhandled promise rejections globally
@@ -22,9 +23,6 @@ process.on("uncaughtException", (error) => {
   console.error(error.message);
   process.exit(1);
 });
-
-const require = createRequire(import.meta.url);
-const pkg = require("../package.json") as { name: string; version: string };
 
 const cli = meow(
   `
@@ -77,50 +75,6 @@ const cli = meow(
   }
 );
 
-const LOGO = `
-███████╗███╗   ██╗██╗███████╗███╗   ███╗
-██╔════╝████╗  ██║██║██╔════╝████╗ ████║
-█████╗  ██╔██╗ ██║██║█████╗  ██╔████╔██║
-██╔══╝  ██║╚██╗██║██║██╔══╝  ██║╚██╔╝██║
-███████╗██║ ╚████║██║███████╗██║ ╚═╝ ██║
-╚══════╝╚═╝  ╚═══╝╚═╝╚══════╝╚═╝     ╚═╝
-`.trim();
-
-const Header = () => {
-  return (
-    <Box flexDirection="column" marginBottom={1}>
-      <Text color="cyan">{LOGO}</Text>
-      <Text dimColor>
-        v{pkg.version} - Scaffold your next Eniem project
-      </Text>
-    </Box>
-  );
-};
-
-interface AppProps {
-  initialProjectName?: string;
-  initialAppName?: string;
-  gitHost: string;
-}
-
-const App = ({ initialProjectName, initialAppName, gitHost }: AppProps) => {
-  const handleWizardComplete = (config: AppConfig, destination: string) => {
-    // Config is now available for env generation
-    // destination is the path where the project was cloned
-    console.log("Final config:", JSON.stringify(config, null, 2));
-    console.log("Project cloned to:", destination);
-  };
-
-  return (
-    <ConfigProvider>
-      <Box flexDirection="column">
-        <Header />
-        <Wizard initialProjectName={initialProjectName} initialAppName={initialAppName} gitHost={gitHost} onComplete={handleWizardComplete} />
-      </Box>
-    </ConfigProvider>
-  );
-};
-
 const command = cli.input[0];
 const subcommand = cli.input[1];
 const gitHost = cli.flags.gitHost;
@@ -166,7 +120,6 @@ if (command === "ready") {
     </Box>
   );
 } else if (command === "ai" && subcommand === "init") {
-  // AI init command
   const targetDir = process.cwd();
   render(
     <Box flexDirection="column">
@@ -175,12 +128,18 @@ if (command === "ready") {
     </Box>
   );
 } else if (command === "ai") {
-  // Show help for ai command if no subcommand
   console.error(`\x1b[31m✗ Unknown ai subcommand: ${subcommand ?? "(none)"}\x1b[0m`);
   console.error(`  Usage: eniem-cli ai init [--force]`);
   process.exit(1);
 } else {
   // Default: Run the main wizard
   const projectName = command;
-  render(<App initialProjectName={projectName} initialAppName={appNameFlag} gitHost={gitHost} />);
+  render(
+    <ConfigProvider>
+      <Box flexDirection="column">
+        <Header />
+        <Wizard initialProjectName={projectName} initialAppName={appNameFlag} gitHost={gitHost}  />
+      </Box>
+    </ConfigProvider>
+  );
 }

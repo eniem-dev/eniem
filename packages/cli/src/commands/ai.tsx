@@ -56,7 +56,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
         }
         isCheckingRef.current = false;
       };
-      check();
+      void check();
     }
   }, [step, targetDir, forceFlag]);
 
@@ -76,7 +76,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
         setStep("copying");
         isCloningRef.current = false;
       };
-      clone();
+      void clone();
     }
   }, [step, gitHost]);
 
@@ -119,7 +119,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
         setStep("complete");
         isCopyingRef.current = false;
       };
-      copy();
+      void copy();
     }
   }, [step, tempDir, targetDir]);
 

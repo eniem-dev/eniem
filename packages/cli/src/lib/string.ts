@@ -11,3 +11,18 @@ export function toTitleCase(input: string): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
     .join(" ");
 }
+
+/**
+ * Converts a string to kebab-case for use as a slug.
+ *
+ * toKebabCase("Pro Monthly")  → "pro-monthly"
+ * toKebabCase("Hello World!") → "hello-world"
+ */
+export function toKebabCase(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-") // Replace non-alphanumeric with hyphens
+    .replace(/^-+/, "") // Remove leading hyphens
+    .replace(/-+$/, "") // Remove trailing hyphens
+    .replace(/-{2,}/g, "-"); // Replace multiple hyphens with single
+}

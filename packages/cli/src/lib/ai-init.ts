@@ -2,8 +2,7 @@ import { execa } from "execa";
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
-
-const REPO_PATH = "eniem-dev/eniem-boilerplate.git";
+import { BOILERPLATE_REPO_PATH } from "./constants.js";
 const FOLDERS_TO_COPY = [".eni", ".claude"];
 
 export interface AiInitResult {
@@ -35,7 +34,7 @@ export async function sparseCloneBoilerplate(gitHost: string): Promise<{
   error?: string;
 }> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "eniem-ai-init-"));
-  const repoUrl = `git@${gitHost}:${REPO_PATH}`;
+  const repoUrl = `git@${gitHost}:${BOILERPLATE_REPO_PATH}`;
 
   try {
     // Initialize empty repo

@@ -1,13 +1,9 @@
 import { Box } from "ink";
 import React, { useState } from "react";
 import { TextInput, SectionHeader, StatusMessage } from "../components/index.js";
+import type { ProjectConfig } from "../config/types.js";
 import { validate, projectNameSchema, requiredStringSchema } from "../lib/validation.js";
 import { toTitleCase } from "../lib/string.js";
-
-interface ProjectConfig {
-  name: string;
-  appName: string;
-}
 
 interface ProjectSetupProps {
   initialName?: string;

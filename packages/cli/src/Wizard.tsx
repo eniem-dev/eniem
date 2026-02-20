@@ -1,5 +1,5 @@
-import { Box, Text } from "ink";
-import React, { useState } from "react";
+import { Box, Text, useApp } from "ink";
+import React, { useState, useEffect } from "react";
 import { useConfig, type AppConfig } from "./config/index.js";
 import { SectionHeader, StatusMessage, CompletedSteps } from "./components/index.js";
 import {
@@ -32,46 +32,53 @@ interface WizardProps {
   initialProjectName?: string;
   initialAppName?: string;
   gitHost: string;
-  onComplete: (config: AppConfig, destination: string) => void;
+  onComplete?: (config: AppConfig, destination: string) => void;
 }
 
 export const Wizard = ({ initialProjectName, initialAppName, gitHost, onComplete }: WizardProps) => {
   const [step, setStep] = useState<WizardStep>("project");
   const [projectDestination, setProjectDestination] = useState<string>("");
-  const { config, setProject, setAuth, setAuthSecret, setOAuth, setPayment, setStorage, setWeb3, setAnalytics } =
-    useConfig();
+  const { config, updateConfig } = useConfig();
+  const { exit } = useApp();
 
-  const handleProjectComplete = (projectConfig: Parameters<typeof setProject>[0]) => {
-    setProject(projectConfig);
+  useEffect(() => {
+    if (step === "complete") {
+      onComplete?.(config, projectDestination);
+      exit();
+    }
+  }, [step]);
+
+  const handleProjectComplete = (projectConfig: AppConfig["project"]) => {
+    updateConfig("project", projectConfig);
     setStep("cloning");
   };
 
-  const handleOAuthComplete = (result: { oauth: Parameters<typeof setOAuth>[0]; web3: Parameters<typeof setWeb3>[0]; authSecret: string }) => {
-    setOAuth(result.oauth);
-    setWeb3(result.web3);
-    setAuthSecret(result.authSecret);
+  const handleOAuthComplete = (result: { oauth: AppConfig["oauth"]; web3: AppConfig["web3"]; authSecret: string }) => {
+    updateConfig("oauth", result.oauth);
+    updateConfig("web3", result.web3);
+    updateConfig("authSecret", result.authSecret);
     setStep("payment");
   };
 
-  const handlePaymentComplete = (paymentConfig: Parameters<typeof setPayment>[0]) => {
-    setPayment(paymentConfig);
+  const handlePaymentComplete = (paymentConfig: AppConfig["payment"]) => {
+    updateConfig("payment", paymentConfig);
     setStep("storage");
   };
 
-  const handleStorageComplete = (storageConfig: Parameters<typeof setStorage>[0]) => {
-    setStorage(storageConfig);
+  const handleStorageComplete = (storageConfig: AppConfig["storage"]) => {
+    updateConfig("storage", storageConfig);
     setStep("analytics");
   };
 
-  const handleAnalyticsComplete = (analyticsConfig: Parameters<typeof setAnalytics>[0]) => {
-    setAnalytics(analyticsConfig);
+  const handleAnalyticsComplete = (analyticsConfig: AppConfig["analytics"]) => {
+    updateConfig("analytics", analyticsConfig);
     setStep("env");
   };
 
   const handleCloneComplete = (destination: string) => {
     setProjectDestination(destination);
     // BetterAuth is always enabled - set it directly without a step
-    setAuth({ enabled: true });
+    updateConfig("auth", { enabled: true });
     setStep("oauth");
   };
 
@@ -89,10 +96,6 @@ export const Wizard = ({ initialProjectName, initialAppName, gitHost, onComplete
 
   const handleBrandComplete = () => {
     setStep("complete");
-    const finalConfig: AppConfig = {
-      ...config,
-    };
-    onComplete(finalConfig, projectDestination);
   };
 
   return (
@@ -154,29 +157,8 @@ export const Wizard = ({ initialProjectName, initialAppName, gitHost, onComplete
         <Box flexDirection="column" marginTop={1}>
           <SectionHeader title="Setup Complete" />
           <StatusMessage status="success">Project scaffolded successfully!</StatusMessage>
-          <Box flexDirection="column" marginTop={1}>
-            <StatusMessage status="success">Project: {config.project?.name}</StatusMessage>
-            <StatusMessage status="success">Auth: BetterAuth enabled</StatusMessage>
-            <StatusMessage status={config.oauth?.github ? "success" : "skip"}>
-              GitHub OAuth: {config.oauth?.github ? "Configured" : "Skipped"}
-            </StatusMessage>
-            <StatusMessage status={config.oauth?.twitter ? "success" : "skip"}>
-              Twitter OAuth: {config.oauth?.twitter ? "Configured" : "Skipped"}
-            </StatusMessage>
-            <StatusMessage status={config.payment?.enabled ? "success" : "skip"}>
-              Payment (Polar): {config.payment?.enabled ? "Configured" : "Skipped"}
-            </StatusMessage>
-            <StatusMessage status={config.storage?.enabled ? "success" : "skip"}>
-              Storage (DO Spaces): {config.storage?.enabled ? "Configured" : "Skipped"}
-            </StatusMessage>
-            <StatusMessage status={config.web3?.enabled ? "success" : "skip"}>
-              Web3 (WalletConnect): {config.web3?.enabled ? "Configured" : "Skipped"}
-            </StatusMessage>
-            <StatusMessage status={config.analytics?.enabled ? "success" : "skip"}>
-              Analytics: {config.analytics?.enabled ? config.analytics.provider : "Skipped"}
-            </StatusMessage>
-            <StatusMessage status="success">Branding: Applied</StatusMessage>
-          </Box>
+          <CompletedSteps config={config} currentStep="complete" />
+          <StatusMessage status="success">Branding: Applied</StatusMessage>
           <Box marginTop={1}>
             <Text dimColor>  cd {config.project?.name} && pnpm dev</Text>
           </Box>

@@ -34,7 +34,7 @@ export const GitStep = ({ destination, onComplete }: GitStepProps) => {
   }, [destination, onComplete]);
 
   useEffect(() => {
-    initGit();
+    void initGit();
   }, [initGit, retryCount]);
 
   const handleRetry = useCallback(() => {

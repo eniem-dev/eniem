@@ -5,7 +5,7 @@ import { ErrorRecovery } from "../ErrorRecovery.js";
 
 // Mock useApp from ink
 vi.mock("ink", async () => {
-  const actual = await vi.importActual<typeof import("ink")>("ink");
+  const actual = await vi.importActual("ink");
   return {
     ...actual,
     useApp: () => ({ exit: vi.fn() }),

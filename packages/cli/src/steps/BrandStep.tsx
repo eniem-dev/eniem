@@ -40,7 +40,7 @@ export const BrandStep = ({ destination, slug, appName, onComplete }: BrandStepP
   }, [destination, slug, appName, onComplete]);
 
   useEffect(() => {
-    replace();
+    void replace();
   }, [replace, retryCount]);
 
   const handleRetry = useCallback(() => {

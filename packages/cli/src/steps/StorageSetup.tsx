@@ -1,15 +1,7 @@
 import { Box } from "ink";
 import React, { useState } from "react";
 import { Confirm, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
-
-interface StorageConfig {
-  enabled: boolean;
-  endpoint?: string;
-  bucket?: string;
-  accessKeyId?: string;
-  secretAccessKey?: string;
-  region?: string;
-}
+import type { StorageConfig } from "../config/types.js";
 
 interface StorageSetupProps {
   onComplete: (config: StorageConfig) => void;
@@ -37,26 +29,31 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
   };
 
   const handleEndpointSubmit = (value: string) => {
+    if (!value.trim()) return;
     setEndpoint(value.trim());
     setStep("bucket");
   };
 
   const handleBucketSubmit = (value: string) => {
+    if (!value.trim()) return;
     setBucket(value.trim());
     setStep("keyId");
   };
 
   const handleKeyIdSubmit = (value: string) => {
+    if (!value.trim()) return;
     setAccessKeyId(value.trim());
     setStep("secretKey");
   };
 
   const handleSecretKeySubmit = (value: string) => {
+    if (!value.trim()) return;
     setSecretAccessKey(value.trim());
     setStep("region");
   };
 
   const handleRegionSubmit = (value: string) => {
+    if (!value.trim()) return;
     setRegion(value.trim());
     setStep("done");
     onComplete({

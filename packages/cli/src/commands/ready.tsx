@@ -177,7 +177,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
         setStep("required_vars");
         isPreflightRef.current = false;
       };
-      preflight();
+      void preflight();
     }
   }, [step, projectDir]);
 
@@ -229,7 +229,7 @@ export const ReadyCommand = ({ projectDir }: ReadyCommandProps) => {
         }
         isOutputRef.current = false;
       };
-      writeOutput();
+      void writeOutput();
     }
   }, [step, projectDir, requiredValues, optionalValues, selectedGroups, skippedGroups, outputMethod]);
 
