@@ -39,7 +39,7 @@ describe("git", () => {
       expect(rm).toHaveBeenCalledWith("/project/.git", { recursive: true, force: true });
       expect(execa).toHaveBeenCalledWith("git", ["init"], { cwd: "/project" });
       expect(execa).toHaveBeenCalledWith("git", ["add", "."], { cwd: "/project" });
-      expect(execa).toHaveBeenCalledWith("git", ["commit", "-m", "Initial commit from eniem-cli"], {
+      expect(execa).toHaveBeenCalledWith("git", ["commit", "-m", "Initial commit from eni"], {
         cwd: "/project",
       });
     });
