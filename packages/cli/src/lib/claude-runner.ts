@@ -19,6 +19,16 @@ export interface ClaudeRunner {
 
 const SENTINEL = ":::ENI_DONE:::";
 
+export async function checkBinary(name: string): Promise<boolean> {
+  try {
+    await execa(name, ["--version"]);
+    return true;
+  } catch (err: unknown) {
+    const error = err as { code?: string };
+    return error.code !== "ENOENT";
+  }
+}
+
 export function runClaude(
   prompt: string,
   options: RunClaudeOptions = {},

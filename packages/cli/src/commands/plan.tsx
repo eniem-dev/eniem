@@ -9,7 +9,7 @@ import {
 } from "../components/index.js";
 import { listSpecs, moveSpec } from "../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../lib/template.js";
-import { runClaude } from "../lib/claude-runner.js";
+import { runClaude, checkBinary } from "../lib/claude-runner.js";
 import type { ClaudeRunner } from "../lib/claude-runner.js";
 
 type PlanStep = "selecting" | "running" | "summary" | "error";
@@ -85,6 +85,14 @@ export const PlanCommand = ({
     isRunningRef.current = true;
 
     const runLoop = async () => {
+      // Lazy prerequisite checks
+      if (!(await checkBinary("bd"))) {
+        setError("Beads CLI not found. Install it with: npm install -g @beads-cli/bd");
+        setStep("error");
+        isRunningRef.current = false;
+        return;
+      }
+
       let template: string;
       try {
         template = await loadTemplate(promptFile);
@@ -161,10 +169,11 @@ export const PlanCommand = ({
     }
   }, [step, exit]);
 
-  // Kill Claude on Ctrl+C
+  // Kill Claude on Ctrl+C and exit with code 130
   useEffect(() => {
     const handler = () => {
       runnerRef.current?.kill();
+      process.exit(130);
     };
     process.on("SIGINT", handler);
     return () => {

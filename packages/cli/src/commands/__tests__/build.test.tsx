@@ -24,12 +24,13 @@ vi.mock("../../lib/template.js", () => ({
 
 vi.mock("../../lib/claude-runner.js", () => ({
   runClaude: vi.fn(),
+  checkBinary: vi.fn(),
 }));
 
 import { BuildCommand } from "../build.js";
 import { listSpecs, moveSpec } from "../../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../../lib/template.js";
-import { runClaude } from "../../lib/claude-runner.js";
+import { runClaude, checkBinary } from "../../lib/claude-runner.js";
 
 const mockListSpecs = vi.mocked(listSpecs);
 const mockMoveSpec = vi.mocked(moveSpec);
@@ -37,6 +38,7 @@ const mockLoadTemplate = vi.mocked(loadTemplate);
 const mockResolveTemplate = vi.mocked(resolveTemplate);
 const mockBuildTemplateVars = vi.mocked(buildTemplateVars);
 const mockRunClaude = vi.mocked(runClaude);
+const mockCheckBinary = vi.mocked(checkBinary);
 
 const defaultProps = {
   iterations: 10,
@@ -48,6 +50,7 @@ const defaultProps = {
 describe("BuildCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCheckBinary.mockResolvedValue(true);
     mockMoveSpec.mockResolvedValue("/project/specs/archive/test.md");
     mockBuildTemplateVars.mockReturnValue({ SPEC_NAME: "test", ITERATION: "1" });
   });
