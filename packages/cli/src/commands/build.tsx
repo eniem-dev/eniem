@@ -46,6 +46,7 @@ export const BuildCommand = ({
   const [specPath, setSpecPath] = useState("");
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>([]);
   const [currentIteration, setCurrentIteration] = useState(1);
+  const [elapsed, setElapsed] = useState(0);
   const [sentinelDetected, setSentinelDetected] = useState(false);
   const [outputLines, setOutputLines] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -186,6 +187,13 @@ export const BuildCommand = ({
     }
   }, [step, exit]);
 
+  // Elapsed time ticker
+  useEffect(() => {
+    if (step !== "running") return;
+    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(id);
+  }, [step]);
+
   // Kill Claude on Ctrl+C and exit with code 130
   useEffect(() => {
     const handler = () => {
@@ -233,7 +241,7 @@ export const BuildCommand = ({
               ))}
             </Box>
           )}
-          <Spinner label={`Iteration ${currentIteration}/${iterations}`} />
+          <Spinner label={`Iteration ${currentIteration}/${iterations} (${Math.floor(elapsed / 60)}m${String(elapsed % 60).padStart(2, "0")}s)`} />
         </Box>
       )}
 
