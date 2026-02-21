@@ -80,7 +80,7 @@ describe("claude-runner", () => {
   it("parses stream-json text events and calls onText", async () => {
     const textEvent = JSON.stringify({
       type: "assistant",
-      message: { type: "text", text: "Hello world" },
+      message: { content: [{ type: "text", text: "Hello world" }] },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [textEvent] });
@@ -98,9 +98,9 @@ describe("claude-runner", () => {
     const toolEvent = JSON.stringify({
       type: "assistant",
       message: {
-        type: "tool_use",
-        name: "Read",
-        input: { file_path: "/test.ts" },
+        content: [
+          { type: "tool_use", name: "Read", input: { file_path: "/test.ts" } },
+        ],
       },
     });
 
@@ -117,7 +117,7 @@ describe("claude-runner", () => {
   it("detects sentinel in text output", async () => {
     const textEvent = JSON.stringify({
       type: "assistant",
-      message: { type: "text", text: "Done :::ENI_DONE:::" },
+      message: { content: [{ type: "text", text: "Done :::ENI_DONE:::" }] },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [textEvent] });
@@ -132,7 +132,7 @@ describe("claude-runner", () => {
   it("sentinelDetected is false when no sentinel in output", async () => {
     const textEvent = JSON.stringify({
       type: "assistant",
-      message: { type: "text", text: "Just a normal message" },
+      message: { content: [{ type: "text", text: "Just a normal message" }] },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [textEvent] });
@@ -192,11 +192,11 @@ describe("claude-runner", () => {
   it("handles multiple text events across chunks", async () => {
     const event1 = JSON.stringify({
       type: "assistant",
-      message: { type: "text", text: "First" },
+      message: { content: [{ type: "text", text: "First" }] },
     });
     const event2 = JSON.stringify({
       type: "assistant",
-      message: { type: "text", text: "Second" },
+      message: { content: [{ type: "text", text: "Second" }] },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [event1, event2] });
@@ -211,10 +211,33 @@ describe("claude-runner", () => {
     expect(onText).toHaveBeenCalledWith("Second");
   });
 
+  it("handles mixed content blocks in a single event", async () => {
+    const mixedEvent = JSON.stringify({
+      type: "assistant",
+      message: {
+        content: [
+          { type: "text", text: "Analyzing..." },
+          { type: "tool_use", name: "Read", input: { file_path: "/a.ts" } },
+        ],
+      },
+    });
+
+    const mock = createMockSubprocess({ stdoutLines: [mixedEvent] });
+    vi.mocked(execa).mockReturnValue(mock as never);
+
+    const onText = vi.fn();
+    const onToolUse = vi.fn();
+    const runner = runClaude("test prompt", { onText, onToolUse });
+    await runner.result;
+
+    expect(onText).toHaveBeenCalledWith("Analyzing...");
+    expect(onToolUse).toHaveBeenCalledWith("Read", { file_path: "/a.ts" });
+  });
+
   it("skips non-JSON lines gracefully", async () => {
     const validEvent = JSON.stringify({
       type: "assistant",
-      message: { type: "text", text: "Valid" },
+      message: { content: [{ type: "text", text: "Valid" }] },
     });
 
     const mock = createMockSubprocess({

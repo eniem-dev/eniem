@@ -49,15 +49,16 @@ export function runClaude(
     try {
       const event = JSON.parse(line);
 
-      if (event.type === "assistant" && event.message?.type === "text") {
-        const text = event.message.text;
-        if (text.includes(SENTINEL)) sentinelDetected = true;
-        onText?.(text);
-      } else if (
-        event.type === "assistant" &&
-        event.message?.type === "tool_use"
-      ) {
-        onToolUse?.(event.message.name, event.message.input);
+      if (event.type === "assistant") {
+        const content = event.message?.content ?? [];
+        for (const block of content) {
+          if (block.type === "text") {
+            if (block.text.includes(SENTINEL)) sentinelDetected = true;
+            onText?.(block.text);
+          } else if (block.type === "tool_use") {
+            onToolUse?.(block.name, block.input ?? {});
+          }
+        }
       }
     } catch {
       // Skip non-JSON lines
