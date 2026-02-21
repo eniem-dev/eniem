@@ -27,10 +27,10 @@ process.on("uncaughtException", (error) => {
 const cli = meow(
   `
   Usage
-    $ eniem-cli [project-name]
-    $ eniem-cli ready
-    $ eniem-cli products [--env=sandbox|production] [--prod] [--token=<polar-token>]
-    $ eniem-cli ai init [--force]
+    $ eni [project-name]
+    $ eni ready
+    $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
+    $ eni ai init [--force]
 
   Commands
     ready          Generate production .env interactively
@@ -48,15 +48,15 @@ const cli = meow(
     --version, -v  Show version number
 
   Examples
-    $ eniem-cli my-app
-    $ eniem-cli my-app --app-name "My App"
-    $ eniem-cli --git-host 0xtiby my-app
-    $ eniem-cli ready
-    $ eniem-cli products
-    $ eniem-cli products --prod
-    $ eniem-cli products --prod --token=polar_xxx
-    $ eniem-cli ai init
-    $ eniem-cli ai init --force
+    $ eni my-app
+    $ eni my-app --app-name "My App"
+    $ eni --git-host 0xtiby my-app
+    $ eni ready
+    $ eni products
+    $ eni products --prod
+    $ eni products --prod --token=polar_xxx
+    $ eni ai init
+    $ eni ai init --force
 `,
   {
     importMeta: import.meta,
@@ -129,7 +129,7 @@ if (command === "ready") {
   );
 } else if (command === "ai") {
   console.error(`\x1b[31m✗ Unknown ai subcommand: ${subcommand ?? "(none)"}\x1b[0m`);
-  console.error(`  Usage: eniem-cli ai init [--force]`);
+  console.error(`  Usage: eni ai init [--force]`);
   process.exit(1);
 } else {
   // Default: Run the main wizard

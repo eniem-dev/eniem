@@ -21,7 +21,7 @@ npx eniem-cli my-app
 ## Usage
 
 ```bash
-eniem-cli [project-name]
+eni [project-name]
 ```
 
 ### Options
@@ -36,10 +36,10 @@ eniem-cli [project-name]
 
 ```bash
 # Create a new project
-eniem-cli my-app
+eni my-app
 
 # Use a custom SSH host alias (from ~/.ssh/config)
-eniem-cli --git-host 0xtiby my-app
+eni --git-host 0xtiby my-app
 ```
 
 ## Products Command
@@ -47,7 +47,7 @@ eniem-cli --git-host 0xtiby my-app
 Manage Polar products interactively. **Run this command from your Eniem project directory.**
 
 ```bash
-eniem-cli products [options]
+eni products [options]
 ```
 
 ### Options
@@ -62,13 +62,13 @@ eniem-cli products [options]
 
 ```bash
 # Manage sandbox products
-eniem-cli products
+eni products
 
 # Manage production products
-eniem-cli products --prod
+eni products --prod
 
 # Use a specific access token
-eniem-cli products --prod --token=polar_xxx
+eni products --prod --token=polar_xxx
 ```
 
 ### Features
@@ -89,10 +89,10 @@ Initialize or update the AI workflow files (`.eni/`, `.claude/`, `specs/`) in th
 
 ```bash
 # Initialize AI workflow (prompts for confirmation if .eni/ already exists)
-eniem-cli ai init
+eni ai init
 
 # Overwrite existing files without confirmation
-eniem-cli ai init --force
+eni ai init --force
 ```
 
 This sparse-clones the latest `.eni` and `.claude` directories from the boilerplate repo and copies them into your project. A `specs/` folder is created if it doesn't exist.

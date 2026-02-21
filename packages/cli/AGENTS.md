@@ -6,7 +6,7 @@ This file provides guidance to AI agents when working with code in this reposito
 
 ## Project Overview
 
-eniem-cli is an interactive CLI wizard for scaffolding Eniem projects. Built with TypeScript and Ink (React for CLI), it guides users through setting up authentication, OAuth, payments, storage, web3, and analytics configurations.
+eni is an interactive CLI wizard for scaffolding Eniem projects. Built with TypeScript and Ink (React for CLI), it guides users through setting up authentication, OAuth, payments, storage, web3, and analytics configurations.
 
 ## Commands
 
@@ -26,7 +26,7 @@ pnpm typecheck
 # Run the CLI locally
 pnpm start
 # or
-node bin/eniem-cli.js [project-name]
+node dist/cli.js [project-name]
 ```
 
 ### Eni Workflow (AI-driven feature implementation)
@@ -57,7 +57,6 @@ pnpm eni:build:auto
 ### Entry Point & CLI Flow
 - `src/cli.tsx` - Main entry point using meow for CLI arg parsing, renders the Ink app
 - `src/Wizard.tsx` - State machine orchestrating wizard steps in sequence
-- `bin/eniem-cli.js` - Shim that imports the built output
 
 ### Configuration System (`src/config/`)
 - `types.ts` - TypeScript interfaces for all config sections (project, auth, oauth, payment, storage, web3, analytics)
