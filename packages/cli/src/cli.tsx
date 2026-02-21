@@ -168,7 +168,7 @@ if (command === "ready") {
         spec={specFlag}
         iterations={iterationsFlag ?? 10}
         verbose={verboseFlag}
-        specsDir={join(projectDir, "specs")}
+        specsDir={join(projectDir, "specs", "planned")}
         promptFile={join(projectDir, ".eni", "PROMPT_build.md")}
       />
     </Box>

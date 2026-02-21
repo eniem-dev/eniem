@@ -1,4 +1,4 @@
-import { Box, Text, useApp } from "ink";
+import { Box, Text, Static, useApp } from "ink";
 import React, { useState, useEffect, useRef } from "react";
 import { join } from "path";
 import {
@@ -49,7 +49,8 @@ export const PlanCommand = ({
   const [currentIteration, setCurrentIteration] = useState(1);
   const [elapsed, setElapsed] = useState(0);
   const [sentinelDetected, setSentinelDetected] = useState(false);
-  const [outputLines, setOutputLines] = useState<string[]>([]);
+  const [pastLines, setPastLines] = useState<string[]>([]);
+  const [currentLines, setCurrentLines] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const isLoadingSpecsRef = useRef(false);
@@ -120,19 +121,24 @@ export const PlanCommand = ({
 
       for (let i = currentIteration; i <= iterations; i++) {
         setCurrentIteration(i);
-        setOutputLines([]);
+        if (i > 1) {
+          setCurrentLines((prev) => {
+            setPastLines((past) => [...past, `── Iteration ${i - 1} ──`, ...prev]);
+            return [];
+          });
+        }
 
         const vars = buildTemplateVars(specName, i, "plan");
         const prompt = resolveTemplate(template, vars);
 
         const runner = runClaude(prompt, {
           onText: (text) => {
-            setOutputLines((prev) => [...prev, text]);
+            setCurrentLines((prev) => [...prev, text]);
           },
           onToolUse: verbose
             ? (toolName, toolInput) => {
                 const detail = toolInputSummary(toolName, toolInput);
-                setOutputLines((prev) => [
+                setCurrentLines((prev) => [
                   ...prev,
                   detail ? `[tool] ${toolName}: ${detail}` : `[tool] ${toolName}`,
                 ]);
@@ -225,15 +231,17 @@ export const PlanCommand = ({
 
       {step === "running" && (
         <Box flexDirection="column">
-          {outputLines.length > 0 && (
+          <Static items={pastLines}>
+            {(line, i) => (
+              <Text key={i} dimColor={line.startsWith("[tool]") || line.startsWith("──")}>
+                {line}
+              </Text>
+            )}
+          </Static>
+          {currentLines.length > 0 && (
             <Box flexDirection="column" marginLeft={2}>
-              {outputLines.slice(-20).map((line, i) => (
-                <Text
-                  key={i}
-                  dimColor={line.startsWith("[tool]")}
-                >
-                  {line}
-                </Text>
+              {currentLines.slice(-20).map((line, i) => (
+                <Text key={i} dimColor={line.startsWith("[tool]")}>{line}</Text>
               ))}
             </Box>
           )}
