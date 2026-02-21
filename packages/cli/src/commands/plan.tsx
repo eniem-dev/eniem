@@ -12,6 +12,18 @@ import { loadTemplate, resolveTemplate, buildTemplateVars } from "../lib/templat
 import { runClaude, checkBinary } from "../lib/claude-runner.js";
 import type { ClaudeRunner } from "../lib/claude-runner.js";
 
+function toolInputSummary(name: string, input: Record<string, unknown>): string {
+  const s = (k: string) => (typeof input[k] === "string" ? (input[k] as string) : "");
+  if (name === "Read" || name === "Edit" || name === "Write") return s("file_path");
+  if (name === "Bash") return s("command").slice(0, 80);
+  if (name === "Glob") return s("pattern");
+  if (name === "Grep") return s("pattern");
+  if (name === "Task") return s("description");
+  if (name === "WebFetch") return s("url");
+  if (name === "WebSearch") return s("query");
+  return "";
+}
+
 type PlanStep = "selecting" | "running" | "summary" | "error";
 
 export interface PlanCommandProps {
@@ -117,10 +129,11 @@ export const PlanCommand = ({
             setOutputLines((prev) => [...prev, text]);
           },
           onToolUse: verbose
-            ? (toolName) => {
+            ? (toolName, toolInput) => {
+                const detail = toolInputSummary(toolName, toolInput);
                 setOutputLines((prev) => [
                   ...prev,
-                  `[tool] ${toolName}`,
+                  detail ? `[tool] ${toolName}: ${detail}` : `[tool] ${toolName}`,
                 ]);
               }
             : undefined,
@@ -204,9 +217,8 @@ export const PlanCommand = ({
 
       {step === "running" && (
         <Box flexDirection="column">
-          <Spinner label={`Iteration ${currentIteration}/${iterations}`} />
           {outputLines.length > 0 && (
-            <Box flexDirection="column" marginLeft={2} marginTop={1}>
+            <Box flexDirection="column" marginLeft={2}>
               {outputLines.slice(-20).map((line, i) => (
                 <Text
                   key={i}
@@ -217,6 +229,7 @@ export const PlanCommand = ({
               ))}
             </Box>
           )}
+          <Spinner label={`Iteration ${currentIteration}/${iterations}`} />
         </Box>
       )}
 
