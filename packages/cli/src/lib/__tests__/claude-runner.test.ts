@@ -65,6 +65,7 @@ describe("claude-runner", () => {
       [
         "--output-format",
         "stream-json",
+        "--verbose",
         "--print",
         "--dangerously-skip-permissions",
         "-p",
