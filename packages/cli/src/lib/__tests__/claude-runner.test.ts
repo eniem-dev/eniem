@@ -63,16 +63,14 @@ describe("claude-runner", () => {
     expect(execa).toHaveBeenCalledWith(
       "claude",
       [
+        "--dangerously-skip-permissions",
+        "-p",
+        "--verbose",
         "--output-format",
         "stream-json",
         "--verbose",
-        "--print",
-        "--dangerously-skip-permissions",
-        "-p",
-        "build the thing",
-        "--verbose",
       ],
-      { cwd: "/test" },
+      { cwd: "/test", input: "build the thing" },
     );
 
     await runner.result;

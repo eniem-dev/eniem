@@ -39,8 +39,8 @@ export function runClaude(
 
   const subprocess = execa(
     "claude",
-    ["--output-format", "stream-json", "--verbose", "--print", "--dangerously-skip-permissions", "-p", prompt, ...args],
-    { cwd },
+    ["--dangerously-skip-permissions", "-p", "--verbose", "--output-format", "stream-json", ...args],
+    { cwd, input: prompt },
   );
 
   function processLine(line: string): void {
