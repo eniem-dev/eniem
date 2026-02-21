@@ -241,7 +241,7 @@ export const BuildCommand = ({
               ))}
             </Box>
           )}
-          <Spinner label={`Iteration ${currentIteration}/${iterations} (${Math.floor(elapsed / 60)}m${String(elapsed % 60).padStart(2, "0")}s)`} />
+          <Spinner label={`Iteration ${currentIteration}/${iterations} (${elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m${String(elapsed % 60).padStart(2, "0")}s`})`} />
         </Box>
       )}
 
