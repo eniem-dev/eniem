@@ -115,12 +115,12 @@ rl.on("line", (line) => {
 # Check if Claude signaled completion
 # Only check last line to avoid matching the marker in the prompt instructions
 is_complete() {
-  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_ALL_TASKS_COMPLETE:::"
+  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_DONE:::"
 }
 
 # Check if Claude signaled plan is fully refined
 is_refined() {
-  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_PLAN_REFINED:::"
+  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_DONE:::"
 }
 
 check_beads() {

@@ -243,7 +243,7 @@ bd dep add <subtask-2> <subtask-1>
 If no meaningful improvements can be made, output:
 
 ```
-:::ENI_PLAN_REFINED:::
+:::ENI_DONE:::
 ```
 
 This signals the loop to stop early.

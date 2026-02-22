@@ -77,7 +77,7 @@ bd ready
 If no ready tasks:
 1. Run `bd blocked` to see what's waiting
 2. If ALL tasks for this epic/scope are complete → go to **Phase 5: Create PR**
-3. Otherwise, output `:::ENI_ALL_TASKS_COMPLETE:::` and exit
+3. Otherwise, output `:::ENI_DONE:::` and exit
 
 ## Phase 2: Select & Claim Task
 
@@ -214,7 +214,7 @@ When no ready tasks remain for this epic/scope:
 
 6. Output completion signal:
    ```
-   :::ENI_ALL_TASKS_COMPLETE:::
+   :::ENI_DONE:::
    ```
 
 ## Error Recovery
