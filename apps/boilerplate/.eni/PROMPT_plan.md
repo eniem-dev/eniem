@@ -93,12 +93,29 @@ bd create --type=task \
 [Expected test cases: what to test and expected outcomes]
 
 ## Verify
-[command to run]" \
+Every task MUST have a Verify section with scoped turbo filter commands.
+Use the package filter mapping to target the correct package:
+
+| Path prefix | Turbo filter |
+|---|---|
+| \`packages/cli/\` | \`eniem-cli\` |
+| \`apps/boilerplate/\` | \`@eniem/boilerplate\` |
+| \`apps/docs/\` | \`@eniem/docs\` |
+
+Example (task modifying boilerplate):
+\`\`\`
+pnpm turbo build --filter=@eniem/boilerplate
+pnpm turbo typecheck --filter=@eniem/boilerplate
+pnpm turbo lint --filter=@eniem/boilerplate
+pnpm test
+\`\`\`
+
+If a task touches multiple packages, list all relevant filters." \
   --notes="Epic: [epic-id]" \
   --priority=2
 ```
 
-**Design field is REQUIRED** with all 5 sections. This enables any model to execute.
+**Design field is REQUIRED** with all 6 sections (Context, Acceptance Criteria, Files, Patterns, Tests, Verify). This enables any model to execute.
 
 **Task granularity:** Each task should take ~2 minutes. If longer, break it down.
 
@@ -192,6 +209,8 @@ Review each issue against the spec:
 - [ ] Design fields have ALL 6 sections (Context, Acceptance Criteria, Files, Patterns, Tests, Verify)?
 - [ ] Tests section present in design field with expected test cases?
 - [ ] Verification commands are testable?
+- [ ] File paths use monorepo-relative paths (e.g., `apps/boilerplate/src/...`)?
+- [ ] Verify commands use scoped turborepo filters (e.g., `--filter=@eniem/boilerplate`)?
 
 ### Step 3: Update Issues
 

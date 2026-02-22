@@ -99,15 +99,37 @@ bd create --type=task \
 [Expected test cases: what to test and expected outcomes]
 
 ## Verify
-[command to run — use turborepo filters when targeting specific packages]
-\`pnpm turbo build --filter=@eniem/boilerplate\`
-\`pnpm turbo build --filter=eniem-cli\`
-\`pnpm turbo build --filter=@eniem/docs\`" \
+Every task MUST have a Verify section with scoped turbo filter commands.
+Use the package filter mapping to target the correct package:
+
+| Path prefix | Turbo filter |
+|---|---|
+| \`packages/cli/\` | \`eniem-cli\` |
+| \`apps/boilerplate/\` | \`@eniem/boilerplate\` |
+| \`apps/docs/\` | \`@eniem/docs\` |
+
+Example (task modifying boilerplate):
+\`\`\`
+pnpm turbo build --filter=@eniem/boilerplate
+pnpm turbo typecheck --filter=@eniem/boilerplate
+pnpm turbo lint --filter=@eniem/boilerplate
+pnpm test
+\`\`\`
+
+Example (task modifying CLI):
+\`\`\`
+pnpm turbo build --filter=eniem-cli
+pnpm turbo typecheck --filter=eniem-cli
+pnpm turbo lint --filter=eniem-cli
+pnpm test
+\`\`\`
+
+If a task touches multiple packages, list all relevant filters." \
   --notes="Epic: [epic-id]" \
   --priority=2
 ```
 
-**Design field is REQUIRED** with all 5 sections. This enables any model to execute.
+**Design field is REQUIRED** with all 6 sections (Context, Acceptance Criteria, Files, Patterns, Tests, Verify). This enables any model to execute.
 
 **Task granularity:** Each task should take ~2 minutes. If longer, break it down.
 
