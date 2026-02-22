@@ -114,11 +114,54 @@ Follow:
 - Exception: config/schema/static-data-only changes can skip test creation
 - `pnpm test` always runs regardless of exception
 
-After implementing, validate:
-1. Run `Verify:` command from task notes - must pass
-2. Run `pnpm build` - must pass
-3. Run `pnpm lint` - must pass
-4. Run `pnpm test` - must pass
+After implementing, validate using the **scoped quality gates waterfall**. Walk through each tier in order — stop at the first tier that applies:
+
+#### Tier 1: Task Verify Command
+
+If the task's design field contains a `Verify:` command, run **only** that command. It already targets the correct package scope. Example: `pnpm turbo build lint typecheck test --filter=@eniem/boilerplate`.
+
+Skip to "If validation fails" below.
+
+#### Tier 2: Git Diff Package Detection
+
+If no verify command exists, detect affected packages from git diff:
+
+```bash
+# For first task on branch (no prior commits):
+git diff quality...HEAD --name-only
+
+# For subsequent tasks (uncommitted + staged changes):
+git diff HEAD --name-only
+```
+
+Map changed file paths to packages:
+
+| Path prefix | Turbo filter |
+|-------------|-------------|
+| `packages/cli/` | `--filter=eniem-cli` |
+| `apps/boilerplate/` | `--filter=@eniem/boilerplate` |
+| `apps/docs/` | `--filter=@eniem/docs` |
+
+**Apply these rules based on what git diff returns:**
+
+- **Single package changed** → `pnpm turbo build lint typecheck test --filter=<package>`
+- **Multiple packages changed** → combine filters: `pnpm turbo build lint typecheck test --filter=eniem-cli --filter=@eniem/boilerplate`
+- **Markdown-only changes within a package** (`.md` files only) → run only `pnpm turbo lint --filter=<package>` (skip build/test)
+- **Root config files changed** (`package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`, `turbo.json`, `tsconfig.json` — root level only) → go to Tier 3
+
+#### Tier 3: Full Monorepo Gates (Root File Fallback)
+
+If git diff includes root-level config files, or if git diff fails/returns unexpected output, run the full monorepo gates as a safe default:
+
+```bash
+pnpm turbo build lint typecheck test
+```
+
+#### Tier 4: Skip (Non-Code Changes)
+
+If git diff shows changes **only** in non-code paths — `specs/`, `.eni/`, `.github/`, `.beads/` — skip build/test gates entirely. These are documentation or configuration changes that don't affect package code.
+
+---
 
 If validation fails, fix and re-validate. Do NOT proceed until passing.
 
@@ -170,7 +213,7 @@ When no ready tasks remain for this epic/scope:
    [List beads closed for this epic - from bd list --status=done]
 
    ### Testing
-   - `pnpm build && pnpm lint` passing
+   - `pnpm turbo build && pnpm turbo typecheck && pnpm turbo lint` passing
    - Manual: [describe what was manually tested]
    EOF
    )"
