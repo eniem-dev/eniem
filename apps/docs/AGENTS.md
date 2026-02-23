@@ -27,27 +27,23 @@ pnpm types:check
 pnpm lint
 ```
 
-### Ralph Workflow (AI-driven feature implementation)
+### AI Workflow
 
 ```bash
 # Create a spec for a new feature (interview-based)
-/spec-interview <feature-name>
+/functional-spec-interview <feature-name>
 
 # Generate implementation plan from all specs
-pnpm ralph:plan
+eni plan
 
 # Generate scoped implementation plan
-pnpm ralph:plan-work "description of work"
+eni plan --spec=<name>
 
 # Build one task from the plan
-pnpm ralph:build
+eni build
 
-# Build autonomously (10 iterations)
-pnpm ralph:build:auto
-
-# Interactive mode (add -i flag)
-./loop.sh plan -i
-./loop.sh build 5 -i
+# Build scoped to a specific spec
+eni build --spec=<name>
 ```
 
 ## Architecture
