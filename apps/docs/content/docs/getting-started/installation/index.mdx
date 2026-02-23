@@ -49,23 +49,16 @@ See the [CLI Products guide](/guides/cli) for full documentation, or [Product Co
 - `pnpm db:stop` — Stop PostgreSQL container
 - `pnpm db:studio` — Open Prisma Studio
 
-### Ralph (AI-driven development)
+### AI Workflow
 
-Ralph uses `loop.sh` for autonomous feature implementation:
+Plan and build features autonomously with the `eni` CLI:
 
-- `pnpm ralph:plan` — Generate implementation plan from all specs
-- `pnpm ralph:plan-work "desc"` — Generate scoped implementation plan
-- `pnpm ralph:build` — Build one task from the plan
-- `pnpm ralph:build:auto` — Build autonomously (10 iterations)
+- `eni plan` — Generate beads tasks from a spec
+- `eni plan --spec=<name>` — Plan a specific spec
+- `eni build` — Build one task from the plan
+- `eni build --spec=<name> --iterations=20` — Build autonomously (custom iterations)
 
-For interactive mode, use `./loop.sh` directly:
-
-```bash
-./loop.sh plan -i      # Plan with interactive output
-./loop.sh build 5 -i   # Build 5 iterations interactively
-```
-
-See the [Ralph guide](/guides/ralph) for full documentation.
+See the [AI Workflow guide](/guides/ai-workflow) for full documentation.
 
 ## Next Steps
 
