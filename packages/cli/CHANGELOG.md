@@ -1,3 +1,10 @@
+# [eniem-cli-v1.4.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.3.0...eniem-cli-v1.4.0) (2026-02-23)
+
+
+### Features
+
+* trigger release after squash merge ([2d9efe2](https://github.com/eniem-dev/eniem/commit/2d9efe26c14d851f6f0da389ae1381c1e6a08ddd))
+
 # [eniem-cli-v1.3.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.2.0...eniem-cli-v1.3.0) (2026-02-14)
 
 
