@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { render } from "ink-testing-library";
 import React from "react";
-import { ProductList, SyncStatus } from "../ProductList.js";
+import type { SyncStatus } from "../ProductList.js";
+import { ProductList } from "../ProductList.js";
 import type { Product } from "../../lib/products.js";
 
 function createProduct(overrides: Partial<Product> = {}): Product {

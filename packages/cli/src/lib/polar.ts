@@ -1,10 +1,11 @@
 import { Polar } from "@polar-sh/sdk";
 import type { Product as PolarProduct } from "@polar-sh/sdk/models/components/product.js";
 import type { ProductCreate } from "@polar-sh/sdk/models/components/productcreate.js";
-import { config as dotenvConfig } from "dotenv";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import type { Product } from "./products.js";
+import { parseEnvContent } from "./env-ready.js";
+import { handlePolarApiError } from "./polar-errors.js";
 
 // ============================================================================
 // Types
@@ -124,60 +125,6 @@ export async function loadPolarCredentials(
   };
 }
 
-/**
- * Parses .env file content into a key-value object.
- * Handles basic .env format (KEY=value, # comments, empty lines).
- */
-function parseEnvContent(content: string): Record<string, string> {
-  const result: Record<string, string> = {};
-
-  for (const line of content.split("\n")) {
-    const trimmed = line.trim();
-
-    // Skip empty lines and comments
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    const eqIndex = trimmed.indexOf("=");
-    if (eqIndex === -1) {
-      continue;
-    }
-
-    const key = trimmed.slice(0, eqIndex).trim();
-    let value = trimmed.slice(eqIndex + 1).trim();
-
-    // Remove surrounding quotes if present
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    result[key] = value;
-  }
-
-  return result;
-}
-
-/**
- * Loads credentials using dotenv (for runtime use with process.env).
- * Falls back to parsing .env manually if dotenv doesn't work.
- */
-export function loadCredentialsFromEnv(): PolarCredentials | null {
-  // Load from process.env (requires dotenv to be configured)
-  dotenvConfig();
-
-  const accessToken = process.env.POLAR_ACCESS_TOKEN;
-
-  if (!accessToken || accessToken === "polar_xx") {
-    return null;
-  }
-
-  return { accessToken };
-}
-
 // ============================================================================
 // Polar API Client
 // ============================================================================
@@ -280,43 +227,7 @@ export async function createPolarProduct(
       polarProductId: result.id,
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-
-    // Check for common error patterns
-    if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
-      return {
-        success: false,
-        error: "Invalid Polar access token. Please check your credentials.",
-      };
-    }
-
-    if (errorMessage.includes("403") || errorMessage.includes("Forbidden")) {
-      return {
-        success: false,
-        error:
-          "Access denied. Please check your organization ID and token permissions.",
-      };
-    }
-
-    if (errorMessage.includes("404")) {
-      return {
-        success: false,
-        error: "Organization not found. Please verify your organization ID.",
-      };
-    }
-
-    if (errorMessage.includes("422") || errorMessage.includes("validation")) {
-      return {
-        success: false,
-        error: `Validation error: ${errorMessage}`,
-      };
-    }
-
-    return {
-      success: false,
-      error: `Failed to create product on Polar: ${errorMessage}`,
-    };
+    return handlePolarApiError(error, "create product on Polar");
   }
 }
 
@@ -364,43 +275,7 @@ export async function updatePolarProduct(
 
     return { success: true };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-
-    // Check for common error patterns
-    if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
-      return {
-        success: false,
-        error: "Invalid Polar access token. Please check your credentials.",
-      };
-    }
-
-    if (errorMessage.includes("403") || errorMessage.includes("Forbidden")) {
-      return {
-        success: false,
-        error:
-          "Access denied. Please check your token permissions.",
-      };
-    }
-
-    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
-      return {
-        success: false,
-        error: "Product not found. It may have been deleted.",
-      };
-    }
-
-    if (errorMessage.includes("422") || errorMessage.includes("validation")) {
-      return {
-        success: false,
-        error: `Validation error: ${errorMessage}`,
-      };
-    }
-
-    return {
-      success: false,
-      error: `Failed to update product on Polar: ${errorMessage}`,
-    };
+    return handlePolarApiError(error, "update product on Polar");
   }
 }
 
@@ -425,36 +300,7 @@ export async function archivePolarProduct(
 
     return { success: true };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-
-    // Check for common error patterns
-    if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
-      return {
-        success: false,
-        error: "Invalid Polar access token. Please check your credentials.",
-      };
-    }
-
-    if (errorMessage.includes("403") || errorMessage.includes("Forbidden")) {
-      return {
-        success: false,
-        error:
-          "Access denied. Please check your token permissions.",
-      };
-    }
-
-    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
-      return {
-        success: false,
-        error: "Product not found. It may have already been deleted.",
-      };
-    }
-
-    return {
-      success: false,
-      error: `Failed to archive product on Polar: ${errorMessage}`,
-    };
+    return handlePolarApiError(error, "archive product on Polar");
   }
 }
 
@@ -514,27 +360,7 @@ export async function unarchivePolarProduct(
 
     return { success: true };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-
-    if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
-      return {
-        success: false,
-        error: "Invalid Polar access token. Please check your credentials.",
-      };
-    }
-
-    if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
-      return {
-        success: false,
-        error: "Product not found. It may have been deleted.",
-      };
-    }
-
-    return {
-      success: false,
-      error: `Failed to unarchive product on Polar: ${errorMessage}`,
-    };
+    return handlePolarApiError(error, "unarchive product on Polar");
   }
 }
 
@@ -610,25 +436,7 @@ export async function listPolarProducts(
 
     return { success: true, products: allProducts };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error occurred";
-
-    if (errorMessage.includes("401") || errorMessage.includes("Unauthorized")) {
-      return {
-        success: false,
-        error: "Invalid Polar access token. Please check your credentials.",
-      };
-    }
-
-    return {
-      success: false,
-      error: `Failed to list products from Polar: ${errorMessage}`,
-    };
+    return handlePolarApiError(error, "list products from Polar");
   }
 }
 
-// ============================================================================
-// Exports for testing
-// ============================================================================
-
-export { parseEnvContent as _parseEnvContent };

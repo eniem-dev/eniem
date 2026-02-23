@@ -1,4 +1,5 @@
 import { execa } from "execa";
+import { BOILERPLATE_REPO_PATH } from "./constants.js";
 
 export interface CloneOptions {
   projectName: string;
@@ -12,15 +13,13 @@ export interface CloneResult {
   error?: string;
 }
 
-const REPO_PATH = "eniem-dev/eniem-boilerplate.git";
-
 export async function cloneBoilerplate({
   projectName,
   gitHost,
   onProgress,
 }: CloneOptions): Promise<CloneResult> {
   const destination = `./${projectName}`;
-  const repoUrl = `git@${gitHost}:${REPO_PATH}`;
+  const repoUrl = `git@${gitHost}:${BOILERPLATE_REPO_PATH}`;
 
   onProgress?.("Cloning boilerplate repository...");
 

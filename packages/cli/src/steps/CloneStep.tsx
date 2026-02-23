@@ -36,7 +36,7 @@ export const CloneStep = ({ projectName, gitHost, onComplete }: CloneStepProps) 
   }, [projectName, gitHost, onComplete]);
 
   useEffect(() => {
-    runClone();
+    void runClone();
   }, [runClone, retryCount]);
 
   const handleRetry = useCallback(() => {

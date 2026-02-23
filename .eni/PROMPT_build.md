@@ -9,23 +9,34 @@ You are in BUILD mode. Implement one task from beads, validate, and commit.
 - `apps/docs` — Documentation site (Next.js 16, @eniem/docs)
 - `packages/cli` — CLI scaffolding tool (Ink 5, eniem-cli)
 
+## Path Discovery Rules (CRITICAL)
+
+**NEVER guess or invent file paths.** Always verify paths exist before referencing them.
+
+Before editing ANY file:
+1. Use Glob to find files matching a pattern
+2. Use Grep to search for specific code
+3. Verify the file exists before editing it
+
+Wrong: `src/features/credits/components/CreditsBadge.tsx` (guessed)
+Right: Run `Glob("**/CreditsBadge*")` first, then use the actual path returned
+
+For new files (create): verify the parent directory exists first.
+
 ## Phase 0: Worktree Setup
 
 Before any work, create or enter a git worktree for isolation.
 
-**Set worktree path based on epic:**
-```bash
-if [ -n "{{EPIC_NAME}}" ]; then
-  BRANCH="feat/{{EPIC_NAME}}"
-  WORKTREE=".worktrees/feat/{{EPIC_NAME}}"
-else
-  BRANCH="build-$(date +%Y%m%d)"
-  WORKTREE=".worktrees/$BRANCH"
-fi
-```
+**Branch and worktree are pre-computed by loop.sh:**
+- **Branch:** `{{BRANCH}}`
+- **Worktree:** `{{WORKTREE}}`
+- **Epic mode:** `{{IS_EPIC}}`
 
 **Create worktree if it doesn't exist:**
 ```bash
+BRANCH="{{BRANCH}}"
+WORKTREE="{{WORKTREE}}"
+
 if [ ! -d "$WORKTREE" ]; then
   # Create worktree with new branch (or existing branch if it exists)
   git worktree add "$WORKTREE" -b "$BRANCH" 2>/dev/null || git worktree add "$WORKTREE" "$BRANCH"
@@ -60,12 +71,13 @@ If blocked tasks exist, **STOP** and report. Do not waste cycles on dependent wo
 bd ready
 ```
 
-**If epic specified:** Only consider tasks matching `{{EPIC_NAME}}` in their title or notes.
+**Epic mode (`{{IS_EPIC}}` = true):** Only consider tasks matching `{{EPIC_NAME}}` in their title or notes.
+**Session mode (`{{IS_EPIC}}` = false):** Work all ready tasks regardless of epic.
 
 If no ready tasks:
 1. Run `bd blocked` to see what's waiting
 2. If ALL tasks for this epic/scope are complete → go to **Phase 5: Create PR**
-3. Otherwise, output `:::ENI_ALL_TASKS_COMPLETE:::` and exit
+3. Otherwise, output `:::ENI_DONE:::` and exit
 
 ## Phase 2: Select & Claim Task
 
@@ -110,8 +122,9 @@ Follow:
 After implementing, validate using turborepo:
 1. Run `Verify:` command from task notes - must pass
 2. Run `pnpm turbo build` - must pass (or use `--filter` for targeted builds)
-3. Run `pnpm turbo lint` - must pass
-4. Run `pnpm test` - must pass
+3. Run `pnpm turbo typecheck` - must pass
+4. Run `pnpm turbo lint` - must pass
+5. Run `pnpm test` - must pass
 
 If validation fails, fix and re-validate. Do NOT proceed until passing.
 
@@ -142,9 +155,11 @@ git push -u origin HEAD
 - Line 3: `Progress:` what this commit achieved
 - Line 4: `Next:` remaining work (enables context recovery)
 
-Exit - the loop will restart for the next task.
+**STOP HERE.** Do not pick up another task. Do not run `bd ready` again.
+Do NOT output `:::ENI_DONE:::` — the loop engine handles continuation.
+Your job for this iteration is done.
 
-## Phase 5: Create PR & Archive Spec
+## Phase 5: Create PR & Archive Specs
 
 When no ready tasks remain for this epic/scope:
 
@@ -176,30 +191,32 @@ When no ready tasks remain for this epic/scope:
    [List beads closed for this epic - from bd list --status=done]
 
    ### Testing
-   - `pnpm turbo build && pnpm turbo lint` passing
+   - `pnpm turbo build && pnpm turbo typecheck && pnpm turbo lint` passing
    - Manual: [describe what was manually tested]
    EOF
    )"
    ```
 
-5. Archive the spec:
+5. Archive fully-closed epic specs:
+   Check which epics are now fully closed and archive their spec files:
    ```bash
+   # List all epics
+   bd list --type=epic
+   # For each epic, check if all its child tasks are closed
+   # If an epic is fully closed and specs/<epic-name>.md exists, archive it:
    mkdir -p specs/archive
-   mv specs/{{EPIC_NAME}}.md specs/archive/
+   mv specs/<epic-name>.md specs/archive/
+   ```
+   Commit all archived specs together:
+   ```bash
    git add specs/
-   git commit -m "chore: archive specs/{{EPIC_NAME}}.md"
+   git commit -m "chore: archive completed epic specs"
    git push
    ```
 
-6. Clean up worktree:
-   ```bash
-   cd ..  # Exit worktree directory
-   git worktree remove "$WORKTREE"
+6. Output completion signal:
    ```
-
-7. Output completion signal:
-   ```
-   :::ENI_ALL_TASKS_COMPLETE:::
+   :::ENI_DONE:::
    ```
 
 ## Error Recovery
@@ -216,7 +233,7 @@ If validation fails:
 
 1. **Tracer bullets** — build small, test immediately, expand from working code
 2. **Branch first** — ensure correct branch before any work
-3. **Single task** — implement ONE task per iteration
+3. **Single task** — implement ONE task per iteration, then STOP (do not loop back to Phase 1)
 4. **Epic filter** — only work on tasks matching epic if specified
 5. **Validate before commit** — never commit failing code
 6. **Close beads** — always `bd close` after committing

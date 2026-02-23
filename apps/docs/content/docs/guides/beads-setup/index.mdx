@@ -1,0 +1,31 @@
+---
+title: "Beads Setup"
+description: "Understand the beads sync-branch in your project — what it is, why it exists, and how it keeps your feature branches clean."
+---
+
+Your project uses [beads](https://github.com/steveyegge/beads), a git-native issue tracker that stores tasks alongside your code. This guide explains the artifacts you'll see in your repository and why they exist.
+
+## Why a sync-branch?
+
+Beads tracks issues in JSONL files that change frequently as tasks are created, updated, and closed. Without isolation, these changes would land on your feature branches and pollute pull requests with issue-tracking noise.
+
+The **sync-branch** solves this by directing all beads commits to a dedicated `beads-sync` branch. Your feature branches and `main` stay clean — PRs only contain the code changes that matter.
+
+## What you'll see in your project
+
+| Artifact | What it is |
+| --- | --- |
+| `.beads/` folder | Local beads configuration and database |
+| `beads-sync` branch | Remote branch where issue state is synced |
+| `.beads/issues.jsonl` | Issue data (created/updated/closed tasks) |
+| `.beads/interactions.jsonl` | Activity log for issue changes |
+
+These are all normal and expected. Don't modify or delete them manually.
+
+## Setup
+
+The `eni` CLI configures beads automatically when you set up your project. No manual setup is needed.
+
+## Learn more
+
+For a deeper look at how beads works under the hood, visit the [beads GitHub repository](https://github.com/steveyegge/beads).

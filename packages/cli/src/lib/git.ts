@@ -36,7 +36,7 @@ export async function initGitRepo({
 
     // Create initial commit
     onProgress?.("Creating initial commit...");
-    await execa("git", ["commit", "-m", "Initial commit from eniem-cli"], {
+    await execa("git", ["commit", "-m", "Initial commit from eni"], {
       cwd: destination,
     });
 

@@ -34,7 +34,7 @@ export const InstallStep = ({ destination, onComplete }: InstallStepProps) => {
   }, [destination, onComplete]);
 
   useEffect(() => {
-    install();
+    void install();
   }, [install, retryCount]);
 
   const handleRetry = useCallback(() => {

@@ -33,7 +33,7 @@ export const EnvStep = ({ config, destination, onComplete }: EnvStepProps) => {
   }, [config, destination, onComplete]);
 
   useEffect(() => {
-    generateEnv();
+    void generateEnv();
   }, [generateEnv, retryCount]);
 
   const handleRetry = useCallback(() => {

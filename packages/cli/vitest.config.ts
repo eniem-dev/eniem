@@ -15,8 +15,6 @@ export default defineConfig({
         "src/cli.tsx",
         "src/**/index.ts",
         "src/config/types.ts",
-        "src/steps/AuthSetup.tsx",
-        "src/steps/Web3Setup.tsx",
         // Interactive CLI wizards - better suited for E2E testing
         "src/commands/products.tsx",
       ],

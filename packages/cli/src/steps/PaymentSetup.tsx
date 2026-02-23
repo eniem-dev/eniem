@@ -1,13 +1,7 @@
 import { Box } from "ink";
 import React, { useState } from "react";
 import { Confirm, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
-
-interface PaymentConfig {
-  enabled: boolean;
-  accessToken?: string;
-  server?: "sandbox" | "production";
-  webhookSecret?: string;
-}
+import type { PaymentConfig } from "../config/types.js";
 
 interface PaymentSetupProps {
   onComplete: (config: PaymentConfig) => void;
@@ -33,6 +27,7 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
   };
 
   const handleTokenSubmit = (value: string) => {
+    if (!value.trim()) return;
     setAccessToken(value.trim());
     setStep("server");
   };
@@ -44,6 +39,7 @@ export const PaymentSetup = ({ onComplete }: PaymentSetupProps) => {
   };
 
   const handleWebhookSubmit = (value: string) => {
+    if (!value.trim()) return;
     setWebhookSecret(value.trim());
     setStep("done");
     onComplete({

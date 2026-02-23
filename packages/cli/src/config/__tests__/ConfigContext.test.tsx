@@ -24,7 +24,7 @@ describe("ConfigContext", () => {
     expect(lastFrame()).toContain("{}");
   });
 
-  it("exposes all setter functions", () => {
+  it("exposes updateConfig function", () => {
     let capturedContext: ReturnType<typeof useConfig> | null = null;
     const Capture = () => {
       capturedContext = useConfig();
@@ -38,14 +38,8 @@ describe("ConfigContext", () => {
     );
 
     expect(capturedContext).not.toBeNull();
-    expect(capturedContext!.setProject).toBeDefined();
-    expect(capturedContext!.setAuth).toBeDefined();
-    expect(capturedContext!.setAuthSecret).toBeDefined();
-    expect(capturedContext!.setOAuth).toBeDefined();
-    expect(capturedContext!.setPayment).toBeDefined();
-    expect(capturedContext!.setStorage).toBeDefined();
-    expect(capturedContext!.setWeb3).toBeDefined();
-    expect(capturedContext!.setAnalytics).toBeDefined();
+    expect(capturedContext!.updateConfig).toBeDefined();
+    expect(typeof capturedContext!.updateConfig).toBe("function");
   });
 
   it("config object is accessible", () => {
@@ -65,11 +59,11 @@ describe("ConfigContext", () => {
     expect(typeof capturedContext!.config).toBe("object");
   });
 
-  it("setProject is a function", () => {
+  it("updateConfig updates the specified key", () => {
     let capturedContext: ReturnType<typeof useConfig> | null = null;
     const Capture = () => {
       capturedContext = useConfig();
-      return <Text>captured</Text>;
+      return <Text>{JSON.stringify(capturedContext?.config)}</Text>;
     };
 
     render(
@@ -78,14 +72,21 @@ describe("ConfigContext", () => {
       </ConfigProvider>
     );
 
-    expect(typeof capturedContext!.setProject).toBe("function");
+    expect(capturedContext).not.toBeNull();
+
+    // Call updateConfig with project key
+    React.act(() => {
+      capturedContext!.updateConfig("project", { name: "test-app" });
+    });
+
+    expect(capturedContext!.config.project).toEqual({ name: "test-app" });
   });
 
-  it("setAuth is a function", () => {
+  it("updateConfig preserves other config keys", () => {
     let capturedContext: ReturnType<typeof useConfig> | null = null;
     const Capture = () => {
       capturedContext = useConfig();
-      return <Text>captured</Text>;
+      return <Text>{JSON.stringify(capturedContext?.config)}</Text>;
     };
 
     render(
@@ -94,10 +95,18 @@ describe("ConfigContext", () => {
       </ConfigProvider>
     );
 
-    expect(typeof capturedContext!.setAuth).toBe("function");
+    React.act(() => {
+      capturedContext!.updateConfig("project", { name: "test-app" });
+    });
+    React.act(() => {
+      capturedContext!.updateConfig("auth", { enabled: true });
+    });
+
+    expect(capturedContext!.config.project).toEqual({ name: "test-app" });
+    expect(capturedContext!.config.auth).toEqual({ enabled: true });
   });
 
-  it("setAuthSecret is a function", () => {
+  it("updateConfig works with authSecret string value", () => {
     let capturedContext: ReturnType<typeof useConfig> | null = null;
     const Capture = () => {
       capturedContext = useConfig();
@@ -110,10 +119,14 @@ describe("ConfigContext", () => {
       </ConfigProvider>
     );
 
-    expect(typeof capturedContext!.setAuthSecret).toBe("function");
+    React.act(() => {
+      capturedContext!.updateConfig("authSecret", "my-secret");
+    });
+
+    expect(capturedContext!.config.authSecret).toBe("my-secret");
   });
 
-  it("setOAuth is a function", () => {
+  it("updateConfig works with all config keys", () => {
     let capturedContext: ReturnType<typeof useConfig> | null = null;
     const Capture = () => {
       capturedContext = useConfig();
@@ -126,70 +139,21 @@ describe("ConfigContext", () => {
       </ConfigProvider>
     );
 
-    expect(typeof capturedContext!.setOAuth).toBe("function");
-  });
+    React.act(() => {
+      capturedContext!.updateConfig("project", { name: "app" });
+      capturedContext!.updateConfig("auth", { enabled: true });
+      capturedContext!.updateConfig("oauth", {});
+      capturedContext!.updateConfig("payment", { enabled: false });
+      capturedContext!.updateConfig("storage", { enabled: false });
+      capturedContext!.updateConfig("web3", { enabled: false });
+      capturedContext!.updateConfig("analytics", { enabled: false });
+    });
 
-  it("setPayment is a function", () => {
-    let capturedContext: ReturnType<typeof useConfig> | null = null;
-    const Capture = () => {
-      capturedContext = useConfig();
-      return <Text>captured</Text>;
-    };
-
-    render(
-      <ConfigProvider>
-        <Capture />
-      </ConfigProvider>
-    );
-
-    expect(typeof capturedContext!.setPayment).toBe("function");
-  });
-
-  it("setStorage is a function", () => {
-    let capturedContext: ReturnType<typeof useConfig> | null = null;
-    const Capture = () => {
-      capturedContext = useConfig();
-      return <Text>captured</Text>;
-    };
-
-    render(
-      <ConfigProvider>
-        <Capture />
-      </ConfigProvider>
-    );
-
-    expect(typeof capturedContext!.setStorage).toBe("function");
-  });
-
-  it("setWeb3 is a function", () => {
-    let capturedContext: ReturnType<typeof useConfig> | null = null;
-    const Capture = () => {
-      capturedContext = useConfig();
-      return <Text>captured</Text>;
-    };
-
-    render(
-      <ConfigProvider>
-        <Capture />
-      </ConfigProvider>
-    );
-
-    expect(typeof capturedContext!.setWeb3).toBe("function");
-  });
-
-  it("setAnalytics is a function", () => {
-    let capturedContext: ReturnType<typeof useConfig> | null = null;
-    const Capture = () => {
-      capturedContext = useConfig();
-      return <Text>captured</Text>;
-    };
-
-    render(
-      <ConfigProvider>
-        <Capture />
-      </ConfigProvider>
-    );
-
-    expect(typeof capturedContext!.setAnalytics).toBe("function");
+    expect(capturedContext!.config.project).toBeDefined();
+    expect(capturedContext!.config.auth).toBeDefined();
+    expect(capturedContext!.config.payment).toBeDefined();
+    expect(capturedContext!.config.storage).toBeDefined();
+    expect(capturedContext!.config.web3).toBeDefined();
+    expect(capturedContext!.config.analytics).toBeDefined();
   });
 });

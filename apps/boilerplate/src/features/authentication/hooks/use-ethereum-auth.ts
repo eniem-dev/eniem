@@ -38,8 +38,8 @@ export function useEthereumAuth(callbackURL?: string) {
         address,
         statement:
           mode === "signin"
-            ? "Sign in with Ethereum to Eniem"
-            : "Sign up with Ethereum to Eniem",
+            ? "Sign in with Ethereum to MyApp"
+            : "Sign up with Ethereum to MyApp",
         uri: window.location.origin,
         version: "1",
         chainId: chain.id,

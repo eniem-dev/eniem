@@ -18,6 +18,11 @@ export default tseslint.config(
   },
   {
     files: ['src/**/*.ts', 'src/**/*.tsx'],
+    rules: {
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/consistent-type-imports': 'error',
+    },
   },
   {
     ignores: ['dist/', 'bin/', 'node_modules/', '*.config.js'],

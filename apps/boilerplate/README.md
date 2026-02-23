@@ -20,6 +20,20 @@ pnpm install
 pnpm dev
 ```
 
+## Rebranding
+
+This boilerplate uses `myapp` (slug) and `MyApp` (display name) as placeholders. Replace them with your own project name:
+
+```bash
+# Replace display name (e.g., "My Cool App")
+grep -rl "MyApp" . --exclude-dir={node_modules,.git} | xargs sed -i 's/MyApp/Your App Name/g'
+
+# Replace slug (e.g., "mycoolapp")
+grep -rl "myapp" . --exclude-dir={node_modules,.git} | xargs sed -i 's/myapp/yourslug/g'
+```
+
+> **Note:** If your project name contains regex special characters (`.`, `*`, `+`, etc.), you'll need to escape them in the sed commands.
+
 ## Documentation
 
 Full documentation available at [doc.eniem.dev](https://doc.eniem.dev)

@@ -19,24 +19,29 @@ print_usage() {
   echo ""
   echo "Usage:"
   echo "  ./loop.sh plan <spec-name> [N] [-i]    Create beads from spec (default: 3 iterations)"
-  echo "  ./loop.sh build [epic-name] [N] [-i]   Build mode (default: 10 iterations, all ready tasks)"
+  echo "  ./loop.sh build <name> [N] [-i]        Build mode (default: 10 iterations)"
   echo ""
   echo "Options:"
   echo "  -i    Interactive mode (watch Claude work in real-time)"
   echo ""
+  echo "The <name> argument is required for build mode. It produces a stable branch"
+  echo "name that survives restarts across midnight. If <name> matches an existing"
+  echo "beads epic, only that epic's tasks are worked (branch: feat/<name>)."
+  echo "Otherwise, all ready tasks are worked (branch: build-<name>)."
+  echo ""
   echo "Examples:"
   echo "  ./loop.sh plan usage-based-pricing        Create beads (3 iterations)"
   echo "  ./loop.sh plan usage-based-pricing 5      Create beads (5 iterations)"
-  echo "  ./loop.sh build                           Build all ready tasks (1 iteration)"
-  echo "  ./loop.sh build usage-based-pricing       Build only tasks from epic"
+  echo "  ./loop.sh build usage-based-pricing       Build epic tasks (auto-detected)"
   echo "  ./loop.sh build usage-based-pricing 10    Build epic tasks (10 iterations)"
-  echo "  ./loop.sh build 10 -i                     Build all (10 iterations, interactive)"
+  echo "  ./loop.sh build catch-up                  Build all ready tasks (session mode)"
+  echo "  ./loop.sh build catch-up 5 -i             Build all (5 iterations, interactive)"
   echo ""
   echo "Workflow:"
   echo "  1. /functional-spec <name>    Create specs/<name>.md"
   echo "  2. ./loop.sh plan <name>      Create beads epic + issues"
   echo "  3. bd ready                   See what to work on"
-  echo "  4. ./loop.sh build [epic]     Implement tasks"
+  echo "  4. ./loop.sh build <name>     Implement tasks"
 }
 
 LAST_OUTPUT=""
@@ -46,6 +51,9 @@ run_claude() {
   local spec_name="${2:-}"
   local iteration="${3:-1}"
   local epic_name="${4:-}"
+  local branch="${5:-}"
+  local worktree="${6:-}"
+  local is_epic="${7:-false}"
   local prompt_content
 
   prompt_content=$(cat "$prompt_file")
@@ -60,6 +68,9 @@ run_claude() {
   else
     prompt_content=$(echo "$prompt_content" | sed "s|{{EPIC_NAME}}||g")
   fi
+  prompt_content=$(echo "$prompt_content" | sed "s|{{BRANCH}}|$branch|g")
+  prompt_content=$(echo "$prompt_content" | sed "s|{{WORKTREE}}|$worktree|g")
+  prompt_content=$(echo "$prompt_content" | sed "s|{{IS_EPIC}}|$is_epic|g")
 
   if $INTERACTIVE; then
     # Interactive: use script to preserve TTY for full UI while capturing output
@@ -104,12 +115,12 @@ rl.on("line", (line) => {
 # Check if Claude signaled completion
 # Only check last line to avoid matching the marker in the prompt instructions
 is_complete() {
-  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_ALL_TASKS_COMPLETE:::"
+  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_DONE:::"
 }
 
 # Check if Claude signaled plan is fully refined
 is_refined() {
-  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_PLAN_REFINED:::"
+  echo "$LAST_OUTPUT" | tail -n 1 | grep -q ":::ENI_DONE:::"
 }
 
 check_beads() {
@@ -211,11 +222,8 @@ case "${1:-}" in
     ;;
 
   build)
-    check_beads
-    check_requirements
-
-    # Parse arguments: [epic-name] [iterations]
-    EPIC_NAME=""
+    # Require name argument
+    BUILD_NAME=""
     MAX_ITERATIONS=10
     for arg in "${@:2}"; do
       if [[ "$arg" == -* ]]; then
@@ -223,33 +231,56 @@ case "${1:-}" in
       elif [[ "$arg" =~ ^[0-9]+$ ]]; then
         MAX_ITERATIONS="$arg"
       else
-        EPIC_NAME="$arg"
+        BUILD_NAME="$arg"
       fi
     done
 
-    # Check if there are ready beads
-    if [ -n "$EPIC_NAME" ]; then
-      # Filter by epic name in title
-      READY_COUNT=$(bd ready 2>/dev/null | grep -i "$EPIC_NAME" | grep -c "^beads-" || echo "0")
-    else
-      READY_COUNT=$(bd ready 2>/dev/null | grep -c "^beads-" || echo "0")
+    if [ -z "$BUILD_NAME" ]; then
+      echo -e "${RED}Error: Name argument required${NC}"
+      echo "Usage: ./loop.sh build <name> [iterations] [-i]"
+      echo ""
+      echo "The <name> produces a stable branch name. If it matches an epic,"
+      echo "only that epic's tasks are worked. Otherwise, all ready tasks are worked."
+      echo ""
+      echo "Examples:"
+      echo "  ./loop.sh build usage-based-pricing    # Epic mode (if epic exists)"
+      echo "  ./loop.sh build catch-up               # Session mode (all tasks)"
+      exit 1
     fi
+
+    check_beads
+    check_requirements
+
+    # Epic detection: check if name matches a beads epic title
+    IS_EPIC=false
+    if bd list --type=epic 2>/dev/null | grep -qi "$BUILD_NAME"; then
+      IS_EPIC=true
+    fi
+
+    # Compute stable branch and worktree paths
+    if $IS_EPIC; then
+      BRANCH="feat/$BUILD_NAME"
+      WORKTREE=".worktrees/feat/$BUILD_NAME"
+    else
+      BRANCH="build-$BUILD_NAME"
+      WORKTREE=".worktrees/build-$BUILD_NAME"
+    fi
+
+    # Count total ready tasks (no shell-side epic filtering)
+    READY_COUNT=$(bd ready 2>/dev/null | grep -c '^\d\+\.\|^\[' || echo "0")
 
     if [ "$READY_COUNT" -eq 0 ]; then
       echo -e "${YELLOW}Warning: No ready beads found${NC}"
-      if [ -n "$EPIC_NAME" ]; then
-        echo "No ready tasks for epic: $EPIC_NAME"
-      fi
       echo "Run './loop.sh plan <spec-name>' first to create beads"
       echo ""
       echo "Or check blocked issues with: bd blocked"
     fi
 
     echo -e "${GREEN}=== Build Mode ===${NC}"
-    if [ -n "$EPIC_NAME" ]; then
-      echo "Epic: $EPIC_NAME"
+    if $IS_EPIC; then
+      echo "Epic: $BUILD_NAME (branch: $BRANCH)"
     else
-      echo "Building all ready tasks"
+      echo "Session: $BUILD_NAME (branch: $BRANCH)"
     fi
     $INTERACTIVE && echo -e "${BLUE}Interactive mode enabled${NC}"
     echo "Running $MAX_ITERATIONS iteration(s)..."
@@ -259,7 +290,7 @@ case "${1:-}" in
       echo ""
       echo -e "${BLUE}--- Iteration $i of $MAX_ITERATIONS ---${NC}"
 
-      if ! run_claude "$SCRIPT_DIR/PROMPT_build.md" "" "1" "$EPIC_NAME"; then
+      if ! run_claude "$SCRIPT_DIR/PROMPT_build.md" "" "$i" "$BUILD_NAME" "$BRANCH" "$WORKTREE" "$IS_EPIC"; then
         echo -e "${RED}Build iteration failed${NC}"
         exit 1
       fi
@@ -278,7 +309,7 @@ case "${1:-}" in
 
     echo ""
     echo -e "${GREEN}=== Completed $MAX_ITERATIONS iteration(s) ===${NC}"
-    echo "Run './loop.sh build' again to continue, or check: bd ready"
+    echo "Run './loop.sh build $BUILD_NAME' again to continue, or check: bd ready"
     ;;
 
   -h|--help|help)

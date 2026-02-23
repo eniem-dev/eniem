@@ -1,15 +1,7 @@
 import { Box } from "ink";
 import React, { useState } from "react";
 import { Confirm, Select, TextInput, SectionHeader, StatusMessage } from "../components/index.js";
-
-type AnalyticsProvider = "umami" | "posthog" | "none";
-
-interface AnalyticsConfig {
-  enabled: boolean;
-  provider?: AnalyticsProvider;
-  siteId?: string;
-  hostUrl?: string;
-}
+import type { AnalyticsProvider, AnalyticsConfig } from "../config/types.js";
 
 interface AnalyticsSetupProps {
   onComplete: (config: AnalyticsConfig) => void;

@@ -43,11 +43,13 @@ export const OAuthSetup = ({ onComplete }: OAuthSetupProps) => {
   };
 
   const handleGithubIdSubmit = (value: string) => {
+    if (!value.trim()) return;
     setGithubId(value.trim());
     setStep("github_secret");
   };
 
   const handleGithubSecretSubmit = (value: string) => {
+    if (!value.trim()) return;
     setGithubSecret(value.trim());
     setStep("twitter_enable");
   };
@@ -58,11 +60,13 @@ export const OAuthSetup = ({ onComplete }: OAuthSetupProps) => {
   };
 
   const handleTwitterIdSubmit = (value: string) => {
+    if (!value.trim()) return;
     setTwitterId(value.trim());
     setStep("twitter_secret");
   };
 
   const handleTwitterSecretSubmit = (value: string) => {
+    if (!value.trim()) return;
     setTwitterSecret(value.trim());
     setStep("web3_enable");
   };
@@ -73,6 +77,7 @@ export const OAuthSetup = ({ onComplete }: OAuthSetupProps) => {
   };
 
   const handleWeb3ProjectIdSubmit = (value: string) => {
+    if (!value.trim()) return;
     setWeb3ProjectId(value.trim());
     setStep("auth_secret");
   };
