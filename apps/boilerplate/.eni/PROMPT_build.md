@@ -144,7 +144,9 @@ git push -u origin HEAD
 - Line 3: `Progress:` what this commit achieved
 - Line 4: `Next:` remaining work (enables context recovery)
 
-**STOP HERE.** Do not pick up another task. Do not run `bd ready` again. The loop engine will restart you for the next task. Your job for this iteration is done.
+**STOP HERE.** Do not pick up another task. Do not run `bd ready` again.
+Do NOT output `:::ENI_DONE:::` — the loop engine handles continuation.
+Your job for this iteration is done.
 
 ## Phase 5: Create PR & Archive Specs
 

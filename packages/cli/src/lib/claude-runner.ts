@@ -34,7 +34,7 @@ export function runClaude(
   options: RunClaudeOptions = {},
 ): ClaudeRunner {
   const { onText, onToolUse, cwd, args = [] } = options;
-  let sentinelDetected = false;
+  let lastText = "";
   let buffer = "";
 
   const subprocess = execa(
@@ -53,7 +53,7 @@ export function runClaude(
         const content = event.message?.content ?? [];
         for (const block of content) {
           if (block.type === "text") {
-            if (block.text.includes(SENTINEL)) sentinelDetected = true;
+            lastText = block.text;
             onText?.(block.text);
           } else if (block.type === "tool_use") {
             onToolUse?.(block.name, block.input ?? {});
@@ -78,9 +78,11 @@ export function runClaude(
     try {
       await subprocess;
       if (buffer.trim()) processLine(buffer);
+      const sentinelDetected = lastText.includes(SENTINEL);
       return { exitCode: 0, sentinelDetected };
     } catch (error: unknown) {
       if (buffer.trim()) processLine(buffer);
+      const sentinelDetected = lastText.includes(SENTINEL);
       const err = error as { code?: string; exitCode?: number };
 
       if (err.code === "ENOENT") {
