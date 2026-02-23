@@ -5,7 +5,7 @@
 <h1 align="center">Eniem Boilerplate</h1>
 
 <p align="center">
-  A production-ready Next.js 15 boilerplate with authentication, payments, and everything you need to ship fast.
+  A production-ready Next.js 15 boilerplate with authentication, payments, and everything you need to ship fast. Start building today.
 </p>
 
 ---

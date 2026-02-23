@@ -19,4 +19,4 @@ cp .env.example .env
 pnpm dev
 ```
 
-Each starter has its own README with setup details specific to that example.
+Each starter has its own README with detailed setup instructions.

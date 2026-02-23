@@ -1,4 +1,4 @@
-# eniem-cli
+# eni
 
 Interactive CLI wizard for scaffolding [Eniem](https://eniem.dev) projects.
 
