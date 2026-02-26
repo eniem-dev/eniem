@@ -10,3 +10,4 @@ export { WizardProgress } from "./WizardProgress.js";
 export { CompletedSteps } from "./CompletedSteps.js";
 export { ProductList, type SyncStatus } from "./ProductList.js";
 export { OperationMenu } from "./OperationMenu.js";
+export { FirstRunPrompt } from "./FirstRunPrompt.js";
