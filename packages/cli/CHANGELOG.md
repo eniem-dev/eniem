@@ -1,3 +1,36 @@
+# [eniem-cli-v1.5.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.4.0...eniem-cli-v1.5.0) (2026-02-26)
+
+
+### Bug Fixes
+
+* **cli:** always show tool activity in plan/build commands ([9f30312](https://github.com/eniem-dev/eniem/commit/9f30312ee2f286efdd5aef5c8369716459f89abb))
+* **cli:** capture stderr from adapter subprocesses for better error messages ([3d414be](https://github.com/eniem-dev/eniem/commit/3d414be72dcbd0f054bfcbcd5521d1fd85c85d5d))
+* **cli:** close stdin for non-claude adapters to unblock stdout streaming ([e75e221](https://github.com/eniem-dev/eniem/commit/e75e22189f61c7f513a1cd8cee17a12094f5d5ea))
+* **cli:** fix codex adapter to match real JSON event format ([ed18507](https://github.com/eniem-dev/eniem/commit/ed185073d71d68738f386820bbae76fcd40603bd))
+* **cli:** fix gemini adapter JSON event parsing to match real output ([2cf4720](https://github.com/eniem-dev/eniem/commit/2cf4720dae0aa7df8add3ea0f53ba4df3d0379d9))
+* **cli:** normalize tool names in verbose output across all adapters ([c4f4da9](https://github.com/eniem-dev/eniem/commit/c4f4da9565fa5efde400b02dee0ae579952d93f6))
+* **cli:** remove invalid -q flag from opencode adapter ([46647f7](https://github.com/eniem-dev/eniem/commit/46647f796229a3e30accf60371390444b2ddd99d))
+
+
+### Features
+
+* **multi-cli-adapters:** add --cli flag to plan/build commands ([9f69096](https://github.com/eniem-dev/eniem/commit/9f69096ed56f183f145d6e682e78e48495c8ef0a))
+* **multi-cli-adapters:** add config show and config set subcommands ([a5960d5](https://github.com/eniem-dev/eniem/commit/a5960d5b9b89b91b5e38a129bda61a45af4df2d1))
+* **multi-cli-adapters:** create adapter registry with getAdapter and listAvailable ([5b5365e](https://github.com/eniem-dev/eniem/commit/5b5365e43bf0c9357bb6bb571df19e6a4d6a6084))
+* **multi-cli-adapters:** create Claude adapter implementing CLIAdapter ([675e72d](https://github.com/eniem-dev/eniem/commit/675e72dfac2ba849cb858fee0061e482e5913dfb))
+* **multi-cli-adapters:** create CLI resolver with flag > config > default resolution ([060da97](https://github.com/eniem-dev/eniem/commit/060da97f83c8904511751560ad1e37d2faa9bcc6))
+* **multi-cli-adapters:** create Codex adapter implementing CLIAdapter ([b71ebb3](https://github.com/eniem-dev/eniem/commit/b71ebb345e9c87a2dd20e80567b489a35b2902dd))
+* **multi-cli-adapters:** create ConfigCommand with interactive CLI picker ([869b7c1](https://github.com/eniem-dev/eniem/commit/869b7c17dcd247ff01eec741ddd692be870878fa))
+* **multi-cli-adapters:** create eni-config lib for .eni/config.json read/write/validate ([8949bce](https://github.com/eniem-dev/eniem/commit/8949bce52617b14d57299c324ecfde7520dfdb12))
+* **multi-cli-adapters:** create FirstRunPrompt component for initial CLI config ([9fca5e5](https://github.com/eniem-dev/eniem/commit/9fca5e522c034036799fada9be7cba34f499cb35))
+* **multi-cli-adapters:** create Gemini adapter implementing CLIAdapter ([428a805](https://github.com/eniem-dev/eniem/commit/428a8057afe128f58821966b500e51f72b9a4e5d))
+* **multi-cli-adapters:** create MissingBinaryFallback component for CLI picker ([349a889](https://github.com/eniem-dev/eniem/commit/349a8895c0b17b4558438676ca9967e0b226907c))
+* **multi-cli-adapters:** create OpenCode adapter implementing CLIAdapter ([de4d444](https://github.com/eniem-dev/eniem/commit/de4d4446cc3f56d5096f3646cc6dfe395587ac2d))
+* **multi-cli-adapters:** define CLIAdapter interface and shared types ([d1d98bd](https://github.com/eniem-dev/eniem/commit/d1d98bd884b70724f6bb885ac0696d63aed4b3b4))
+* **multi-cli-adapters:** integrate resolver, first-run, fallback, and CLI indicator into plan/build ([2c3485e](https://github.com/eniem-dev/eniem/commit/2c3485ec27d96cb2a659fc55f102ef77da05d97e))
+* **multi-cli-adapters:** wire adapter registry into BuildCommand replacing runClaude ([1007e90](https://github.com/eniem-dev/eniem/commit/1007e90033ddf096e82e12d414e34f5077353755))
+* **multi-cli-adapters:** wire adapter registry into PlanCommand ([43ad73b](https://github.com/eniem-dev/eniem/commit/43ad73b442a0f9f0455fd86cdac3cc9a5b7620f9))
+
 # [eniem-cli-v1.4.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.3.0...eniem-cli-v1.4.0) (2026-02-23)
 
 
