@@ -6,25 +6,35 @@ import {
   Spinner,
   SectionHeader,
   StatusMessage,
+  FirstRunPrompt,
+  MissingBinaryFallback,
 } from "../components/index.js";
 import { listSpecs, moveSpec } from "../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../lib/template.js";
-import { runClaude, checkBinary } from "../lib/claude-runner.js";
-import type { ClaudeRunner } from "../lib/claude-runner.js";
+import { checkBinary } from "../lib/adapters/index.js";
+import type { CLIAdapter, CLIRunner } from "../lib/adapters/index.js";
+import { resolveCLI } from "../lib/resolve-cli.js";
+import type { ResolutionSource } from "../lib/resolve-cli.js";
 
 function toolInputSummary(name: string, input: Record<string, unknown>): string {
-  const s = (k: string) => (typeof input[k] === "string" ? (input[k] as string) : "");
-  if (name === "Read" || name === "Edit" || name === "Write") return s("file_path");
-  if (name === "Bash") return s("command").slice(0, 80);
-  if (name === "Glob") return s("pattern");
-  if (name === "Grep") return s("pattern");
-  if (name === "Task") return s("description");
-  if (name === "WebFetch") return s("url");
-  if (name === "WebSearch") return s("query");
+  const s = (...keys: string[]) => {
+    for (const k of keys) {
+      if (typeof input[k] === "string") return input[k] as string;
+    }
+    return "";
+  };
+  const n = name.toLowerCase().replace(/_/g, "");
+  if (n === "read" || n === "readfile" || n === "edit" || n === "write") return s("file_path", "path");
+  if (n === "bash" || n === "shell") return s("command").slice(0, 80);
+  if (n === "glob" || n === "listdirectory") return s("pattern", "dir_path", "path");
+  if (n === "grep" || n === "search") return s("pattern", "query");
+  if (n === "task") return s("description");
+  if (n === "webfetch") return s("url");
+  if (n === "websearch") return s("query");
   return "";
 }
 
-type PlanStep = "selecting" | "running" | "summary" | "error";
+type PlanStep = "selecting" | "resolving" | "first-run" | "fallback" | "running" | "summary" | "error";
 
 export interface PlanCommandProps {
   spec?: string;
@@ -32,6 +42,7 @@ export interface PlanCommandProps {
   verbose: boolean;
   specsDir: string;
   promptFile: string;
+  cli?: string;
 }
 
 export const PlanCommand = ({
@@ -40,9 +51,10 @@ export const PlanCommand = ({
   verbose,
   specsDir,
   promptFile,
+  cli,
 }: PlanCommandProps) => {
   const { exit } = useApp();
-  const [step, setStep] = useState<PlanStep>(spec ? "running" : "selecting");
+  const [step, setStep] = useState<PlanStep>(spec ? "resolving" : "selecting");
   const [specName, setSpecName] = useState(spec ?? "");
   const [specPath, setSpecPath] = useState("");
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>([]);
@@ -52,10 +64,16 @@ export const PlanCommand = ({
   const [pastLines, setPastLines] = useState<string[]>([]);
   const [currentLines, setCurrentLines] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [resolvedAdapter, setResolvedAdapter] = useState<CLIAdapter | null>(null);
+  const [resolutionSource, setResolutionSource] = useState<ResolutionSource | null>(null);
+  const [firstRunAvailable, setFirstRunAvailable] = useState<CLIAdapter[]>([]);
+  const [fallbackMissing, setFallbackMissing] = useState("");
+  const [fallbackAvailable, setFallbackAvailable] = useState<CLIAdapter[]>([]);
 
   const isLoadingSpecsRef = useRef(false);
+  const isResolvingRef = useRef(false);
   const isRunningRef = useRef(false);
-  const runnerRef = useRef<ClaudeRunner | null>(null);
+  const runnerRef = useRef<CLIRunner | null>(null);
 
   // Load specs for selection
   useEffect(() => {
@@ -76,6 +94,43 @@ export const PlanCommand = ({
     void load();
   }, [step, specsDir]);
 
+  // Resolve CLI adapter
+  useEffect(() => {
+    if (step !== "resolving" || isResolvingRef.current) return;
+    isResolvingRef.current = true;
+
+    const resolve = async () => {
+      try {
+        const result = await resolveCLI({
+          cliFlag: cli,
+          command: "plan",
+          cwd: process.cwd(),
+        });
+
+        if ("resolved" in result) {
+          setResolvedAdapter(result.adapter);
+          setResolutionSource(result.source);
+          setStep("running");
+        } else if ("needsFirstRun" in result) {
+          setFirstRunAvailable(result.available);
+          setStep("first-run");
+        } else if ("needsFallback" in result) {
+          setFallbackMissing(result.configured);
+          setFallbackAvailable(result.available);
+          setStep("fallback");
+        } else {
+          setError("No supported CLI is installed. Install one of: claude, codex, gemini, opencode");
+          setStep("error");
+        }
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : String(err));
+        setStep("error");
+      }
+      isResolvingRef.current = false;
+    };
+    void resolve();
+  }, [step, cli]);
+
   // Resolve spec path when specName is set and we move to running
   useEffect(() => {
     if (step !== "running" || !specName || specPath) return;
@@ -95,7 +150,7 @@ export const PlanCommand = ({
 
   // Run iteration loop
   useEffect(() => {
-    if (step !== "running" || !specPath || isRunningRef.current) return;
+    if (step !== "running" || !specPath || !resolvedAdapter || isRunningRef.current) return;
     isRunningRef.current = true;
 
     const runLoop = async () => {
@@ -131,7 +186,7 @@ export const PlanCommand = ({
         const vars = buildTemplateVars(specName, i, "plan");
         const prompt = resolveTemplate(template, vars);
 
-        const runner = runClaude(prompt, {
+        const runner = resolvedAdapter.run(prompt, {
           onText: (text) => {
             setCurrentLines((prev) => [...prev, text]);
           },
@@ -156,7 +211,12 @@ export const PlanCommand = ({
           }
 
           if (result.exitCode !== 0) {
-            setError(`Claude exited with code ${result.exitCode}`);
+            const detail = result.stderr.trim();
+            setError(
+              detail
+                ? `CLI exited with code ${result.exitCode}:\n${detail}`
+                : `CLI exited with code ${result.exitCode} (no stderr output)`,
+            );
             setStep("error");
             isRunningRef.current = false;
             return;
@@ -179,7 +239,7 @@ export const PlanCommand = ({
       isRunningRef.current = false;
     };
     void runLoop();
-  }, [step, specPath, specName, iterations, currentIteration, promptFile, verbose]);
+  }, [step, specPath, specName, iterations, currentIteration, promptFile, verbose, resolvedAdapter]);
 
   // Exit on terminal states
   useEffect(() => {
@@ -196,7 +256,7 @@ export const PlanCommand = ({
     return () => clearInterval(id);
   }, [step]);
 
-  // Kill Claude on Ctrl+C and exit with code 130
+  // Kill subprocess on Ctrl+C and exit with code 130
   useEffect(() => {
     const handler = () => {
       runnerRef.current?.kill();
@@ -210,8 +270,23 @@ export const PlanCommand = ({
 
   const handleSpecSelect = (value: string) => {
     setSpecName(value);
+    setStep("resolving");
+  };
+
+  const handleFirstRunComplete = () => {
+    isResolvingRef.current = false;
+    setStep("resolving");
+  };
+
+  const handleFallbackSelect = (adapter: CLIAdapter) => {
+    setResolvedAdapter(adapter);
+    setResolutionSource("default");
     setStep("running");
   };
+
+  const cliIndicator = resolvedAdapter
+    ? `Using ${resolvedAdapter.id} for plan${resolutionSource === "flag" ? " (--cli override)" : ""}`
+    : null;
 
   return (
     <Box flexDirection="column">
@@ -229,8 +304,33 @@ export const PlanCommand = ({
         <Spinner label="Loading specs..." />
       )}
 
+      {step === "resolving" && (
+        <Spinner label="Resolving CLI..." />
+      )}
+
+      {step === "first-run" && (
+        <FirstRunPrompt
+          available={firstRunAvailable}
+          cwd={process.cwd()}
+          onComplete={handleFirstRunComplete}
+        />
+      )}
+
+      {step === "fallback" && (
+        <MissingBinaryFallback
+          missing={fallbackMissing}
+          available={fallbackAvailable}
+          onSelect={handleFallbackSelect}
+        />
+      )}
+
       {step === "running" && (
         <Box flexDirection="column">
+          {cliIndicator && (
+            <Box marginBottom={1}>
+              <Text dimColor>{cliIndicator}</Text>
+            </Box>
+          )}
           <Static items={pastLines}>
             {(line, i) => (
               <Text key={i} dimColor={line.startsWith("[tool]") || line.startsWith("──")}>

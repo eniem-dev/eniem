@@ -22,23 +22,32 @@ vi.mock("../../lib/template.js", () => ({
   buildTemplateVars: vi.fn(),
 }));
 
-vi.mock("../../lib/claude-runner.js", () => ({
-  runClaude: vi.fn(),
+const mockRun = vi.fn();
+
+vi.mock("../../lib/adapters/index.js", () => ({
+  getAdapter: vi.fn(() => ({ run: mockRun })),
   checkBinary: vi.fn(),
+}));
+
+vi.mock("../../lib/resolve-cli.js", () => ({
+  resolveCLI: vi.fn(),
 }));
 
 import { BuildCommand } from "../build.js";
 import { listSpecs, moveSpec } from "../../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../../lib/template.js";
-import { runClaude, checkBinary } from "../../lib/claude-runner.js";
+import { checkBinary } from "../../lib/adapters/index.js";
+import { resolveCLI } from "../../lib/resolve-cli.js";
 
 const mockListSpecs = vi.mocked(listSpecs);
 const mockMoveSpec = vi.mocked(moveSpec);
 const mockLoadTemplate = vi.mocked(loadTemplate);
 const mockResolveTemplate = vi.mocked(resolveTemplate);
 const mockBuildTemplateVars = vi.mocked(buildTemplateVars);
-const mockRunClaude = vi.mocked(runClaude);
 const mockCheckBinary = vi.mocked(checkBinary);
+const mockResolveCLI = vi.mocked(resolveCLI);
+
+const claudeAdapter = { name: "Claude Code", id: "claude" as const, binary: "claude", run: mockRun };
 
 const defaultProps = {
   iterations: 10,
@@ -51,6 +60,7 @@ describe("BuildCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCheckBinary.mockResolvedValue(true);
+    mockResolveCLI.mockResolvedValue({ resolved: true, adapter: claudeAdapter, source: "config" });
     mockMoveSpec.mockResolvedValue("/project/specs/archive/test.md");
     mockBuildTemplateVars.mockReturnValue({ SPEC_NAME: "test", ITERATION: "1" });
   });
@@ -90,7 +100,7 @@ describe("BuildCommand", () => {
       ]);
       mockLoadTemplate.mockResolvedValue("template {{SPEC_NAME}}");
       mockResolveTemplate.mockReturnValue("resolved prompt");
-      mockRunClaude.mockReturnValue({
+      mockRun.mockReturnValue({
         result: new Promise(() => {}), // Never resolves — stays in running state
         kill: vi.fn(),
       });
@@ -105,6 +115,108 @@ describe("BuildCommand", () => {
     });
   });
 
+  describe("CLI Resolution", () => {
+    it("renders FirstRunPrompt when no config exists", async () => {
+      const geminiAdapter = { name: "Gemini CLI", id: "gemini" as const, binary: "gemini", run: mockRun };
+      mockResolveCLI.mockResolvedValue({ needsFirstRun: true, available: [claudeAdapter, geminiAdapter] });
+
+      const { lastFrame } = render(
+        <BuildCommand {...defaultProps} spec="test" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(lastFrame()).toContain("CLI Configuration");
+    });
+
+    it("renders MissingBinaryFallback when binary not found", async () => {
+      mockResolveCLI.mockResolvedValue({ needsFallback: true, configured: "codex", available: [claudeAdapter] });
+
+      const { lastFrame } = render(
+        <BuildCommand {...defaultProps} spec="test" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(lastFrame()).toContain("codex binary not found");
+    });
+
+    it("shows error when no CLIs are available", async () => {
+      mockResolveCLI.mockResolvedValue({ noClisAvailable: true });
+
+      const { lastFrame } = render(
+        <BuildCommand {...defaultProps} spec="test" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(lastFrame()).toContain("No supported CLI is installed");
+    });
+
+    it("shows CLI indicator with adapter name", async () => {
+      mockListSpecs.mockResolvedValue([
+        { name: "my-feature", path: "/project/specs/planned/my-feature.md" },
+      ]);
+      mockLoadTemplate.mockResolvedValue("template");
+      mockResolveTemplate.mockReturnValue("prompt");
+      mockRun.mockReturnValue({
+        result: new Promise(() => {}),
+        kill: vi.fn(),
+      });
+
+      const { lastFrame } = render(
+        <BuildCommand {...defaultProps} spec="my-feature" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(lastFrame()).toContain("Using claude for build");
+    });
+
+    it("shows --cli override indicator when flag used", async () => {
+      mockResolveCLI.mockResolvedValue({ resolved: true, adapter: claudeAdapter, source: "flag" });
+      mockListSpecs.mockResolvedValue([
+        { name: "my-feature", path: "/project/specs/planned/my-feature.md" },
+      ]);
+      mockLoadTemplate.mockResolvedValue("template");
+      mockResolveTemplate.mockReturnValue("prompt");
+      mockRun.mockReturnValue({
+        result: new Promise(() => {}),
+        kill: vi.fn(),
+      });
+
+      const { lastFrame } = render(
+        <BuildCommand {...defaultProps} spec="my-feature" cli="claude" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(lastFrame()).toContain("Using claude for build (--cli override)");
+    });
+
+    it("error messages say CLI not Claude", async () => {
+      mockListSpecs.mockResolvedValue([
+        { name: "test", path: "/project/specs/planned/test.md" },
+      ]);
+      mockLoadTemplate.mockResolvedValue("template");
+      mockResolveTemplate.mockReturnValue("prompt");
+      mockRun.mockReturnValue({
+        result: Promise.resolve({ exitCode: 1, sentinelDetected: false, stderr: "something went wrong" }),
+        kill: vi.fn(),
+      });
+
+      const { lastFrame } = render(
+        <BuildCommand {...defaultProps} spec="test" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(lastFrame()).toContain("CLI exited with code 1");
+      expect(lastFrame()).toContain("something went wrong");
+      expect(lastFrame()).not.toContain("Claude exited");
+    });
+  });
+
   describe("Summary", () => {
     it("shows 'spec archived' when sentinel detected", async () => {
       mockListSpecs.mockResolvedValue([
@@ -112,8 +224,8 @@ describe("BuildCommand", () => {
       ]);
       mockLoadTemplate.mockResolvedValue("template");
       mockResolveTemplate.mockReturnValue("prompt");
-      mockRunClaude.mockReturnValue({
-        result: Promise.resolve({ exitCode: 0, sentinelDetected: true }),
+      mockRun.mockReturnValue({
+        result: Promise.resolve({ exitCode: 0, sentinelDetected: true, stderr: "" }),
         kill: vi.fn(),
       });
 
@@ -137,8 +249,8 @@ describe("BuildCommand", () => {
       ]);
       mockLoadTemplate.mockResolvedValue("template");
       mockResolveTemplate.mockReturnValue("prompt");
-      mockRunClaude.mockReturnValue({
-        result: Promise.resolve({ exitCode: 0, sentinelDetected: false }),
+      mockRun.mockReturnValue({
+        result: Promise.resolve({ exitCode: 0, sentinelDetected: false, stderr: "" }),
         kill: vi.fn(),
       });
 

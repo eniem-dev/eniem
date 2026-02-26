@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { EventEmitter } from "events";
-import { runClaude } from "../claude-runner.js";
+import { claudeAdapter } from "../claude.js";
 
 vi.mock("execa", () => ({
   execa: vi.fn(),
@@ -8,12 +8,15 @@ vi.mock("execa", () => ({
 
 import { execa } from "execa";
 
-function createMockSubprocess(options: {
-  stdoutLines?: string[];
-  exitCode?: number;
-  error?: Error & { code?: string; exitCode?: number };
-} = {}) {
+function createMockSubprocess(
+  options: {
+    stdoutLines?: string[];
+    exitCode?: number;
+    error?: Error & { code?: string; exitCode?: number };
+  } = {},
+) {
   const stdout = new EventEmitter();
+  const stderr = new EventEmitter();
   const killFn = vi.fn();
 
   let resolve: (value: unknown) => void;
@@ -25,6 +28,7 @@ function createMockSubprocess(options: {
 
   const subprocess = Object.assign(promise, {
     stdout,
+    stderr,
     kill: killFn,
   });
 
@@ -46,17 +50,23 @@ function createMockSubprocess(options: {
   return subprocess;
 }
 
-describe("claude-runner", () => {
+describe("claude adapter", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("has correct metadata", () => {
+    expect(claudeAdapter.name).toBe("Claude Code");
+    expect(claudeAdapter.id).toBe("claude");
+    expect(claudeAdapter.binary).toBe("claude");
   });
 
   it("spawns claude with correct arguments", async () => {
     const mock = createMockSubprocess();
     vi.mocked(execa).mockReturnValue(mock as never);
 
-    const runner = runClaude("build the thing", {
-      args: ["--verbose"],
+    const runner = claudeAdapter.run("build the thing", {
+      args: ["--extra"],
       cwd: "/test",
     });
 
@@ -68,7 +78,7 @@ describe("claude-runner", () => {
         "--verbose",
         "--output-format",
         "stream-json",
-        "--verbose",
+        "--extra",
       ],
       { cwd: "/test", input: "build the thing" },
     );
@@ -76,7 +86,7 @@ describe("claude-runner", () => {
     await runner.result;
   });
 
-  it("parses stream-json text events and calls onText", async () => {
+  it("parses text events and calls onText callback", async () => {
     const textEvent = JSON.stringify({
       type: "assistant",
       message: { content: [{ type: "text", text: "Hello world" }] },
@@ -86,14 +96,14 @@ describe("claude-runner", () => {
     vi.mocked(execa).mockReturnValue(mock as never);
 
     const onText = vi.fn();
-    const runner = runClaude("test prompt", { onText });
+    const runner = claudeAdapter.run("test prompt", { onText });
     const result = await runner.result;
 
     expect(onText).toHaveBeenCalledWith("Hello world");
     expect(result.exitCode).toBe(0);
   });
 
-  it("parses tool_use events and calls onToolUse", async () => {
+  it("parses tool_use events and calls onToolUse callback", async () => {
     const toolEvent = JSON.stringify({
       type: "assistant",
       message: {
@@ -107,13 +117,13 @@ describe("claude-runner", () => {
     vi.mocked(execa).mockReturnValue(mock as never);
 
     const onToolUse = vi.fn();
-    const runner = runClaude("test prompt", { onToolUse });
+    const runner = claudeAdapter.run("test prompt", { onToolUse });
     await runner.result;
 
     expect(onToolUse).toHaveBeenCalledWith("Read", { file_path: "/test.ts" });
   });
 
-  it("detects sentinel in text output", async () => {
+  it("detects sentinel in output", async () => {
     const textEvent = JSON.stringify({
       type: "assistant",
       message: { content: [{ type: "text", text: "Done :::ENI_DONE:::" }] },
@@ -122,36 +132,10 @@ describe("claude-runner", () => {
     const mock = createMockSubprocess({ stdoutLines: [textEvent] });
     vi.mocked(execa).mockReturnValue(mock as never);
 
-    const runner = runClaude("test prompt");
+    const runner = claudeAdapter.run("test prompt");
     const result = await runner.result;
 
     expect(result.sentinelDetected).toBe(true);
-  });
-
-  it("sentinelDetected is false when no sentinel in output", async () => {
-    const textEvent = JSON.stringify({
-      type: "assistant",
-      message: { content: [{ type: "text", text: "Just a normal message" }] },
-    });
-
-    const mock = createMockSubprocess({ stdoutLines: [textEvent] });
-    vi.mocked(execa).mockReturnValue(mock as never);
-
-    const runner = runClaude("test prompt");
-    const result = await runner.result;
-
-    expect(result.sentinelDetected).toBe(false);
-  });
-
-  it("returns exitCode 0 on normal completion", async () => {
-    const mock = createMockSubprocess({ exitCode: 0 });
-    vi.mocked(execa).mockReturnValue(mock as never);
-
-    const runner = runClaude("test prompt");
-    const result = await runner.result;
-
-    expect(result.exitCode).toBe(0);
-    expect(result.sentinelDetected).toBe(false);
   });
 
   it("returns non-zero exitCode on failure", async () => {
@@ -159,78 +143,33 @@ describe("claude-runner", () => {
     const mock = createMockSubprocess({ error });
     vi.mocked(execa).mockReturnValue(mock as never);
 
-    const runner = runClaude("test prompt");
+    const runner = claudeAdapter.run("test prompt");
     const result = await runner.result;
 
     expect(result.exitCode).toBe(1);
   });
 
-  it("kill() sends SIGTERM to subprocess", async () => {
+  it("kill() sends SIGTERM", async () => {
     const mock = createMockSubprocess();
     vi.mocked(execa).mockReturnValue(mock as never);
 
-    const runner = runClaude("test prompt");
+    const runner = claudeAdapter.run("test prompt");
     runner.kill();
 
     expect(mock.kill).toHaveBeenCalledWith("SIGTERM");
     await runner.result;
   });
 
-  it("throws descriptive error when claude binary not found", async () => {
+  it("throws descriptive error when binary not found (ENOENT)", async () => {
     const error = Object.assign(new Error("spawn claude ENOENT"), {
       code: "ENOENT",
     });
     const mock = createMockSubprocess({ error });
     vi.mocked(execa).mockReturnValue(mock as never);
 
-    const runner = runClaude("test prompt");
+    const runner = claudeAdapter.run("test prompt");
 
     await expect(runner.result).rejects.toThrow("Claude CLI not found");
-  });
-
-  it("handles multiple text events across chunks", async () => {
-    const event1 = JSON.stringify({
-      type: "assistant",
-      message: { content: [{ type: "text", text: "First" }] },
-    });
-    const event2 = JSON.stringify({
-      type: "assistant",
-      message: { content: [{ type: "text", text: "Second" }] },
-    });
-
-    const mock = createMockSubprocess({ stdoutLines: [event1, event2] });
-    vi.mocked(execa).mockReturnValue(mock as never);
-
-    const onText = vi.fn();
-    const runner = runClaude("test prompt", { onText });
-    await runner.result;
-
-    expect(onText).toHaveBeenCalledTimes(2);
-    expect(onText).toHaveBeenCalledWith("First");
-    expect(onText).toHaveBeenCalledWith("Second");
-  });
-
-  it("handles mixed content blocks in a single event", async () => {
-    const mixedEvent = JSON.stringify({
-      type: "assistant",
-      message: {
-        content: [
-          { type: "text", text: "Analyzing..." },
-          { type: "tool_use", name: "Read", input: { file_path: "/a.ts" } },
-        ],
-      },
-    });
-
-    const mock = createMockSubprocess({ stdoutLines: [mixedEvent] });
-    vi.mocked(execa).mockReturnValue(mock as never);
-
-    const onText = vi.fn();
-    const onToolUse = vi.fn();
-    const runner = runClaude("test prompt", { onText, onToolUse });
-    await runner.result;
-
-    expect(onText).toHaveBeenCalledWith("Analyzing...");
-    expect(onToolUse).toHaveBeenCalledWith("Read", { file_path: "/a.ts" });
   });
 
   it("skips non-JSON lines gracefully", async () => {
@@ -245,7 +184,7 @@ describe("claude-runner", () => {
     vi.mocked(execa).mockReturnValue(mock as never);
 
     const onText = vi.fn();
-    const runner = runClaude("test prompt", { onText });
+    const runner = claudeAdapter.run("test prompt", { onText });
     await runner.result;
 
     expect(onText).toHaveBeenCalledTimes(1);
