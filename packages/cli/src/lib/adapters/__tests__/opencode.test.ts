@@ -16,6 +16,7 @@ function createMockSubprocess(
   } = {},
 ) {
   const stdout = new EventEmitter();
+  const stderr = new EventEmitter();
   const killFn = vi.fn();
 
   let resolve: (value: unknown) => void;
@@ -27,6 +28,7 @@ function createMockSubprocess(
 
   const subprocess = Object.assign(promise, {
     stdout,
+    stderr,
     kill: killFn,
   });
 
@@ -70,7 +72,7 @@ describe("opencode adapter", () => {
 
     expect(execa).toHaveBeenCalledWith(
       "opencode",
-      ["run", "build the thing", "--format", "json", "-q", "--extra"],
+      ["run", "build the thing", "--format", "json", "--extra"],
       { cwd: "/test" },
     );
 

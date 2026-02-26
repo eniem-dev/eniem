@@ -17,7 +17,7 @@ export const opencodeAdapter: CLIAdapter = {
 
     const subprocess = execa(
       "opencode",
-      ["run", prompt, "--format", "json", "-q", ...args],
+      ["run", prompt, "--format", "json", ...args],
       { cwd },
     );
 
