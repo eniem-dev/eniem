@@ -3,6 +3,7 @@ export { SUPPORTED_CLIS } from "./types.js";
 export { claudeAdapter } from "./claude.js";
 export { codexAdapter } from "./codex.js";
 export { geminiAdapter } from "./gemini.js";
+export { opencodeAdapter } from "./opencode.js";
 export {
   checkBinary,
   getAdapter,

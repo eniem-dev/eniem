@@ -4,11 +4,13 @@ import { SUPPORTED_CLIS } from "./types.js";
 import { claudeAdapter } from "./claude.js";
 import { codexAdapter } from "./codex.js";
 import { geminiAdapter } from "./gemini.js";
+import { opencodeAdapter } from "./opencode.js";
 
 const ADAPTERS: Record<string, CLIAdapter> = {
   claude: claudeAdapter,
   codex: codexAdapter,
   gemini: geminiAdapter,
+  opencode: opencodeAdapter,
 };
 
 export async function checkBinary(name: string): Promise<boolean> {
