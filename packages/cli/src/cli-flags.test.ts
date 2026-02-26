@@ -18,6 +18,29 @@ describe("CLI --app-name flag", () => {
   }, 15_000);
 });
 
+describe("CLI --cli flag", () => {
+  it("exits with error when --cli is an invalid name", async () => {
+    const result = await execaNode(CLI_PATH, ["plan", "--cli=invalid"], {
+      reject: false,
+      timeout: 10_000,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Unknown CLI: invalid");
+    expect(result.stderr).toContain("claude, codex, gemini, opencode");
+  }, 15_000);
+
+  it("help text includes --cli option", async () => {
+    const result = await execaNode(CLI_PATH, ["--help"], {
+      reject: false,
+      timeout: 10_000,
+    });
+
+    expect(result.stdout).toContain("--cli");
+    expect(result.stdout).toContain("AI CLI backend");
+  }, 15_000);
+});
+
 describe("CLI plan command flags", () => {
   it("exits with error when --iterations is 0", async () => {
     const result = await execaNode(CLI_PATH, ["plan", "--iterations=0"], {
