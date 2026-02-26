@@ -79,10 +79,12 @@ describe("gemini adapter", () => {
     await runner.result;
   });
 
-  it("parses message events and calls onText callback", async () => {
+  it("parses assistant message events and calls onText callback", async () => {
     const textEvent = JSON.stringify({
       type: "message",
-      text: "Hello world",
+      role: "assistant",
+      content: "Hello world",
+      delta: true,
     });
 
     const mock = createMockSubprocess({ stdoutLines: [textEvent] });
@@ -96,11 +98,29 @@ describe("gemini adapter", () => {
     expect(result.exitCode).toBe(0);
   });
 
+  it("ignores user message events", async () => {
+    const userEvent = JSON.stringify({
+      type: "message",
+      role: "user",
+      content: "test prompt",
+    });
+
+    const mock = createMockSubprocess({ stdoutLines: [userEvent] });
+    vi.mocked(execa).mockReturnValue(mock as never);
+
+    const onText = vi.fn();
+    const runner = geminiAdapter.run("test prompt", { onText });
+    await runner.result;
+
+    expect(onText).not.toHaveBeenCalled();
+  });
+
   it("parses tool_use events and calls onToolUse callback", async () => {
     const toolEvent = JSON.stringify({
       type: "tool_use",
-      name: "read_file",
-      input: { path: "/src/index.ts" },
+      tool_name: "list_directory",
+      tool_id: "list_directory_123_0",
+      parameters: { dir_path: "/src" },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [toolEvent] });
@@ -110,15 +130,17 @@ describe("gemini adapter", () => {
     const runner = geminiAdapter.run("test prompt", { onToolUse });
     await runner.result;
 
-    expect(onToolUse).toHaveBeenCalledWith("read_file", {
-      path: "/src/index.ts",
+    expect(onToolUse).toHaveBeenCalledWith("list_directory", {
+      dir_path: "/src",
     });
   });
 
   it("detects sentinel in output", async () => {
     const textEvent = JSON.stringify({
       type: "message",
-      text: "Done :::ENI_DONE:::",
+      role: "assistant",
+      content: "Done :::ENI_DONE:::",
+      delta: true,
     });
 
     const mock = createMockSubprocess({ stdoutLines: [textEvent] });
@@ -164,14 +186,21 @@ describe("gemini adapter", () => {
     await expect(runner.result).rejects.toThrow("Gemini CLI not found");
   });
 
-  it("skips non-JSON lines gracefully", async () => {
+  it("skips non-JSON lines gracefully (gemini prints log preamble)", async () => {
     const validEvent = JSON.stringify({
       type: "message",
-      text: "Valid",
+      role: "assistant",
+      content: "Valid",
+      delta: true,
     });
 
     const mock = createMockSubprocess({
-      stdoutLines: ["not-json", validEvent, "also-not-json"],
+      stdoutLines: [
+        "Loaded cached credentials.",
+        'Skill "skill-creator" overriding built-in',
+        validEvent,
+        "also-not-json",
+      ],
     });
     vi.mocked(execa).mockReturnValue(mock as never);
 

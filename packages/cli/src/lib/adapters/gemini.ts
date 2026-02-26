@@ -38,19 +38,21 @@ export const geminiAdapter: CLIAdapter = {
       try {
         const event = JSON.parse(line) as {
           type?: string;
-          text?: string;
-          name?: string;
-          input?: Record<string, unknown>;
+          role?: string;
+          content?: string;
+          delta?: boolean;
+          tool_name?: string;
+          parameters?: Record<string, unknown>;
         };
 
-        if (event.type === "message") {
-          lastText = event.text ?? "";
+        if (event.type === "message" && event.role === "assistant") {
+          lastText = event.content ?? "";
           onText?.(lastText);
         } else if (event.type === "tool_use") {
-          onToolUse?.(event.name ?? "", event.input ?? {});
+          onToolUse?.(event.tool_name ?? "", event.parameters ?? {});
         }
       } catch {
-        // Skip non-JSON lines
+        // Skip non-JSON lines (gemini prints log lines before JSON)
       }
     }
 
