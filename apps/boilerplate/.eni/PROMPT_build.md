@@ -44,21 +44,20 @@ fi
 
 **IMPORTANT:** All work happens inside the worktree directory. Stay in `$WORKTREE` for the entire build session.
 
-## Phase 0.5: Blocked Task Pre-Check
+## Phase 0.5: Ready Task Pre-Check
 
-Before claiming any work, check for blockers:
+Before claiming any work, verify there are tasks ready to work on:
 
 ```bash
-blocked=$(bd blocked 2>/dev/null)
-if [ -n "$blocked" ]; then
-  echo "BLOCKED TASKS EXIST:"
-  echo "$blocked"
-  echo "Resolve blockers before continuing."
+ready=$(bd ready 2>/dev/null)
+if [ -z "$ready" ]; then
+  echo "NO READY TASKS."
+  bd blocked 2>/dev/null  # Show blockers for context
   exit 1
 fi
 ```
 
-If blocked tasks exist, **STOP** and report. Do not waste cycles on dependent work.
+If no ready tasks exist, **STOP** and report. Blocked tasks may exist alongside ready tasks — that's normal. Only stop when nothing is actionable.
 
 ## Phase 1: Check Ready Tasks
 
