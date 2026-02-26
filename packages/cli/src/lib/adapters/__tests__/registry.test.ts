@@ -12,6 +12,7 @@ import {
   checkBinary,
 } from "../registry.js";
 import { claudeAdapter } from "../claude.js";
+import { codexAdapter } from "../codex.js";
 
 describe("registry", () => {
   beforeEach(() => {
@@ -23,9 +24,13 @@ describe("registry", () => {
       expect(getAdapter("claude")).toBe(claudeAdapter);
     });
 
+    it("returns the Codex adapter for 'codex'", () => {
+      expect(getAdapter("codex")).toBe(codexAdapter);
+    });
+
     it("throws for unknown CLI id listing valid options", () => {
       expect(() => getAdapter("invalid")).toThrow(
-        'Unknown CLI adapter "invalid". Available: claude',
+        'Unknown CLI adapter "invalid". Available:',
       );
     });
   });
@@ -70,7 +75,7 @@ describe("registry", () => {
     it("returns adapters whose binary is on PATH", async () => {
       vi.mocked(execa).mockResolvedValue(undefined as never);
       const available = await listAvailable();
-      expect(available).toEqual([claudeAdapter]);
+      expect(available).toEqual([claudeAdapter, codexAdapter]);
     });
 
     it("returns empty array when no binaries found", async () => {
