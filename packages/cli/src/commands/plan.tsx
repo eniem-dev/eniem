@@ -9,8 +9,8 @@ import {
 } from "../components/index.js";
 import { listSpecs, moveSpec } from "../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../lib/template.js";
-import { runClaude, checkBinary } from "../lib/claude-runner.js";
-import type { ClaudeRunner } from "../lib/claude-runner.js";
+import { getAdapter, checkBinary } from "../lib/adapters/index.js";
+import type { CLIRunner } from "../lib/adapters/index.js";
 
 function toolInputSummary(name: string, input: Record<string, unknown>): string {
   const s = (k: string) => (typeof input[k] === "string" ? (input[k] as string) : "");
@@ -55,7 +55,7 @@ export const PlanCommand = ({
 
   const isLoadingSpecsRef = useRef(false);
   const isRunningRef = useRef(false);
-  const runnerRef = useRef<ClaudeRunner | null>(null);
+  const runnerRef = useRef<CLIRunner | null>(null);
 
   // Load specs for selection
   useEffect(() => {
@@ -118,6 +118,7 @@ export const PlanCommand = ({
       }
 
       let detectedSentinel = false;
+      const adapter = getAdapter("claude");
 
       for (let i = currentIteration; i <= iterations; i++) {
         setCurrentIteration(i);
@@ -131,7 +132,7 @@ export const PlanCommand = ({
         const vars = buildTemplateVars(specName, i, "plan");
         const prompt = resolveTemplate(template, vars);
 
-        const runner = runClaude(prompt, {
+        const runner = adapter.run(prompt, {
           onText: (text) => {
             setCurrentLines((prev) => [...prev, text]);
           },
