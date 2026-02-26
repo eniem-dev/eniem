@@ -12,6 +12,7 @@ import { PlanCommand } from "./commands/plan.js";
 import { BuildCommand } from "./commands/build.js";
 import { Header } from "./components/Header.js";
 import type { PolarEnvironment } from "./lib/polar.js";
+import { isValidCLI, SUPPORTED_CLIS } from "./lib/adapters/index.js";
 
 // Handle unhandled promise rejections globally
 process.on("unhandledRejection", (reason) => {
@@ -33,8 +34,8 @@ const cli = meow(
     $ eni [project-name]
     $ eni ready
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
-    $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose]
-    $ eni build [--spec=<name>] [--iterations=<n>] [--verbose]
+    $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
+    $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
     $ eni ai init [--force]
 
   Commands
@@ -53,6 +54,7 @@ const cli = meow(
     --spec         Spec name for plan/build command (interactive if omitted)
     --iterations   Number of iterations (default: 3 for plan, 10 for build)
     --verbose      Show tool usage during plan/build execution
+    --cli          AI CLI backend for plan/build (claude, codex, gemini, opencode)
     --force        Skip confirmation when updating existing AI workflow
     --help, -h     Show this help message
     --version, -v  Show version number
@@ -67,8 +69,10 @@ const cli = meow(
     $ eni products --prod --token=polar_xxx
     $ eni plan
     $ eni plan --spec=my-feature --iterations=5 --verbose
+    $ eni plan --cli codex
     $ eni build
     $ eni build --spec=my-feature --iterations=20 --verbose
+    $ eni build --cli gemini
     $ eni ai init
     $ eni ai init --force
 `,
@@ -85,6 +89,7 @@ const cli = meow(
       spec: { type: "string" },
       iterations: { type: "number" },
       verbose: { type: "boolean", default: false },
+      cli: { type: "string" },
       force: { type: "boolean", default: false },
       help: { type: "boolean", shortFlag: "h" },
       version: { type: "boolean", shortFlag: "v" },
@@ -103,6 +108,7 @@ const forceFlag = cli.flags.force;
 const specFlag = cli.flags.spec;
 const iterationsFlag = cli.flags.iterations;
 const verboseFlag = cli.flags.verbose;
+const cliFlag = cli.flags.cli;
 
 // Validate --iterations flag (must be >= 1)
 if (iterationsFlag !== undefined && iterationsFlag < 1) {
@@ -113,6 +119,13 @@ if (iterationsFlag !== undefined && iterationsFlag < 1) {
 // Validate --app-name flag (must be non-empty if provided)
 if (appNameFlag !== undefined && appNameFlag.trim() === "") {
   console.error(`\x1b[31m✗ --app-name cannot be empty\x1b[0m`);
+  process.exit(1);
+}
+
+// Validate --cli flag (must be a supported CLI)
+if (cliFlag !== undefined && !isValidCLI(cliFlag)) {
+  console.error(`\x1b[31m✗ Unknown CLI: ${cliFlag}\x1b[0m`);
+  console.error(`  Available: ${SUPPORTED_CLIS.join(", ")}`);
   process.exit(1);
 }
 
@@ -156,6 +169,7 @@ if (command === "ready") {
         verbose={verboseFlag}
         specsDir={join(projectDir, "specs")}
         promptFile={join(projectDir, ".eni", "PROMPT_plan.md")}
+        cli={cliFlag}
       />
     </Box>
   );
@@ -170,6 +184,7 @@ if (command === "ready") {
         verbose={verboseFlag}
         specsDir={join(projectDir, "specs", "planned")}
         promptFile={join(projectDir, ".eni", "PROMPT_build.md")}
+        cli={cliFlag}
       />
     </Box>
   );

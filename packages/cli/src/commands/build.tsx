@@ -31,6 +31,7 @@ export interface BuildCommandProps {
   verbose: boolean;
   specsDir: string;
   promptFile: string;
+  cli?: string;
 }
 
 export const BuildCommand = ({
@@ -39,6 +40,7 @@ export const BuildCommand = ({
   verbose,
   specsDir,
   promptFile,
+  cli,
 }: BuildCommandProps) => {
   const { exit } = useApp();
   const [step, setStep] = useState<BuildStep>(spec ? "running" : "selecting");
@@ -119,7 +121,7 @@ export const BuildCommand = ({
       }
 
       let detectedSentinel = false;
-      const adapter = getAdapter("claude");
+      const adapter = getAdapter(cli ?? "claude");
 
       for (let i = currentIteration; i <= iterations; i++) {
         setCurrentIteration(i);

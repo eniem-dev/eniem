@@ -32,6 +32,7 @@ export interface PlanCommandProps {
   verbose: boolean;
   specsDir: string;
   promptFile: string;
+  cli?: string;
 }
 
 export const PlanCommand = ({
@@ -40,6 +41,7 @@ export const PlanCommand = ({
   verbose,
   specsDir,
   promptFile,
+  cli,
 }: PlanCommandProps) => {
   const { exit } = useApp();
   const [step, setStep] = useState<PlanStep>(spec ? "running" : "selecting");
@@ -118,7 +120,7 @@ export const PlanCommand = ({
       }
 
       let detectedSentinel = false;
-      const adapter = getAdapter("claude");
+      const adapter = getAdapter(cli ?? "claude");
 
       for (let i = currentIteration; i <= iterations; i++) {
         setCurrentIteration(i);
