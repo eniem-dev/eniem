@@ -48,12 +48,17 @@ export const codexAdapter: CLIAdapter = {
         if (itemType === "agent_message") {
           lastText = event.item.text ?? "";
           onText?.(lastText);
+        } else if (itemType === "command_execution") {
+          const raw = event.item.command ?? "";
+          // Strip shell wrapper (e.g. "/bin/zsh -lc 'actual command'")
+          const match = raw.match(/-lc\s+'(.+)'$/);
+          const command = match ? match[1] : raw;
+          onToolUse?.("bash", { command });
         } else if (
-          itemType === "command" ||
           itemType === "file_change" ||
           itemType === "mcp_tool_call"
         ) {
-          const name = event.item.tool_name ?? event.item.command ?? itemType;
+          const name = event.item.tool_name ?? itemType;
           const input = Object.fromEntries(
             Object.entries(event.item).filter(([k]) => k !== "type"),
           );

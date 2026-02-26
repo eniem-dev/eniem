@@ -81,8 +81,8 @@ describe("codex adapter", () => {
 
   it("parses agent_message events and calls onText callback", async () => {
     const textEvent = JSON.stringify({
-      type: "event",
-      item: { type: "agent_message", text: "Hello world" },
+      type: "item.completed",
+      item: { id: "item_1", type: "agent_message", text: "Hello world" },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [textEvent] });
@@ -96,10 +96,17 @@ describe("codex adapter", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  it("parses command events and calls onToolUse callback", async () => {
+  it("parses command_execution events and calls onToolUse as bash", async () => {
     const toolEvent = JSON.stringify({
-      type: "event",
-      item: { type: "command", command: "ls -la", tool_name: "shell" },
+      type: "item.completed",
+      item: {
+        id: "item_2",
+        type: "command_execution",
+        command: "/bin/zsh -lc 'ls -la'",
+        aggregated_output: "file1\nfile2\n",
+        exit_code: 0,
+        status: "completed",
+      },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [toolEvent] });
@@ -109,16 +116,57 @@ describe("codex adapter", () => {
     const runner = codexAdapter.run("test prompt", { onToolUse });
     await runner.result;
 
-    expect(onToolUse).toHaveBeenCalledWith("shell", {
-      command: "ls -la",
-      tool_name: "shell",
+    expect(onToolUse).toHaveBeenCalledWith("bash", { command: "ls -la" });
+  });
+
+  it("strips shell wrapper from command_execution", async () => {
+    const toolEvent = JSON.stringify({
+      type: "item.completed",
+      item: {
+        id: "item_3",
+        type: "command_execution",
+        command: "/bin/zsh -lc 'cat package.json'",
+        exit_code: 0,
+        status: "completed",
+      },
     });
+
+    const mock = createMockSubprocess({ stdoutLines: [toolEvent] });
+    vi.mocked(execa).mockReturnValue(mock as never);
+
+    const onToolUse = vi.fn();
+    const runner = codexAdapter.run("test prompt", { onToolUse });
+    await runner.result;
+
+    expect(onToolUse).toHaveBeenCalledWith("bash", { command: "cat package.json" });
+  });
+
+  it("passes raw command when no shell wrapper detected", async () => {
+    const toolEvent = JSON.stringify({
+      type: "item.completed",
+      item: {
+        id: "item_4",
+        type: "command_execution",
+        command: "python script.py",
+        exit_code: 0,
+        status: "completed",
+      },
+    });
+
+    const mock = createMockSubprocess({ stdoutLines: [toolEvent] });
+    vi.mocked(execa).mockReturnValue(mock as never);
+
+    const onToolUse = vi.fn();
+    const runner = codexAdapter.run("test prompt", { onToolUse });
+    await runner.result;
+
+    expect(onToolUse).toHaveBeenCalledWith("bash", { command: "python script.py" });
   });
 
   it("parses file_change events and calls onToolUse callback", async () => {
     const toolEvent = JSON.stringify({
-      type: "event",
-      item: { type: "file_change", file_path: "/src/index.ts" },
+      type: "item.completed",
+      item: { id: "item_5", type: "file_change", file_path: "/src/index.ts" },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [toolEvent] });
@@ -129,14 +177,15 @@ describe("codex adapter", () => {
     await runner.result;
 
     expect(onToolUse).toHaveBeenCalledWith("file_change", {
+      id: "item_5",
       file_path: "/src/index.ts",
     });
   });
 
   it("parses mcp_tool_call events and calls onToolUse callback", async () => {
     const toolEvent = JSON.stringify({
-      type: "event",
-      item: { type: "mcp_tool_call", tool_name: "read_file", args: {} },
+      type: "item.completed",
+      item: { id: "item_6", type: "mcp_tool_call", tool_name: "read_file", args: {} },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [toolEvent] });
@@ -147,6 +196,7 @@ describe("codex adapter", () => {
     await runner.result;
 
     expect(onToolUse).toHaveBeenCalledWith("read_file", {
+      id: "item_6",
       tool_name: "read_file",
       args: {},
     });
@@ -154,8 +204,8 @@ describe("codex adapter", () => {
 
   it("detects sentinel in output", async () => {
     const textEvent = JSON.stringify({
-      type: "event",
-      item: { type: "agent_message", text: "Done :::ENI_DONE:::" },
+      type: "item.completed",
+      item: { id: "item_7", type: "agent_message", text: "Done :::ENI_DONE:::" },
     });
 
     const mock = createMockSubprocess({ stdoutLines: [textEvent] });
@@ -203,8 +253,8 @@ describe("codex adapter", () => {
 
   it("skips non-JSON lines gracefully", async () => {
     const validEvent = JSON.stringify({
-      type: "event",
-      item: { type: "agent_message", text: "Valid" },
+      type: "item.completed",
+      item: { id: "item_8", type: "agent_message", text: "Valid" },
     });
 
     const mock = createMockSubprocess({
