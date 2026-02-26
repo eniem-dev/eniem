@@ -16,14 +16,20 @@ import { resolveCLI } from "../lib/resolve-cli.js";
 import type { ResolutionSource } from "../lib/resolve-cli.js";
 
 function toolInputSummary(name: string, input: Record<string, unknown>): string {
-  const s = (k: string) => (typeof input[k] === "string" ? (input[k] as string) : "");
-  if (name === "Read" || name === "Edit" || name === "Write") return s("file_path");
-  if (name === "Bash") return s("command").slice(0, 80);
-  if (name === "Glob") return s("pattern");
-  if (name === "Grep") return s("pattern");
-  if (name === "Task") return s("description");
-  if (name === "WebFetch") return s("url");
-  if (name === "WebSearch") return s("query");
+  const s = (...keys: string[]) => {
+    for (const k of keys) {
+      if (typeof input[k] === "string") return input[k] as string;
+    }
+    return "";
+  };
+  const n = name.toLowerCase().replace(/_/g, "");
+  if (n === "read" || n === "readfile" || n === "edit" || n === "write") return s("file_path", "path");
+  if (n === "bash" || n === "shell") return s("command").slice(0, 80);
+  if (n === "glob" || n === "listdirectory") return s("pattern", "dir_path", "path");
+  if (n === "grep" || n === "search") return s("pattern", "query");
+  if (n === "task") return s("description");
+  if (n === "webfetch") return s("url");
+  if (n === "websearch") return s("query");
   return "";
 }
 
