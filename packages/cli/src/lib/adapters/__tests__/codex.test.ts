@@ -73,7 +73,7 @@ describe("codex adapter", () => {
     expect(execa).toHaveBeenCalledWith(
       "codex",
       ["exec", "build the thing", "--json", "--yolo", "--extra"],
-      { cwd: "/test" },
+      { cwd: "/test", stdin: "ignore" },
     );
 
     await runner.result;

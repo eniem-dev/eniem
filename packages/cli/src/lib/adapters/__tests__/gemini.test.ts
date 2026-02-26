@@ -73,7 +73,7 @@ describe("gemini adapter", () => {
     expect(execa).toHaveBeenCalledWith(
       "gemini",
       ["-p", "build the thing", "--output-format", "stream-json", "--yolo", "--extra"],
-      { cwd: "/test" },
+      { cwd: "/test", stdin: "ignore" },
     );
 
     await runner.result;

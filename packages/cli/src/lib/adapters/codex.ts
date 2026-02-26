@@ -18,7 +18,7 @@ export const codexAdapter: CLIAdapter = {
     const subprocess = execa(
       "codex",
       ["exec", prompt, "--json", "--yolo", ...args],
-      { cwd },
+      { cwd, stdin: "ignore" },
     );
 
     subprocess.stderr?.on("data", (chunk: Buffer) => {

@@ -185,13 +185,15 @@ export const BuildCommand = ({
           onText: (text) => {
             setCurrentLines((prev) => [...prev, text]);
           },
-          onToolUse: (toolName, toolInput) => {
-            const detail = verbose ? toolInputSummary(toolName, toolInput) : "";
-            setCurrentLines((prev) => [
-              ...prev,
-              detail ? `[tool] ${toolName}: ${detail}` : `[tool] ${toolName}`,
-            ]);
-          },
+          onToolUse: verbose
+            ? (toolName, toolInput) => {
+                const detail = toolInputSummary(toolName, toolInput);
+                setCurrentLines((prev) => [
+                  ...prev,
+                  detail ? `[tool] ${toolName}: ${detail}` : `[tool] ${toolName}`,
+                ]);
+              }
+            : undefined,
         });
         runnerRef.current = runner;
 

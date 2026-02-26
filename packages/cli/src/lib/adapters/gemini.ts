@@ -25,7 +25,7 @@ export const geminiAdapter: CLIAdapter = {
         "--yolo",
         ...args,
       ],
-      { cwd },
+      { cwd, stdin: "ignore" },
     );
 
     subprocess.stderr?.on("data", (chunk: Buffer) => {
