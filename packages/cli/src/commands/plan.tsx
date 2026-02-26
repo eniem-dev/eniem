@@ -184,15 +184,13 @@ export const PlanCommand = ({
           onText: (text) => {
             setCurrentLines((prev) => [...prev, text]);
           },
-          onToolUse: verbose
-            ? (toolName, toolInput) => {
-                const detail = toolInputSummary(toolName, toolInput);
-                setCurrentLines((prev) => [
-                  ...prev,
-                  detail ? `[tool] ${toolName}: ${detail}` : `[tool] ${toolName}`,
-                ]);
-              }
-            : undefined,
+          onToolUse: (toolName, toolInput) => {
+            const detail = verbose ? toolInputSummary(toolName, toolInput) : "";
+            setCurrentLines((prev) => [
+              ...prev,
+              detail ? `[tool] ${toolName}: ${detail}` : `[tool] ${toolName}`,
+            ]);
+          },
         });
         runnerRef.current = runner;
 
