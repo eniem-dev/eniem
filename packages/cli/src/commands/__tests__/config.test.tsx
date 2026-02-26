@@ -27,9 +27,12 @@ vi.mock("../../lib/adapters/index.js", () => ({
     }),
   })),
   checkBinary: vi.fn(() => Promise.resolve(true)),
+  isValidCLI: vi.fn((name: string) =>
+    ["claude", "codex", "gemini", "opencode"].includes(name),
+  ),
 }));
 
-import { ConfigCommand } from "../config.js";
+import { ConfigCommand, ConfigShowCommand, ConfigSetCommand } from "../config.js";
 import { readConfig, writeConfig } from "../../lib/eni-config.js";
 import { checkBinary } from "../../lib/adapters/index.js";
 
@@ -147,6 +150,125 @@ describe("ConfigCommand", () => {
         plan: "claude",
         build: "claude",
       });
+    });
+  });
+});
+
+describe("ConfigShowCommand", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("displays formatted config when file exists", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "codex" });
+
+    const { lastFrame } = render(<ConfigShowCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("CLI Configuration (.eni/config.json):");
+      expect(lastFrame()).toContain("plan:  claude");
+      expect(lastFrame()).toContain("build: codex");
+    });
+  });
+
+  it("shows 'No configuration found' when no config file", async () => {
+    mockReadConfig.mockResolvedValue(null);
+
+    const { lastFrame } = render(<ConfigShowCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("No configuration found. Run eni config to set up.");
+    });
+  });
+
+  it("shows error when config read fails", async () => {
+    mockReadConfig.mockRejectedValue(new Error("Invalid JSON"));
+
+    const { lastFrame } = render(<ConfigShowCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Invalid JSON");
+    });
+  });
+});
+
+describe("ConfigSetCommand", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockReadConfig.mockResolvedValue(null);
+    mockWriteConfig.mockResolvedValue();
+  });
+
+  it("updates the correct key in config", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "claude" });
+
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="plan" cliName="gemini" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Set plan CLI to gemini");
+    });
+    expect(mockWriteConfig).toHaveBeenCalledWith("/tmp", {
+      plan: "gemini",
+      build: "claude",
+    });
+  });
+
+  it("creates config when no file exists", async () => {
+    mockReadConfig.mockResolvedValue(null);
+
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="build" cliName="opencode" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Set build CLI to opencode");
+    });
+    expect(mockWriteConfig).toHaveBeenCalledWith("/tmp", {
+      build: "opencode",
+    });
+  });
+
+  it("shows usage error when command is missing", async () => {
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command={undefined} cliName="claude" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Usage: eni config set <plan|build>");
+    });
+  });
+
+  it("shows usage error when cli name is missing", async () => {
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="plan" cliName={undefined} />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Usage: eni config set <plan|build>");
+    });
+  });
+
+  it("rejects invalid command name", async () => {
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="deploy" cliName="claude" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Invalid command: "deploy"');
+      expect(lastFrame()).toContain("plan, build");
+    });
+  });
+
+  it("rejects invalid CLI name", async () => {
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="plan" cliName="invalid" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain('Invalid CLI: "invalid"');
+      expect(lastFrame()).toContain("claude, codex, gemini, opencode");
     });
   });
 });

@@ -8,7 +8,7 @@ import { Wizard } from "./Wizard.js";
 import { ProductsCommand } from "./commands/products.js";
 import { AiCommand } from "./commands/ai.js";
 import { ReadyCommand } from "./commands/ready.js";
-import { ConfigCommand } from "./commands/config.js";
+import { ConfigCommand, ConfigShowCommand, ConfigSetCommand } from "./commands/config.js";
 import { PlanCommand } from "./commands/plan.js";
 import { BuildCommand } from "./commands/build.js";
 import { Header } from "./components/Header.js";
@@ -35,6 +35,8 @@ const cli = meow(
     $ eni [project-name]
     $ eni ready
     $ eni config
+    $ eni config show
+    $ eni config set <plan|build> <claude|codex|gemini|opencode>
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
     $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
     $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
@@ -43,6 +45,8 @@ const cli = meow(
   Commands
     ready          Generate production .env interactively
     config         Configure default AI CLI backends interactively
+    config show    Display current CLI configuration
+    config set     Set a CLI backend (e.g. eni config set plan gemini)
     products       Manage Polar products interactively
     plan           Run AI planning loop on a spec file
     build          Run AI build loop on a planned spec file
@@ -68,6 +72,9 @@ const cli = meow(
     $ eni --git-host 0xtiby my-app
     $ eni ready
     $ eni config
+    $ eni config show
+    $ eni config set plan gemini
+    $ eni config set build codex
     $ eni products
     $ eni products --prod
     $ eni products --prod --token=polar_xxx
@@ -154,6 +161,26 @@ if (command === "ready") {
       <ReadyCommand projectDir={projectDir} />
     </Box>
   );
+} else if (command === "config" && subcommand === "show") {
+  const projectDir = process.cwd();
+  render(
+    <Box flexDirection="column">
+      <Header />
+      <ConfigShowCommand cwd={projectDir} />
+    </Box>
+  );
+} else if (command === "config" && subcommand === "set") {
+  const projectDir = process.cwd();
+  render(
+    <Box flexDirection="column">
+      <Header />
+      <ConfigSetCommand cwd={projectDir} command={cli.input[2]} cliName={cli.input[3]} />
+    </Box>
+  );
+} else if (command === "config" && subcommand && subcommand !== "show" && subcommand !== "set") {
+  console.error(`\x1b[31m✗ Unknown config subcommand: ${subcommand}\x1b[0m`);
+  console.error(`  Usage: eni config [show | set <plan|build> <cli>]`);
+  process.exit(1);
 } else if (command === "config") {
   const projectDir = process.cwd();
   render(
