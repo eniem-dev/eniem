@@ -22,22 +22,24 @@ vi.mock("../../lib/template.js", () => ({
   buildTemplateVars: vi.fn(),
 }));
 
-vi.mock("../../lib/claude-runner.js", () => ({
-  runClaude: vi.fn(),
+const mockRun = vi.fn();
+
+vi.mock("../../lib/adapters/index.js", () => ({
+  getAdapter: vi.fn(() => ({ run: mockRun })),
   checkBinary: vi.fn(),
 }));
 
 import { BuildCommand } from "../build.js";
 import { listSpecs, moveSpec } from "../../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../../lib/template.js";
-import { runClaude, checkBinary } from "../../lib/claude-runner.js";
+import { getAdapter, checkBinary } from "../../lib/adapters/index.js";
 
 const mockListSpecs = vi.mocked(listSpecs);
 const mockMoveSpec = vi.mocked(moveSpec);
 const mockLoadTemplate = vi.mocked(loadTemplate);
 const mockResolveTemplate = vi.mocked(resolveTemplate);
 const mockBuildTemplateVars = vi.mocked(buildTemplateVars);
-const mockRunClaude = vi.mocked(runClaude);
+const mockGetAdapter = vi.mocked(getAdapter);
 const mockCheckBinary = vi.mocked(checkBinary);
 
 const defaultProps = {
@@ -51,6 +53,7 @@ describe("BuildCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCheckBinary.mockResolvedValue(true);
+    mockGetAdapter.mockReturnValue({ name: "Claude Code", id: "claude", binary: "claude", run: mockRun });
     mockMoveSpec.mockResolvedValue("/project/specs/archive/test.md");
     mockBuildTemplateVars.mockReturnValue({ SPEC_NAME: "test", ITERATION: "1" });
   });
@@ -90,7 +93,7 @@ describe("BuildCommand", () => {
       ]);
       mockLoadTemplate.mockResolvedValue("template {{SPEC_NAME}}");
       mockResolveTemplate.mockReturnValue("resolved prompt");
-      mockRunClaude.mockReturnValue({
+      mockRun.mockReturnValue({
         result: new Promise(() => {}), // Never resolves — stays in running state
         kill: vi.fn(),
       });
@@ -112,7 +115,7 @@ describe("BuildCommand", () => {
       ]);
       mockLoadTemplate.mockResolvedValue("template");
       mockResolveTemplate.mockReturnValue("prompt");
-      mockRunClaude.mockReturnValue({
+      mockRun.mockReturnValue({
         result: Promise.resolve({ exitCode: 0, sentinelDetected: true }),
         kill: vi.fn(),
       });
@@ -137,7 +140,7 @@ describe("BuildCommand", () => {
       ]);
       mockLoadTemplate.mockResolvedValue("template");
       mockResolveTemplate.mockReturnValue("prompt");
-      mockRunClaude.mockReturnValue({
+      mockRun.mockReturnValue({
         result: Promise.resolve({ exitCode: 0, sentinelDetected: false }),
         kill: vi.fn(),
       });
