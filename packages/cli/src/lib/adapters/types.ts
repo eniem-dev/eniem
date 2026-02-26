@@ -12,6 +12,7 @@ export interface RunOptions {
 export interface CLIResult {
   exitCode: number;
   sentinelDetected: boolean;
+  stderr: string;
 }
 
 export interface CLIRunner {

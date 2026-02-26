@@ -22,7 +22,7 @@ vi.mock("../../lib/adapters/index.js", () => ({
     name: { claude: "Claude Code", codex: "Codex", gemini: "Gemini CLI", opencode: "OpenCode" }[id],
     binary: id,
     run: () => ({
-      result: Promise.resolve({ exitCode: 0, sentinelDetected: false }),
+      result: Promise.resolve({ exitCode: 0, sentinelDetected: false, stderr: "" }),
       kill: () => {},
     }),
   })),

@@ -206,7 +206,12 @@ export const BuildCommand = ({
           }
 
           if (result.exitCode !== 0) {
-            setError(`CLI exited with code ${result.exitCode}`);
+            const detail = result.stderr.trim();
+            setError(
+              detail
+                ? `CLI exited with code ${result.exitCode}:\n${detail}`
+                : `CLI exited with code ${result.exitCode} (no stderr output)`,
+            );
             setStep("error");
             isRunningRef.current = false;
             return;

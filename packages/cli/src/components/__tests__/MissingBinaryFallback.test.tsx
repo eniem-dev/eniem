@@ -13,7 +13,7 @@ function makeAdapter(
     name,
     binary: id,
     run: () => ({
-      result: Promise.resolve({ exitCode: 0, sentinelDetected: false }),
+      result: Promise.resolve({ exitCode: 0, sentinelDetected: false, stderr: "" }),
       kill: () => {},
     }),
   };

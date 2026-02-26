@@ -201,7 +201,7 @@ describe("BuildCommand", () => {
       mockLoadTemplate.mockResolvedValue("template");
       mockResolveTemplate.mockReturnValue("prompt");
       mockRun.mockReturnValue({
-        result: Promise.resolve({ exitCode: 1, sentinelDetected: false }),
+        result: Promise.resolve({ exitCode: 1, sentinelDetected: false, stderr: "something went wrong" }),
         kill: vi.fn(),
       });
 
@@ -212,6 +212,7 @@ describe("BuildCommand", () => {
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(lastFrame()).toContain("CLI exited with code 1");
+      expect(lastFrame()).toContain("something went wrong");
       expect(lastFrame()).not.toContain("Claude exited");
     });
   });
@@ -224,7 +225,7 @@ describe("BuildCommand", () => {
       mockLoadTemplate.mockResolvedValue("template");
       mockResolveTemplate.mockReturnValue("prompt");
       mockRun.mockReturnValue({
-        result: Promise.resolve({ exitCode: 0, sentinelDetected: true }),
+        result: Promise.resolve({ exitCode: 0, sentinelDetected: true, stderr: "" }),
         kill: vi.fn(),
       });
 
@@ -249,7 +250,7 @@ describe("BuildCommand", () => {
       mockLoadTemplate.mockResolvedValue("template");
       mockResolveTemplate.mockReturnValue("prompt");
       mockRun.mockReturnValue({
-        result: Promise.resolve({ exitCode: 0, sentinelDetected: false }),
+        result: Promise.resolve({ exitCode: 0, sentinelDetected: false, stderr: "" }),
         kill: vi.fn(),
       });
 

@@ -1,5 +1,5 @@
 import { execa } from "execa";
-import type { CLIAdapter, CLIRunner, RunOptions } from "./types.js";
+import type { CLIAdapter, CLIResult, CLIRunner, RunOptions } from "./types.js";
 
 const SENTINEL = ":::ENI_DONE:::";
 
@@ -13,6 +13,8 @@ export const geminiAdapter: CLIAdapter = {
     let lastText = "";
     let buffer = "";
 
+    let stderrBuf = "";
+
     const subprocess = execa(
       "gemini",
       [
@@ -25,6 +27,10 @@ export const geminiAdapter: CLIAdapter = {
       ],
       { cwd },
     );
+
+    subprocess.stderr?.on("data", (chunk: Buffer) => {
+      stderrBuf += chunk.toString();
+    });
 
     function processLine(line: string): void {
       if (!line.trim()) return;
@@ -57,14 +63,11 @@ export const geminiAdapter: CLIAdapter = {
       }
     });
 
-    const result = (async (): Promise<{
-      exitCode: number;
-      sentinelDetected: boolean;
-    }> => {
+    const result = (async (): Promise<CLIResult> => {
       try {
         await subprocess;
         if (buffer.trim()) processLine(buffer);
-        return { exitCode: 0, sentinelDetected: lastText.includes(SENTINEL) };
+        return { exitCode: 0, sentinelDetected: lastText.includes(SENTINEL), stderr: stderrBuf };
       } catch (error: unknown) {
         if (buffer.trim()) processLine(buffer);
         const sentinelDetected = lastText.includes(SENTINEL);
@@ -77,7 +80,7 @@ export const geminiAdapter: CLIAdapter = {
         }
 
         if (typeof err.exitCode === "number") {
-          return { exitCode: err.exitCode, sentinelDetected };
+          return { exitCode: err.exitCode, sentinelDetected, stderr: stderrBuf };
         }
 
         throw error;

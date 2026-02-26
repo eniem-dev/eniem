@@ -39,7 +39,7 @@ describe("type contracts", () => {
       id: "claude",
       binary: "claude",
       run: (_prompt: string, _options?: RunOptions): CLIRunner => ({
-        result: Promise.resolve({ exitCode: 0, sentinelDetected: false }),
+        result: Promise.resolve({ exitCode: 0, sentinelDetected: false, stderr: "" }),
         kill: () => {},
       }),
     };
@@ -51,7 +51,7 @@ describe("type contracts", () => {
   });
 
   it("CLIRunner resolves with CLIResult", async () => {
-    const expected: CLIResult = { exitCode: 0, sentinelDetected: true };
+    const expected: CLIResult = { exitCode: 0, sentinelDetected: true, stderr: "" };
     const runner: CLIRunner = {
       result: Promise.resolve(expected),
       kill: () => {},
