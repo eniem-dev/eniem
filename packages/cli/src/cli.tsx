@@ -8,6 +8,7 @@ import { Wizard } from "./Wizard.js";
 import { ProductsCommand } from "./commands/products.js";
 import { AiCommand } from "./commands/ai.js";
 import { ReadyCommand } from "./commands/ready.js";
+import { ConfigCommand } from "./commands/config.js";
 import { PlanCommand } from "./commands/plan.js";
 import { BuildCommand } from "./commands/build.js";
 import { Header } from "./components/Header.js";
@@ -33,6 +34,7 @@ const cli = meow(
   Usage
     $ eni [project-name]
     $ eni ready
+    $ eni config
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
     $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
     $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
@@ -40,6 +42,7 @@ const cli = meow(
 
   Commands
     ready          Generate production .env interactively
+    config         Configure default AI CLI backends interactively
     products       Manage Polar products interactively
     plan           Run AI planning loop on a spec file
     build          Run AI build loop on a planned spec file
@@ -64,6 +67,7 @@ const cli = meow(
     $ eni my-app --app-name "My App"
     $ eni --git-host 0xtiby my-app
     $ eni ready
+    $ eni config
     $ eni products
     $ eni products --prod
     $ eni products --prod --token=polar_xxx
@@ -148,6 +152,14 @@ if (command === "ready") {
     <Box flexDirection="column">
       <Header />
       <ReadyCommand projectDir={projectDir} />
+    </Box>
+  );
+} else if (command === "config") {
+  const projectDir = process.cwd();
+  render(
+    <Box flexDirection="column">
+      <Header />
+      <ConfigCommand cwd={projectDir} />
     </Box>
   );
 } else if (command === "products") {
