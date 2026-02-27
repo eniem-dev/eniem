@@ -144,11 +144,6 @@ Use this template when writing the functional specification.
 ### [User Story 2]
 
 - [ ] **Given** [precondition], **when** [action], **then** [result]
-
-## Open Questions
-
-- [ ] [Unresolved question needing decision]
-- [ ] [Dependency on external decision]
 ```
 
 ## Template Usage Notes
