@@ -2,6 +2,7 @@ import { render, Box } from "ink";
 import React from "react";
 import meow from "meow";
 import { join } from "path";
+import { listSpecs } from "./lib/specs.js";
 import { ConfigProvider } from "./config/index.js";
 
 import { Wizard } from "./Wizard.js";
@@ -14,6 +15,8 @@ import { BuildCommand } from "./commands/build.js";
 import { Header } from "./components/Header.js";
 import type { PolarEnvironment } from "./lib/polar.js";
 import { isValidCLI, SUPPORTED_CLIS } from "./lib/adapters/index.js";
+import { readConfig } from "./lib/eni-config.js";
+import { resolveVerbose } from "./lib/resolve-verbose.js";
 
 // Handle unhandled promise rejections globally
 process.on("unhandledRejection", (reason) => {
@@ -36,17 +39,17 @@ const cli = meow(
     $ eni ready
     $ eni config
     $ eni config show
-    $ eni config set <plan|build> <claude|codex|gemini|opencode>
+    $ eni config set <plan|build|verbose> <value>
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
-    $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
-    $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
+    $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
+    $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
     $ eni ai init [--force]
 
   Commands
     ready          Generate production .env interactively
     config         Configure default AI CLI backends interactively
     config show    Display current CLI configuration
-    config set     Set a CLI backend (e.g. eni config set plan gemini)
+    config set     Set a config value (e.g. eni config set plan gemini, eni config set verbose true)
     products       Manage Polar products interactively
     plan           Run AI planning loop on a spec file
     build          Run AI build loop on a planned spec file
@@ -60,8 +63,10 @@ const cli = meow(
     --token        Polar access token (bypasses .env lookup)
     --spec         Spec name for plan/build command (interactive if omitted)
     --iterations   Number of iterations (default: 3 for plan, 10 for build)
-    --verbose      Show tool usage during plan/build execution
+    --verbose      Show tool usage during plan/build (overrides config)
+    --no-verbose   Disable verbose output (overrides config)
     --cli          AI CLI backend for plan/build (claude, codex, gemini, opencode)
+    --list         List available spec names for plan/build and exit
     --force        Skip confirmation when updating existing AI workflow
     --help, -h     Show this help message
     --version, -v  Show version number
@@ -75,6 +80,7 @@ const cli = meow(
     $ eni config show
     $ eni config set plan gemini
     $ eni config set build codex
+    $ eni config set verbose true
     $ eni products
     $ eni products --prod
     $ eni products --prod --token=polar_xxx
@@ -84,6 +90,8 @@ const cli = meow(
     $ eni build
     $ eni build --spec=my-feature --iterations=20 --verbose
     $ eni build --cli gemini
+    $ eni plan --list
+    $ eni build --list
     $ eni ai init
     $ eni ai init --force
 `,
@@ -99,8 +107,9 @@ const cli = meow(
       token: { type: "string" },
       spec: { type: "string" },
       iterations: { type: "number" },
-      verbose: { type: "boolean", default: false },
+      verbose: { type: "boolean" },
       cli: { type: "string" },
+      list: { type: "boolean", default: false },
       force: { type: "boolean", default: false },
       help: { type: "boolean", shortFlag: "h" },
       version: { type: "boolean", shortFlag: "v" },
@@ -120,6 +129,25 @@ const specFlag = cli.flags.spec;
 const iterationsFlag = cli.flags.iterations;
 const verboseFlag = cli.flags.verbose;
 const cliFlag = cli.flags.cli;
+const listFlag = cli.flags.list;
+
+// --list: print spec names and exit (before any validation)
+if (listFlag && (command === "plan" || command === "build")) {
+  const projectDir = process.cwd();
+  const specsDir =
+    command === "plan"
+      ? join(projectDir, "specs")
+      : join(projectDir, "specs", "planned");
+  const specs = await listSpecs(specsDir);
+  if (specs.length === 0) {
+    const label = command === "plan" ? "No specs to plan" : "No planned specs to build";
+    process.stderr.write(`${label}\n`);
+    process.exit(0);
+  }
+  const names = specs.map((s) => s.name).sort();
+  process.stdout.write(names.join("\n"));
+  process.exit(0);
+}
 
 // Validate --iterations flag (must be >= 1)
 if (iterationsFlag !== undefined && iterationsFlag < 1) {
@@ -179,7 +207,7 @@ if (command === "ready") {
   );
 } else if (command === "config" && subcommand && subcommand !== "show" && subcommand !== "set") {
   console.error(`\x1b[31m✗ Unknown config subcommand: ${subcommand}\x1b[0m`);
-  console.error(`  Usage: eni config [show | set <plan|build> <cli>]`);
+  console.error(`  Usage: eni config [show | set <plan|build|verbose> <value>]`);
   process.exit(1);
 } else if (command === "config") {
   const projectDir = process.cwd();
@@ -199,31 +227,35 @@ if (command === "ready") {
   );
 } else if (command === "plan") {
   const projectDir = process.cwd();
+  const config = await readConfig(projectDir);
+  const resolvedVerbose = resolveVerbose(verboseFlag, config);
   render(
     <Box flexDirection="column">
-      <Header />
       <PlanCommand
         spec={specFlag}
         iterations={iterationsFlag ?? 3}
-        verbose={verboseFlag}
+        verbose={resolvedVerbose}
         specsDir={join(projectDir, "specs")}
         promptFile={join(projectDir, ".eni", "PROMPT_plan.md")}
         cli={cliFlag}
+        narration={config?.narration}
       />
     </Box>
   );
 } else if (command === "build") {
   const projectDir = process.cwd();
+  const config = await readConfig(projectDir);
+  const resolvedVerbose = resolveVerbose(verboseFlag, config);
   render(
     <Box flexDirection="column">
-      <Header />
       <BuildCommand
         spec={specFlag}
         iterations={iterationsFlag ?? 10}
-        verbose={verboseFlag}
+        verbose={resolvedVerbose}
         specsDir={join(projectDir, "specs", "planned")}
         promptFile={join(projectDir, ".eni", "PROMPT_build.md")}
         cli={cliFlag}
+        narration={config?.narration}
       />
     </Box>
   );

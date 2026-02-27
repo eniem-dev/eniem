@@ -8,12 +8,15 @@ import {
   FirstRunPrompt,
   MissingBinaryFallback,
 } from "../components/index.js";
+import { Header } from "../components/Header.js";
 import { listSpecs, moveSpec } from "../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../lib/template.js";
 import { checkBinary } from "../lib/adapters/index.js";
 import type { CLIAdapter, CLIRunner } from "../lib/adapters/index.js";
 import { resolveCLI } from "../lib/resolve-cli.js";
 import type { ResolutionSource } from "../lib/resolve-cli.js";
+import { injectNarration } from "../lib/narration.js";
+import type { Narration } from "../lib/eni-config.js";
 
 function toolInputSummary(name: string, input: Record<string, unknown>): string {
   const s = (...keys: string[]) => {
@@ -42,6 +45,7 @@ export interface BuildCommandProps {
   specsDir: string;
   promptFile: string;
   cli?: string;
+  narration?: Narration;
 }
 
 export const BuildCommand = ({
@@ -51,6 +55,7 @@ export const BuildCommand = ({
   specsDir,
   promptFile,
   cli,
+  narration,
 }: BuildCommandProps) => {
   const { exit } = useApp();
   const [step, setStep] = useState<BuildStep>(spec ? "resolving" : "selecting");
@@ -185,7 +190,8 @@ export const BuildCommand = ({
         }
 
         const vars = buildTemplateVars(specName, i, "build");
-        const prompt = resolveTemplate(template, vars);
+        const resolved = resolveTemplate(template, vars);
+        const prompt = injectNarration(resolved, narration);
 
         const runner = resolvedAdapter.run(prompt, {
           onText: (text) => {
@@ -294,7 +300,8 @@ export const BuildCommand = ({
 
   return (
     <Box flexDirection="column">
-      <SectionHeader title="Build" />
+      {step === "selecting" && <Header />}
+      <SectionHeader title="Build" subtitle={specName || undefined} />
 
       {step === "selecting" && specs.length > 0 && (
         <Select
