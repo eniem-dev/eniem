@@ -16,7 +16,7 @@ import {
 } from "../lib/ai-init.js";
 import type { CLIAdapter, CLIId } from "../lib/adapters/index.js";
 import { SUPPORTED_CLIS, getAdapter, checkBinary } from "../lib/adapters/index.js";
-import type { EniConfig } from "../lib/eni-config.js";
+import type { EniConfig, Narration } from "../lib/eni-config.js";
 import { readConfig, writeConfig } from "../lib/eni-config.js";
 
 type AiInitStep =
@@ -27,6 +27,7 @@ type AiInitStep =
   | "select_plan_cli"
   | "select_build_cli"
   | "select_verbose"
+  | "select_narration"
   | "saving_config"
   | "complete"
   | "error";
@@ -48,6 +49,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
   const [planCLI, setPlanCLI] = useState<CLIId | null>(null);
   const [buildCLI, setBuildCLI] = useState<CLIId | null>(null);
   const [verboseChoice, setVerboseChoice] = useState(false);
+  const [narrationChoice, setNarrationChoice] = useState<Narration>("concise");
   const [existingConfig, setExistingConfig] = useState<EniConfig | null>(null);
 
   // Refs to prevent duplicate effect runs
@@ -175,7 +177,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
     if (step !== "saving_config" || isSavingConfigRef.current) return;
     isSavingConfigRef.current = true;
 
-    const config: EniConfig = { plan: planCLI!, build: buildCLI!, verbose: verboseChoice };
+    const config: EniConfig = { plan: planCLI!, build: buildCLI!, verbose: verboseChoice, narration: narrationChoice };
     void writeConfig(targetDir, config)
       .then(() => setStep("complete"))
       .catch((err: unknown) => {
@@ -183,7 +185,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
         setStep("error");
       })
       .finally(() => { isSavingConfigRef.current = false; });
-  }, [step, targetDir, planCLI, buildCLI, verboseChoice]);
+  }, [step, targetDir, planCLI, buildCLI, verboseChoice, narrationChoice]);
 
   const adapterOptions = adapters.map(({ adapter, available }) => ({
     label: available
@@ -209,6 +211,17 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
 
   const handleVerboseSelect = (confirmed: boolean) => {
     setVerboseChoice(confirmed);
+    setNarrationChoice(existingConfig?.narration ?? "concise");
+    setStep("select_narration");
+  };
+
+  const narrationOptions = [
+    { label: "Concise", value: "concise" },
+    { label: "Explicit", value: "explicit" },
+  ];
+
+  const handleNarrationSelect = (value: string) => {
+    setNarrationChoice(value as Narration);
     setStep("saving_config");
   };
 
@@ -281,9 +294,25 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
         </Box>
       )}
 
-      {(step === "saving_config" || step === "complete") && (
+      {["select_narration", "saving_config", "complete"].includes(step) && (
         <StatusMessage status="success">
           Verbose: {String(verboseChoice)}
+        </StatusMessage>
+      )}
+
+      {step === "select_narration" && (
+        <Box marginTop={1} flexDirection="column">
+          <Select
+            label="Narration style:"
+            options={narrationOptions}
+            onSelect={handleNarrationSelect}
+          />
+        </Box>
+      )}
+
+      {(step === "saving_config" || step === "complete") && (
+        <StatusMessage status="success">
+          Narration: {narrationChoice}
         </StatusMessage>
       )}
 
