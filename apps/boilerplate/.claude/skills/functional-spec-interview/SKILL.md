@@ -24,7 +24,8 @@ Example: `/functional-spec user-onboarding`
 7. **UI/UX Flows** - Screens, interactions, states
 8. **Edge Cases** - Error states, limits, exceptions
 9. **Acceptance Criteria** - How to verify success
-10. **Write Spec** - Output to `specs/<feature-name>.md`
+10. **Resolve Open Questions** - Batch-ask unresolved items until none remain
+11. **Write Spec** - Output to `specs/<feature-name>.md`
 
 ## Interview Guidelines
 
@@ -178,9 +179,18 @@ For each user story, define:
 - When [action]
 - Then [expected result]
 
+### 10. Resolve Open Questions
+
+Before writing the spec, collect and resolve every remaining uncertainty.
+
+- Review all sections for unanswered questions, ambiguous requirements, or placeholder decisions
+- Present all unresolved items in a single AskUserQuestion call, grouped by section
+- If answers surface new questions, repeat until zero open questions remain
+- Incorporate each answer into the relevant spec section — do not create a separate "Open Questions" section
+
 ## Output
 
-After interview, create `specs/<feature-name>.md` using template in `references/spec-template.md`.
+After all open questions are resolved, create `specs/<feature-name>.md` using template in `references/spec-template.md`.
 
 ## Guardrails
 
@@ -189,3 +199,4 @@ After interview, create `specs/<feature-name>.md` using template in `references/
 - No code, no technical architecture, no file paths
 - Focus on user-facing behavior and business logic
 - The spec should be detailed enough for another agent to create an implementation plan
+- The final spec must contain zero open questions — every decision point must be resolved during the interview
