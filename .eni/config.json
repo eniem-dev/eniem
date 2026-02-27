@@ -1,4 +1,6 @@
 {
   "plan": "claude",
-  "build": "claude"
+  "build": "claude",
+  "verbose": true,
+  "narration": "concise"
 }
