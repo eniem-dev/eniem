@@ -33,11 +33,16 @@ vi.mock("../../lib/resolve-cli.js", () => ({
   resolveCLI: vi.fn(),
 }));
 
+vi.mock("../../lib/narration.js", () => ({
+  injectNarration: vi.fn((prompt: string) => prompt),
+}));
+
 import { PlanCommand } from "../plan.js";
 import { listSpecs, moveSpec } from "../../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../../lib/template.js";
 import { checkBinary } from "../../lib/adapters/index.js";
 import { resolveCLI } from "../../lib/resolve-cli.js";
+import { injectNarration } from "../../lib/narration.js";
 
 const mockListSpecs = vi.mocked(listSpecs);
 const mockMoveSpec = vi.mocked(moveSpec);
@@ -46,6 +51,7 @@ const mockResolveTemplate = vi.mocked(resolveTemplate);
 const mockBuildTemplateVars = vi.mocked(buildTemplateVars);
 const mockCheckBinary = vi.mocked(checkBinary);
 const mockResolveCLI = vi.mocked(resolveCLI);
+const mockInjectNarration = vi.mocked(injectNarration);
 
 const claudeAdapter = { name: "Claude Code", id: "claude" as const, binary: "claude", run: mockRun };
 
@@ -225,6 +231,48 @@ describe("PlanCommand", () => {
       expect(lastFrame()).toContain("CLI exited with code 1");
       expect(lastFrame()).toContain("something went wrong");
       expect(lastFrame()).not.toContain("Claude exited");
+    });
+  });
+
+  describe("Narration", () => {
+    it("calls injectNarration with narration prop before running adapter", async () => {
+      mockListSpecs.mockResolvedValue([
+        { name: "test", path: "/project/specs/test.md" },
+      ]);
+      mockLoadTemplate.mockResolvedValue("template");
+      mockResolveTemplate.mockReturnValue("resolved prompt");
+      mockRun.mockReturnValue({
+        result: Promise.resolve({ exitCode: 0, sentinelDetected: true, stderr: "" }),
+        kill: vi.fn(),
+      });
+
+      render(
+        <PlanCommand {...defaultProps} spec="test" narration="explicit" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(mockInjectNarration).toHaveBeenCalledWith("resolved prompt", "explicit");
+    });
+
+    it("calls injectNarration with undefined when narration prop is omitted", async () => {
+      mockListSpecs.mockResolvedValue([
+        { name: "test", path: "/project/specs/test.md" },
+      ]);
+      mockLoadTemplate.mockResolvedValue("template");
+      mockResolveTemplate.mockReturnValue("resolved prompt");
+      mockRun.mockReturnValue({
+        result: Promise.resolve({ exitCode: 0, sentinelDetected: true, stderr: "" }),
+        kill: vi.fn(),
+      });
+
+      render(
+        <PlanCommand {...defaultProps} spec="test" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(mockInjectNarration).toHaveBeenCalledWith("resolved prompt", undefined);
     });
   });
 
