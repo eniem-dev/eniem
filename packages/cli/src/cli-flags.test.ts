@@ -231,3 +231,77 @@ describe("CLI --list flag (output format)", () => {
     expect(result.stdout).toContain("--list");
   }, 15_000);
 });
+
+// eslint-disable-next-line no-control-regex
+const strip = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
+
+describe("CLI header spec name display", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), "eni-header-"));
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("plan header shows 'Plan — my-feature' when --spec flag is given", async () => {
+    await mkdir(join(tmpDir, "specs"), { recursive: true });
+    await writeFile(join(tmpDir, "specs", "my-feature.md"), "# My Feature");
+
+    const result = await execaNode(CLI_PATH, ["plan", "--spec=my-feature"], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    expect(strip(result.stdout)).toContain("Plan — my-feature");
+  }, 15_000);
+
+  it("build header shows 'Build — my-feature' when --spec flag is given", async () => {
+    await mkdir(join(tmpDir, "specs", "planned"), { recursive: true });
+    await writeFile(join(tmpDir, "specs", "planned", "my-feature.md"), "# My Feature");
+
+    const result = await execaNode(CLI_PATH, ["build", "--spec=my-feature"], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    expect(strip(result.stdout)).toContain("Build — my-feature");
+  }, 15_000);
+
+  it("logo is NOT rendered when plan --spec is used", async () => {
+    await mkdir(join(tmpDir, "specs"), { recursive: true });
+    await writeFile(join(tmpDir, "specs", "my-feature.md"), "# My Feature");
+
+    const result = await execaNode(CLI_PATH, ["plan", "--spec=my-feature"], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    expect(result.stdout).not.toContain("███████");
+  }, 15_000);
+
+  it("ready command shows the logo", async () => {
+    const result = await execaNode(CLI_PATH, ["ready"], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    expect(result.stdout).toContain("███████");
+  }, 15_000);
+
+  it("config show command shows the logo", async () => {
+    const result = await execaNode(CLI_PATH, ["config", "show"], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    expect(result.stdout).toContain("███████");
+  }, 15_000);
+});
