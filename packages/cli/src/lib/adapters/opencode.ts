@@ -17,8 +17,8 @@ export const opencodeAdapter: CLIAdapter = {
 
     const subprocess = execa(
       "opencode",
-      ["run", prompt, "--format", "json", ...args],
-      { cwd, stdin: "ignore" },
+      ["run", "--format", "json", ...args],
+      { cwd, input: prompt },
     );
 
     subprocess.stderr?.on("data", (chunk: Buffer) => {

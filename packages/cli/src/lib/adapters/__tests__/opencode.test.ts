@@ -72,8 +72,8 @@ describe("opencode adapter", () => {
 
     expect(execa).toHaveBeenCalledWith(
       "opencode",
-      ["run", "build the thing", "--format", "json", "--extra"],
-      { cwd: "/test", stdin: "ignore" },
+      ["run", "--format", "json", "--extra"],
+      { cwd: "/test", input: "build the thing" },
     );
 
     await runner.result;
