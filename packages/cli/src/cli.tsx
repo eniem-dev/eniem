@@ -62,7 +62,8 @@ const cli = meow(
     --token        Polar access token (bypasses .env lookup)
     --spec         Spec name for plan/build command (interactive if omitted)
     --iterations   Number of iterations (default: 3 for plan, 10 for build)
-    --verbose      Show tool usage during plan/build execution
+    --verbose      Show tool usage during plan/build (overrides config)
+    --no-verbose   Disable verbose output (overrides config)
     --cli          AI CLI backend for plan/build (claude, codex, gemini, opencode)
     --force        Skip confirmation when updating existing AI workflow
     --help, -h     Show this help message
