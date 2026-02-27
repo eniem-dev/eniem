@@ -14,6 +14,8 @@ import { BuildCommand } from "./commands/build.js";
 import { Header } from "./components/Header.js";
 import type { PolarEnvironment } from "./lib/polar.js";
 import { isValidCLI, SUPPORTED_CLIS } from "./lib/adapters/index.js";
+import { readConfig } from "./lib/eni-config.js";
+import { resolveVerbose } from "./lib/resolve-verbose.js";
 
 // Handle unhandled promise rejections globally
 process.on("unhandledRejection", (reason) => {
@@ -99,7 +101,7 @@ const cli = meow(
       token: { type: "string" },
       spec: { type: "string" },
       iterations: { type: "number" },
-      verbose: { type: "boolean", default: false },
+      verbose: { type: "boolean" },
       cli: { type: "string" },
       force: { type: "boolean", default: false },
       help: { type: "boolean", shortFlag: "h" },
@@ -199,13 +201,15 @@ if (command === "ready") {
   );
 } else if (command === "plan") {
   const projectDir = process.cwd();
+  const config = await readConfig(projectDir);
+  const resolvedVerbose = resolveVerbose(verboseFlag, config);
   render(
     <Box flexDirection="column">
       <Header />
       <PlanCommand
         spec={specFlag}
         iterations={iterationsFlag ?? 3}
-        verbose={verboseFlag}
+        verbose={resolvedVerbose}
         specsDir={join(projectDir, "specs")}
         promptFile={join(projectDir, ".eni", "PROMPT_plan.md")}
         cli={cliFlag}
@@ -214,13 +218,15 @@ if (command === "ready") {
   );
 } else if (command === "build") {
   const projectDir = process.cwd();
+  const config = await readConfig(projectDir);
+  const resolvedVerbose = resolveVerbose(verboseFlag, config);
   render(
     <Box flexDirection="column">
       <Header />
       <BuildCommand
         spec={specFlag}
         iterations={iterationsFlag ?? 10}
-        verbose={verboseFlag}
+        verbose={resolvedVerbose}
         specsDir={join(projectDir, "specs", "planned")}
         promptFile={join(projectDir, ".eni", "PROMPT_build.md")}
         cli={cliFlag}
