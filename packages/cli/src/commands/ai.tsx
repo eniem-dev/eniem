@@ -294,7 +294,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
           <StatusMessage status="success">
             {eniExists
               ? "AI workflow files updated!"
-              : "AI workflow initialized!"}
+              : "AI workflow initialized."}
           </StatusMessage>
 
           <Box flexDirection="column" marginTop={1} marginLeft={2}>
@@ -314,13 +314,25 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
 
           <Box marginTop={1}>
             <StatusMessage status="success">
-              Saved to .eni/config.json
+              Config saved to .eni/config.json
             </StatusMessage>
           </Box>
 
           <Box marginTop={1}>
             <Text dimColor>
+              Open your CLI and run the <Text color="cyan">/functional-spec-interview</Text> to start creating specifications.
+            </Text>
+          </Box>
+
+          <Box marginTop={1}>
+            <Text dimColor>
               Run <Text color="cyan">eni plan</Text> to start planning with AI
+            </Text>
+          </Box>
+
+          <Box marginTop={1}>
+            <Text dimColor>
+              Run <Text color="cyan">eni build</Text> to start building from a spec
             </Text>
           </Box>
         </Box>

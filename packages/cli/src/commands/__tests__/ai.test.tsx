@@ -129,7 +129,7 @@ describe("AiCommand", () => {
     /** Helper: set up mocks for a successful file copy and advance through config selection */
     function setupSuccessMocks({
       eniExists = false,
-      copiedFiles = [".eni/loop.sh"],
+      copiedFiles = [".eni/PROMPT_plan.md"],
       specsCreated = false,
     } = {}) {
       mockCheckEniExists.mockResolvedValue(eniExists);
@@ -164,7 +164,7 @@ describe("AiCommand", () => {
 
     it("shows success message with copied files", async () => {
       setupSuccessMocks({
-        copiedFiles: [".eni/loop.sh", ".eni/PROMPT_plan.md", ".claude/settings.local.json"],
+        copiedFiles: [".eni/PROMPT_plan.md", ".eni/PROMPT_build.md", ".claude/settings.local.json"],
         specsCreated: true,
       });
 
@@ -174,10 +174,10 @@ describe("AiCommand", () => {
 
       await advanceThroughConfigSteps(stdin);
 
-      expect(lastFrame()).toContain("AI workflow initialized!");
+      expect(lastFrame()).toContain("AI workflow initialized.");
       expect(lastFrame()).toContain("Copied files:");
-      expect(lastFrame()).toContain(".eni/loop.sh");
       expect(lastFrame()).toContain(".eni/PROMPT_plan.md");
+      expect(lastFrame()).toContain(".eni/PROMPT_build.md");
       expect(lastFrame()).toContain(".claude/settings.local.json");
       expect(lastFrame()).toContain("specs/.gitkeep");
     });
@@ -194,6 +194,18 @@ describe("AiCommand", () => {
       expect(lastFrame()).toContain("AI workflow files updated!");
     });
 
+    it("shows functional-spec-interview hint on success", async () => {
+      setupSuccessMocks();
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(lastFrame()).toContain("/functional-spec-interview");
+    });
+
     it("shows hint about eni plan on success", async () => {
       setupSuccessMocks();
 
@@ -206,6 +218,18 @@ describe("AiCommand", () => {
       expect(lastFrame()).toContain("eni plan");
     });
 
+    it("shows hint about eni build on success", async () => {
+      setupSuccessMocks();
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(lastFrame()).toContain("eni build");
+    });
+
     it("shows config saved message on success", async () => {
       setupSuccessMocks();
 
@@ -215,7 +239,7 @@ describe("AiCommand", () => {
 
       await advanceThroughConfigSteps(stdin);
 
-      expect(lastFrame()).toContain("Saved to .eni/config.json");
+      expect(lastFrame()).toContain("Config saved to .eni/config.json");
     });
 
     it("shows CLI selection prompts after file copy", async () => {
@@ -290,7 +314,7 @@ describe("AiCommand", () => {
       });
       mockCopyAiFiles.mockResolvedValue({
         success: true,
-        copiedFiles: [".eni/loop.sh"],
+        copiedFiles: [".eni/PROMPT_plan.md"],
       });
       mockEnsureSpecsFolder.mockResolvedValue({
         success: false,
