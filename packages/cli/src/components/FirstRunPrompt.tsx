@@ -2,7 +2,7 @@ import { Box, Text } from "ink";
 import React, { useState } from "react";
 
 import type { CLIAdapter, CLIId } from "../lib/adapters/index.js";
-import type { EniConfig } from "../lib/eni-config.js";
+import type { EniConfig, Narration } from "../lib/eni-config.js";
 import { writeConfig } from "../lib/eni-config.js";
 import { SUPPORTED_CLIS } from "../lib/adapters/index.js";
 
@@ -16,7 +16,7 @@ interface FirstRunPromptProps {
   onComplete: (config: EniConfig) => void;
 }
 
-type Step = "plan" | "build" | "saving" | "done" | "error";
+type Step = "plan" | "build" | "narration" | "saving" | "done" | "error";
 
 export const FirstRunPrompt = ({
   available,
@@ -26,6 +26,7 @@ export const FirstRunPrompt = ({
   const [step, setStep] = useState<Step>("plan");
   const [planCLI, setPlanCLI] = useState<CLIId | null>(null);
   const [buildCLI, setBuildCLI] = useState<CLIId | null>(null);
+  const [narrationChoice, setNarrationChoice] = useState<Narration | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (available.length === 0) {
@@ -76,11 +77,21 @@ export const FirstRunPrompt = ({
   };
 
   const handleBuildSelect = (value: string) => {
-    const selectedBuild = value as CLIId;
-    setBuildCLI(selectedBuild);
+    setBuildCLI(value as CLIId);
+    setStep("narration");
+  };
+
+  const narrationOptions = [
+    { label: "Concise — no narration, fewer tokens (default)", value: "concise" },
+    { label: "Explicit — model narrates tool activity", value: "explicit" },
+  ];
+
+  const handleNarrationSelect = (value: string) => {
+    const narration = value as Narration;
+    setNarrationChoice(narration);
     setStep("saving");
 
-    const config: EniConfig = { plan: planCLI!, build: selectedBuild };
+    const config: EniConfig = { plan: planCLI!, build: buildCLI!, narration };
     void writeConfig(cwd, config)
       .then(() => {
         setStep("done");
@@ -123,9 +134,23 @@ export const FirstRunPrompt = ({
           />
         )}
 
-        {buildCLI && (step === "saving" || step === "done") && (
+        {buildCLI && step !== "build" && step !== "plan" && (
           <StatusMessage status="success">
             Build CLI: {buildCLI}
+          </StatusMessage>
+        )}
+
+        {step === "narration" && (
+          <Select
+            label="Narration style:"
+            options={narrationOptions}
+            onSelect={handleNarrationSelect}
+          />
+        )}
+
+        {narrationChoice && (step === "saving" || step === "done") && (
+          <StatusMessage status="success">
+            Narration: {narrationChoice}
           </StatusMessage>
         )}
 

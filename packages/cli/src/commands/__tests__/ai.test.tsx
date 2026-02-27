@@ -147,7 +147,7 @@ describe("AiCommand", () => {
       });
     }
 
-    /** Advance through plan → build → verbose selection to reach complete */
+    /** Advance through plan → build → verbose → narration selection to reach complete */
     async function advanceThroughConfigSteps(stdin: { write: (s: string) => void }) {
       // Wait for adapters to load and plan select to render
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -158,6 +158,9 @@ describe("AiCommand", () => {
       stdin.write("\r");
       await new Promise((resolve) => setTimeout(resolve, 50));
       // Confirm verbose (Enter accepts default=No)
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Select first narration option — Concise (Enter)
       stdin.write("\r");
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
@@ -264,6 +267,75 @@ describe("AiCommand", () => {
       await advanceThroughConfigSteps(stdin);
 
       expect(lastFrame()).not.toContain("Created specs/");
+    });
+
+    it("renders narration selector after verbose step", async () => {
+      setupSuccessMocks();
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      // Advance through plan → build → verbose
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      stdin.write("\r"); // plan
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      stdin.write("\r"); // build
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      stdin.write("\r"); // verbose
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(lastFrame()).toContain("Narration style:");
+      expect(lastFrame()).toContain("Concise");
+      expect(lastFrame()).toContain("Explicit");
+    });
+
+    it("saves narration in writeConfig call", async () => {
+      setupSuccessMocks();
+
+      const { stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(mockWriteConfig).toHaveBeenCalledWith(
+        "/test/project",
+        expect.objectContaining({ narration: "concise" }),
+      );
+    });
+
+    it("pre-selects existing config narration value", async () => {
+      setupSuccessMocks();
+      mockReadConfig.mockResolvedValue({ plan: "claude", build: "claude", verbose: false, narration: "explicit" });
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      // Advance through plan → build → verbose
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      stdin.write("\r"); // plan
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      stdin.write("\r"); // build
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      stdin.write("\r"); // verbose
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Narration selector should be visible
+      expect(lastFrame()).toContain("Narration style:");
+    });
+
+    it("shows narration summary on completion", async () => {
+      setupSuccessMocks();
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(lastFrame()).toContain("Narration: concise");
     });
   });
 

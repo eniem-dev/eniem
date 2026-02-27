@@ -238,6 +238,7 @@ if (command === "ready") {
         specsDir={join(projectDir, "specs")}
         promptFile={join(projectDir, ".eni", "PROMPT_plan.md")}
         cli={cliFlag}
+        narration={config?.narration}
       />
     </Box>
   );
@@ -254,6 +255,7 @@ if (command === "ready") {
         specsDir={join(projectDir, "specs", "planned")}
         promptFile={join(projectDir, ".eni", "PROMPT_build.md")}
         cli={cliFlag}
+        narration={config?.narration}
       />
     </Box>
   );

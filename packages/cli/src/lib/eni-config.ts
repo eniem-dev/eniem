@@ -3,10 +3,15 @@ import { join } from "path";
 
 import { SUPPORTED_CLIS, type CLIId } from "./adapters/types.js";
 
+export type Narration = "concise" | "explicit";
+
+const NARRATION_VALUES: readonly Narration[] = ["concise", "explicit"];
+
 export interface EniConfig {
   plan?: CLIId;
   build?: CLIId;
   verbose?: boolean;
+  narration?: Narration;
 }
 
 const CONFIG_DIR = ".eni";
@@ -46,6 +51,19 @@ export function validateConfig(data: unknown): EniConfig {
       );
     }
     config.verbose = obj.verbose;
+  }
+
+  if ("narration" in obj) {
+    const value = obj.narration;
+    if (
+      typeof value !== "string" ||
+      !NARRATION_VALUES.includes(value as Narration)
+    ) {
+      throw new Error(
+        `Invalid config: "narration" must be one of: ${NARRATION_VALUES.join(", ")} (got "${String(value)}")`,
+      );
+    }
+    config.narration = value as Narration;
   }
 
   return config;

@@ -16,6 +16,8 @@ import { checkBinary } from "../lib/adapters/index.js";
 import type { CLIAdapter, CLIRunner } from "../lib/adapters/index.js";
 import { resolveCLI } from "../lib/resolve-cli.js";
 import type { ResolutionSource } from "../lib/resolve-cli.js";
+import { injectNarration } from "../lib/narration.js";
+import type { Narration } from "../lib/eni-config.js";
 
 function toolInputSummary(name: string, input: Record<string, unknown>): string {
   const s = (...keys: string[]) => {
@@ -44,6 +46,7 @@ export interface PlanCommandProps {
   specsDir: string;
   promptFile: string;
   cli?: string;
+  narration?: Narration;
 }
 
 export const PlanCommand = ({
@@ -53,6 +56,7 @@ export const PlanCommand = ({
   specsDir,
   promptFile,
   cli,
+  narration,
 }: PlanCommandProps) => {
   const { exit } = useApp();
   const [step, setStep] = useState<PlanStep>(spec ? "resolving" : "selecting");
@@ -95,7 +99,7 @@ export const PlanCommand = ({
     void load();
   }, [step, specsDir]);
 
-  // Resolve CLI adapter
+  // Resolve CLI adapter first, then validate spec
   useEffect(() => {
     if (step !== "resolving" || isResolvingRef.current) return;
     isResolvingRef.current = true;
@@ -108,21 +112,44 @@ export const PlanCommand = ({
           cwd: process.cwd(),
         });
 
-        if ("resolved" in result) {
-          setResolvedAdapter(result.adapter);
-          setResolutionSource(result.source);
-          setStep("running");
-        } else if ("needsFirstRun" in result) {
+        if ("needsFirstRun" in result) {
           setFirstRunAvailable(result.available);
           setStep("first-run");
-        } else if ("needsFallback" in result) {
+          isResolvingRef.current = false;
+          return;
+        }
+
+        if ("needsFallback" in result) {
           setFallbackMissing(result.configured);
           setFallbackAvailable(result.available);
           setStep("fallback");
-        } else {
+          isResolvingRef.current = false;
+          return;
+        }
+
+        if (!("resolved" in result)) {
           setError("No supported CLI is installed. Install one of: claude, codex, gemini, opencode");
           setStep("error");
+          isResolvingRef.current = false;
+          return;
         }
+
+        setResolvedAdapter(result.adapter);
+        setResolutionSource(result.source);
+
+        if (specName) {
+          const found = await listSpecs(specsDir);
+          const match = found.find((s) => s.name === specName);
+          if (!match) {
+            setError(`Spec not found: ${join(specsDir, specName + ".md")}`);
+            setStep("error");
+            isResolvingRef.current = false;
+            return;
+          }
+          setSpecPath(match.path);
+        }
+
+        setStep("running");
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : String(err));
         setStep("error");
@@ -130,7 +157,7 @@ export const PlanCommand = ({
       isResolvingRef.current = false;
     };
     void resolve();
-  }, [step, cli]);
+  }, [step, cli, specName, specsDir]);
 
   // Resolve spec path when specName is set and we move to running
   useEffect(() => {
@@ -185,7 +212,8 @@ export const PlanCommand = ({
         }
 
         const vars = buildTemplateVars(specName, i, "plan");
-        const prompt = resolveTemplate(template, vars);
+        const resolved = resolveTemplate(template, vars);
+        const prompt = injectNarration(resolved, narration);
 
         const runner = resolvedAdapter.run(prompt, {
           onText: (text) => {

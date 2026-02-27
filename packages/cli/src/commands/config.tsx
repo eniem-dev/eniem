@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 
 import type { CLIAdapter, CLIId } from "../lib/adapters/index.js";
 import { SUPPORTED_CLIS, getAdapter, checkBinary, isValidCLI } from "../lib/adapters/index.js";
-import type { EniConfig } from "../lib/eni-config.js";
+import type { EniConfig, Narration } from "../lib/eni-config.js";
 import { readConfig, writeConfig } from "../lib/eni-config.js";
 
 import { Confirm } from "../components/Confirm.js";
@@ -16,7 +16,7 @@ interface ConfigCommandProps {
   cwd: string;
 }
 
-type Step = "loading" | "plan" | "build" | "verbose" | "saving" | "done" | "error";
+type Step = "loading" | "plan" | "build" | "verbose" | "narration" | "saving" | "done" | "error";
 
 interface AdapterInfo {
   adapter: CLIAdapter;
@@ -31,6 +31,7 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
   const [planCLI, setPlanCLI] = useState<CLIId | null>(null);
   const [buildCLI, setBuildCLI] = useState<CLIId | null>(null);
   const [verboseChoice, setVerboseChoice] = useState(false);
+  const [narrationChoice, setNarrationChoice] = useState<Narration>("concise");
   const [error, setError] = useState<string | null>(null);
   const loadedRef = useRef(false);
 
@@ -87,9 +88,21 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
 
   const handleVerboseSelect = (confirmed: boolean) => {
     setVerboseChoice(confirmed);
+    setNarrationChoice(currentConfig?.narration ?? "concise");
+    setStep("narration");
+  };
+
+  const narrationOptions = [
+    { label: "Concise — no narration, fewer tokens (default)", value: "concise" },
+    { label: "Explicit — model narrates tool activity", value: "explicit" },
+  ];
+
+  const handleNarrationSelect = (value: string) => {
+    const narration = value as Narration;
+    setNarrationChoice(narration);
     setStep("saving");
 
-    const config: EniConfig = { plan: planCLI!, build: buildCLI!, verbose: confirmed };
+    const config: EniConfig = { plan: planCLI!, build: buildCLI!, verbose: verboseChoice, narration };
     void writeConfig(cwd, config)
       .then(() => setStep("done"))
       .catch((err: unknown) => {
@@ -110,7 +123,8 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
         <StatusMessage status="info">
           Current config — plan: {currentConfig.plan ?? "not set"}, build:{" "}
           {currentConfig.build ?? "not set"}, verbose:{" "}
-          {String(currentConfig.verbose ?? false)}
+          {String(currentConfig.verbose ?? false)}, narration:{" "}
+          {currentConfig.narration ?? "concise"}
         </StatusMessage>
       )}
 
@@ -152,11 +166,27 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
         </Box>
       )}
 
-      {step === "saving" || step === "done" ? (
+      {(step === "narration" || step === "saving" || step === "done") && (
         <StatusMessage status="success">
           Verbose: {String(verboseChoice)}
         </StatusMessage>
-      ) : null}
+      )}
+
+      {step === "narration" && (
+        <Box marginTop={1} flexDirection="column">
+          <Select
+            label="Narration style:"
+            options={narrationOptions}
+            onSelect={handleNarrationSelect}
+          />
+        </Box>
+      )}
+
+      {(step === "saving" || step === "done") && (
+        <StatusMessage status="success">
+          Narration: {narrationChoice}
+        </StatusMessage>
+      )}
 
       {step === "saving" && <Spinner label="Saving configuration..." />}
 
@@ -217,16 +247,17 @@ export const ConfigShowCommand = ({ cwd }: ConfigShowCommandProps) => {
   return (
     <Box flexDirection="column">
       <Text bold>CLI Configuration (.eni/config.json):</Text>
-      <Text>  plan:    {config.plan ?? "not set"}</Text>
-      <Text>  build:   {config.build ?? "not set"}</Text>
-      <Text>  verbose: {String(config.verbose ?? false)}</Text>
+      <Text>  plan:      {config.plan ?? "not set"}</Text>
+      <Text>  build:     {config.build ?? "not set"}</Text>
+      <Text>  verbose:   {String(config.verbose ?? false)}</Text>
+      <Text>  narration: {config.narration ?? "concise"}</Text>
     </Box>
   );
 };
 
 // --- ConfigSetCommand ---
 
-const VALID_COMMANDS = ["plan", "build", "verbose"] as const;
+const VALID_COMMANDS = ["plan", "build", "verbose", "narration"] as const;
 
 interface ConfigSetCommandProps {
   cwd: string;
@@ -234,9 +265,11 @@ interface ConfigSetCommandProps {
   cliName?: string;
 }
 
+const VALID_NARRATION_VALUES = ["concise", "explicit"] as const;
+
 function getUsageError(command?: string, value?: string): string | null {
   if (!command || !value) {
-    return `Usage: eni config set <plan|build|verbose> <value>`;
+    return `Usage: eni config set <plan|build|verbose|narration> <value>`;
   }
   if (!VALID_COMMANDS.includes(command as (typeof VALID_COMMANDS)[number])) {
     return `Invalid command: "${command}". Must be one of: ${VALID_COMMANDS.join(", ")}`;
@@ -244,6 +277,12 @@ function getUsageError(command?: string, value?: string): string | null {
   if (command === "verbose") {
     if (value !== "true" && value !== "false") {
       return `Invalid value for verbose: must be true or false`;
+    }
+    return null;
+  }
+  if (command === "narration") {
+    if (!VALID_NARRATION_VALUES.includes(value as Narration)) {
+      return `Invalid value for narration: must be one of: ${VALID_NARRATION_VALUES.join(", ")}`;
     }
     return null;
   }
@@ -267,10 +306,14 @@ export const ConfigSetCommand = ({ cwd, command, cliName }: ConfigSetCommandProp
 
     const run = async () => {
       const existing = (await readConfig(cwd).catch(() => null)) ?? {};
-      const updated: EniConfig =
-        command === "verbose"
-          ? { ...existing, verbose: cliName === "true" }
-          : { ...existing, [command!]: cliName as CLIId };
+      let updated: EniConfig;
+      if (command === "verbose") {
+        updated = { ...existing, verbose: cliName === "true" };
+      } else if (command === "narration") {
+        updated = { ...existing, narration: cliName as Narration };
+      } else {
+        updated = { ...existing, [command!]: cliName as CLIId };
+      }
       await writeConfig(cwd, updated);
       setDone(true);
     };
@@ -294,7 +337,11 @@ export const ConfigSetCommand = ({ cwd, command, cliName }: ConfigSetCommandProp
 
   if (done) {
     const display =
-      command === "verbose" ? `Set verbose to ${cliName}` : `Set ${command} CLI to ${cliName}`;
+      command === "verbose"
+        ? `Set verbose to ${cliName}`
+        : command === "narration"
+          ? `Set narration to ${cliName}`
+          : `Set ${command} CLI to ${cliName}`;
     return <StatusMessage status="success">{display}</StatusMessage>;
   }
 
