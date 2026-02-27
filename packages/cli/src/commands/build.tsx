@@ -8,6 +8,7 @@ import {
   FirstRunPrompt,
   MissingBinaryFallback,
 } from "../components/index.js";
+import { Header } from "../components/Header.js";
 import { listSpecs, moveSpec } from "../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../lib/template.js";
 import { checkBinary } from "../lib/adapters/index.js";
@@ -294,7 +295,8 @@ export const BuildCommand = ({
 
   return (
     <Box flexDirection="column">
-      <SectionHeader title="Build" />
+      {step === "selecting" && <Header />}
+      <SectionHeader title="Build" subtitle={specName || undefined} />
 
       {step === "selecting" && specs.length > 0 && (
         <Select
