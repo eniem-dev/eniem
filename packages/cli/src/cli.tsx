@@ -231,7 +231,6 @@ if (command === "ready") {
   const resolvedVerbose = resolveVerbose(verboseFlag, config);
   render(
     <Box flexDirection="column">
-      <Header />
       <PlanCommand
         spec={specFlag}
         iterations={iterationsFlag ?? 3}
