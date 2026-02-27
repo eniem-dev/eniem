@@ -1,3 +1,33 @@
+# [eniem-cli-v1.6.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.5.0...eniem-cli-v1.6.0) (2026-02-27)
+
+
+### Bug Fixes
+
+* **opencode:** use stdin instead of CLI argument for prompt ([0ef0bf4](https://github.com/eniem-dev/eniem/commit/0ef0bf42cc03a11de87442cc32a3b0c6ce6afd32))
+* validate spec exists before showing running state in plan command ([834af12](https://github.com/eniem-dev/eniem/commit/834af12e412ceca64fe27e38e6eec4c1a17c350e))
+
+
+### Features
+
+* **cleanup-cli-ai-init:** add CLI adapter and verbose selection to ai init flow ([e05d069](https://github.com/eniem-dev/eniem/commit/e05d069e15f7c2e721bc759687a275cd7c00e897))
+* **cleanup-cli-ai-init:** add verbose boolean to EniConfig type and validation ([9c5341c](https://github.com/eniem-dev/eniem/commit/9c5341cf3358c0a727f803b454efd30ad013215c))
+* **cleanup-cli-ai-init:** add verbose to config show, set, and interactive config ([54207e3](https://github.com/eniem-dev/eniem/commit/54207e3708d3d19783a0e4381860a9193124695c))
+* **cleanup-cli-ai-init:** document --no-verbose flag and update --verbose description ([ef9307a](https://github.com/eniem-dev/eniem/commit/ef9307a95ce5d66ba92008d433ad05226520ae21))
+* **cleanup-cli-ai-init:** update ai init post-init success message ([bd79332](https://github.com/eniem-dev/eniem/commit/bd79332492a0765aaee400c45855727ef947b459))
+* **cleanup-cli-ai-init:** wire verbose config into plan and build commands ([faf5d7c](https://github.com/eniem-dev/eniem/commit/faf5d7c7c003757e6d756c0e7e942a71e1b94082))
+* **cli-header-spec-name-display:** add E2E tests for spec name header and logo visibility ([9eff0ca](https://github.com/eniem-dev/eniem/commit/9eff0ca410c0f0b76fedfc6ad93fc932acace37f))
+* **cli-header-spec-name-display:** add optional subtitle prop to SectionHeader ([e0aca6e](https://github.com/eniem-dev/eniem/commit/e0aca6ef9beedadc6d14745cca77e8d2731120cc))
+* **cli-header-spec-name-display:** move Header into BuildCommand and show spec name in subtitle ([ab41fb6](https://github.com/eniem-dev/eniem/commit/ab41fb6a9c432e3da99079000078406704f2c346))
+* **cli-header-spec-name-display:** move Header into PlanCommand and show spec name in subtitle ([ec1b5e6](https://github.com/eniem-dev/eniem/commit/ec1b5e64bdb6866fa1aa5cccf9f60c408ffc309d))
+* **narrate-tool-activity:** add narration field to EniConfig type and validateConfig ([c7a7f41](https://github.com/eniem-dev/eniem/commit/c7a7f415561a9ca36a6e17ad89204d608037fb54))
+* **narrate-tool-activity:** add narration step to ai init flow ([491a498](https://github.com/eniem-dev/eniem/commit/491a4988cb061f6ecf7159baaec397ede21fb84e))
+* **narrate-tool-activity:** add narration step to interactive config wizard ([8f999d6](https://github.com/eniem-dev/eniem/commit/8f999d6606f8ae8495fb803c1d1c4d32cfd2f714))
+* **narrate-tool-activity:** add narration to config show and config set commands ([2f22d73](https://github.com/eniem-dev/eniem/commit/2f22d731df3efab641c166923d29a218bea820ce))
+* **narrate-tool-activity:** add narration to FirstRunPrompt component ([9d2d454](https://github.com/eniem-dev/eniem/commit/9d2d45485fe787c35dbf8e3355ec0aae61cb30e6))
+* **narrate-tool-activity:** create narration prompt injection utility ([443fc99](https://github.com/eniem-dev/eniem/commit/443fc993c516f9e9ec3096e7239f0ac1c4ec570a))
+* **narrate-tool-activity:** wire narration config into plan and build commands ([0ae6f85](https://github.com/eniem-dev/eniem/commit/0ae6f850ee530acffc0c3d504dfee662299dfb22))
+* **plan-build-list-flag:** add --list flag to plan and build commands ([6b632b3](https://github.com/eniem-dev/eniem/commit/6b632b331bfcd23ef6bce10f7ab6eba0087638dd))
+
 # [eniem-cli-v1.5.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.4.0...eniem-cli-v1.5.0) (2026-02-26)
 
 
