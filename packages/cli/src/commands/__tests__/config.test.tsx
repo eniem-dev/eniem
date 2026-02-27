@@ -61,13 +61,14 @@ describe("ConfigCommand", () => {
   });
 
   it("shows current config when one exists", async () => {
-    mockReadConfig.mockResolvedValue({ plan: "claude", build: "codex" });
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "codex", verbose: true });
 
     const { lastFrame } = render(<ConfigCommand cwd="/tmp" />);
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain("plan: claude");
       expect(lastFrame()).toContain("build: codex");
+      expect(lastFrame()).toContain("verbose: true");
     });
   });
 
@@ -100,34 +101,65 @@ describe("ConfigCommand", () => {
     });
   });
 
-  it("shows summary after both selections", async () => {
+  it("shows verbose prompt after build selection", async () => {
     const { lastFrame, stdin } = render(<ConfigCommand cwd="/tmp" />);
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain("Default CLI for plan:");
     });
 
-    // Select plan CLI
     stdin.write("\r");
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain("Default CLI for build:");
     });
 
-    // Small delay so ink-select-input registers the new Select
     await new Promise((r) => setTimeout(r, 50));
 
-    // Select build CLI
     stdin.write("\r");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Enable verbose output?");
+    });
+    expect(lastFrame()).toContain("Plan CLI: claude");
+    expect(lastFrame()).toContain("Build CLI: claude");
+  });
+
+  it("shows summary after all selections", async () => {
+    const { lastFrame, stdin } = render(<ConfigCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Default CLI for plan:");
+    });
+
+    stdin.write("\r");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Default CLI for build:");
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    stdin.write("\r");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Enable verbose output?");
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Confirm verbose (press 'n' to select No)
+    stdin.write("n");
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain("Saved to .eni/config.json");
     });
     expect(lastFrame()).toContain("Plan CLI: claude");
     expect(lastFrame()).toContain("Build CLI: claude");
+    expect(lastFrame()).toContain("Verbose: false");
   });
 
-  it("calls writeConfig with selected values", async () => {
+  it("calls writeConfig with selected values including verbose", async () => {
     const { lastFrame, stdin } = render(<ConfigCommand cwd="/tmp" />);
 
     await vi.waitFor(() => {
@@ -140,15 +172,24 @@ describe("ConfigCommand", () => {
       expect(lastFrame()).toContain("Default CLI for build:");
     });
 
-    // Small delay so ink-select-input registers the new Select
     await new Promise((r) => setTimeout(r, 50));
 
     stdin.write("\r");
 
     await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Enable verbose output?");
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Select yes for verbose
+    stdin.write("y");
+
+    await vi.waitFor(() => {
       expect(mockWriteConfig).toHaveBeenCalledWith("/tmp", {
         plan: "claude",
         build: "claude",
+        verbose: true,
       });
     });
   });
@@ -166,8 +207,29 @@ describe("ConfigShowCommand", () => {
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain("CLI Configuration (.eni/config.json):");
-      expect(lastFrame()).toContain("plan:  claude");
-      expect(lastFrame()).toContain("build: codex");
+      expect(lastFrame()).toContain("plan:    claude");
+      expect(lastFrame()).toContain("build:   codex");
+      expect(lastFrame()).toContain("verbose: false");
+    });
+  });
+
+  it("displays verbose: true when config has verbose enabled", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "codex", verbose: true });
+
+    const { lastFrame } = render(<ConfigShowCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("verbose: true");
+    });
+  });
+
+  it("displays verbose: false when verbose key is missing", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "codex" });
+
+    const { lastFrame } = render(<ConfigShowCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("verbose: false");
     });
   });
 
@@ -230,23 +292,67 @@ describe("ConfigSetCommand", () => {
     });
   });
 
+  it("sets verbose to true", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "claude" });
+
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="verbose" cliName="true" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Set verbose to true");
+    });
+    expect(mockWriteConfig).toHaveBeenCalledWith("/tmp", {
+      plan: "claude",
+      build: "claude",
+      verbose: true,
+    });
+  });
+
+  it("sets verbose to false", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "claude", verbose: true });
+
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="verbose" cliName="false" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Set verbose to false");
+    });
+    expect(mockWriteConfig).toHaveBeenCalledWith("/tmp", {
+      plan: "claude",
+      build: "claude",
+      verbose: false,
+    });
+  });
+
+  it("rejects invalid verbose value", async () => {
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="verbose" cliName="maybe" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Invalid value for verbose: must be true or false");
+    });
+  });
+
   it("shows usage error when command is missing", async () => {
     const { lastFrame } = render(
       <ConfigSetCommand cwd="/tmp" command={undefined} cliName="claude" />,
     );
 
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain("Usage: eni config set <plan|build>");
+      expect(lastFrame()).toContain("Usage: eni config set <plan|build|verbose>");
     });
   });
 
-  it("shows usage error when cli name is missing", async () => {
+  it("shows usage error when value is missing", async () => {
     const { lastFrame } = render(
       <ConfigSetCommand cwd="/tmp" command="plan" cliName={undefined} />,
     );
 
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain("Usage: eni config set <plan|build>");
+      expect(lastFrame()).toContain("Usage: eni config set <plan|build|verbose>");
     });
   });
 
@@ -257,7 +363,7 @@ describe("ConfigSetCommand", () => {
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain('Invalid command: "deploy"');
-      expect(lastFrame()).toContain("plan, build");
+      expect(lastFrame()).toContain("plan, build, verbose");
     });
   });
 

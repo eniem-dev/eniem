@@ -63,5 +63,6 @@ describe("CLI plan command flags", () => {
     expect(result.stdout).toContain("--spec");
     expect(result.stdout).toContain("--iterations");
     expect(result.stdout).toContain("--verbose");
+    expect(result.stdout).toContain("--no-verbose");
   }, 15_000);
 });

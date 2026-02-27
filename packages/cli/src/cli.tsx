@@ -14,6 +14,8 @@ import { BuildCommand } from "./commands/build.js";
 import { Header } from "./components/Header.js";
 import type { PolarEnvironment } from "./lib/polar.js";
 import { isValidCLI, SUPPORTED_CLIS } from "./lib/adapters/index.js";
+import { readConfig } from "./lib/eni-config.js";
+import { resolveVerbose } from "./lib/resolve-verbose.js";
 
 // Handle unhandled promise rejections globally
 process.on("unhandledRejection", (reason) => {
@@ -36,7 +38,7 @@ const cli = meow(
     $ eni ready
     $ eni config
     $ eni config show
-    $ eni config set <plan|build> <claude|codex|gemini|opencode>
+    $ eni config set <plan|build|verbose> <value>
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
     $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
     $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
@@ -46,7 +48,7 @@ const cli = meow(
     ready          Generate production .env interactively
     config         Configure default AI CLI backends interactively
     config show    Display current CLI configuration
-    config set     Set a CLI backend (e.g. eni config set plan gemini)
+    config set     Set a config value (e.g. eni config set plan gemini, eni config set verbose true)
     products       Manage Polar products interactively
     plan           Run AI planning loop on a spec file
     build          Run AI build loop on a planned spec file
@@ -60,7 +62,8 @@ const cli = meow(
     --token        Polar access token (bypasses .env lookup)
     --spec         Spec name for plan/build command (interactive if omitted)
     --iterations   Number of iterations (default: 3 for plan, 10 for build)
-    --verbose      Show tool usage during plan/build execution
+    --verbose      Show tool usage during plan/build (overrides config)
+    --no-verbose   Disable verbose output (overrides config)
     --cli          AI CLI backend for plan/build (claude, codex, gemini, opencode)
     --force        Skip confirmation when updating existing AI workflow
     --help, -h     Show this help message
@@ -75,6 +78,7 @@ const cli = meow(
     $ eni config show
     $ eni config set plan gemini
     $ eni config set build codex
+    $ eni config set verbose true
     $ eni products
     $ eni products --prod
     $ eni products --prod --token=polar_xxx
@@ -99,7 +103,7 @@ const cli = meow(
       token: { type: "string" },
       spec: { type: "string" },
       iterations: { type: "number" },
-      verbose: { type: "boolean", default: false },
+      verbose: { type: "boolean" },
       cli: { type: "string" },
       force: { type: "boolean", default: false },
       help: { type: "boolean", shortFlag: "h" },
@@ -179,7 +183,7 @@ if (command === "ready") {
   );
 } else if (command === "config" && subcommand && subcommand !== "show" && subcommand !== "set") {
   console.error(`\x1b[31m✗ Unknown config subcommand: ${subcommand}\x1b[0m`);
-  console.error(`  Usage: eni config [show | set <plan|build> <cli>]`);
+  console.error(`  Usage: eni config [show | set <plan|build|verbose> <value>]`);
   process.exit(1);
 } else if (command === "config") {
   const projectDir = process.cwd();
@@ -199,13 +203,15 @@ if (command === "ready") {
   );
 } else if (command === "plan") {
   const projectDir = process.cwd();
+  const config = await readConfig(projectDir);
+  const resolvedVerbose = resolveVerbose(verboseFlag, config);
   render(
     <Box flexDirection="column">
       <Header />
       <PlanCommand
         spec={specFlag}
         iterations={iterationsFlag ?? 3}
-        verbose={verboseFlag}
+        verbose={resolvedVerbose}
         specsDir={join(projectDir, "specs")}
         promptFile={join(projectDir, ".eni", "PROMPT_plan.md")}
         cli={cliFlag}
@@ -214,13 +220,15 @@ if (command === "ready") {
   );
 } else if (command === "build") {
   const projectDir = process.cwd();
+  const config = await readConfig(projectDir);
+  const resolvedVerbose = resolveVerbose(verboseFlag, config);
   render(
     <Box flexDirection="column">
       <Header />
       <BuildCommand
         spec={specFlag}
         iterations={iterationsFlag ?? 10}
-        verbose={verboseFlag}
+        verbose={resolvedVerbose}
         specsDir={join(projectDir, "specs", "planned")}
         promptFile={join(projectDir, ".eni", "PROMPT_build.md")}
         cli={cliFlag}

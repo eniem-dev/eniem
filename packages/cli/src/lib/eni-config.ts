@@ -6,6 +6,7 @@ import { SUPPORTED_CLIS, type CLIId } from "./adapters/types.js";
 export interface EniConfig {
   plan?: CLIId;
   build?: CLIId;
+  verbose?: boolean;
 }
 
 const CONFIG_DIR = ".eni";
@@ -36,6 +37,15 @@ export function validateConfig(data: unknown): EniConfig {
       }
       config[key] = value as CLIId;
     }
+  }
+
+  if ("verbose" in obj) {
+    if (typeof obj.verbose !== "boolean") {
+      throw new Error(
+        `Invalid config: "verbose" must be a boolean (got "${String(obj.verbose)}")`,
+      );
+    }
+    config.verbose = obj.verbose;
   }
 
   return config;
