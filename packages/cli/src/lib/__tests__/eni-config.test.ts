@@ -43,6 +43,15 @@ describe("readConfig", () => {
     expect(config).toBeNull();
   });
 
+  it("returns config without verbose when key is absent in file", async () => {
+    mockedReadFile.mockResolvedValue(JSON.stringify({ plan: "claude" }));
+
+    const config = await readConfig(CWD);
+
+    expect(config).toEqual({ plan: "claude" });
+    expect(config?.verbose).toBeUndefined();
+  });
+
   it("throws on invalid JSON with helpful message", async () => {
     mockedReadFile.mockResolvedValue("{ not valid json }");
 
@@ -75,6 +84,18 @@ describe("writeConfig", () => {
       JSON.stringify({ plan: "gemini", build: "codex" }, null, 2) + "\n",
     );
   });
+
+  it("writes verbose field to config file", async () => {
+    mockedMkdir.mockResolvedValue(undefined);
+    mockedWriteFile.mockResolvedValue();
+
+    await writeConfig(CWD, { plan: "claude", verbose: true });
+
+    expect(mockedWriteFile).toHaveBeenCalledWith(
+      CONFIG_PATH,
+      JSON.stringify({ plan: "claude", verbose: true }, null, 2) + "\n",
+    );
+  });
 });
 
 describe("validateConfig", () => {
@@ -91,6 +112,34 @@ describe("validateConfig", () => {
   it('rejects { plan: "invalid" } with error listing valid CLIs', () => {
     expect(() => validateConfig({ plan: "invalid" })).toThrow(
       /must be one of: claude, codex, gemini, opencode.*got "invalid"/,
+    );
+  });
+
+  it("accepts { verbose: true }", () => {
+    const result = validateConfig({ verbose: true });
+    expect(result).toEqual({ verbose: true });
+  });
+
+  it("accepts { verbose: false }", () => {
+    const result = validateConfig({ verbose: false });
+    expect(result).toEqual({ verbose: false });
+  });
+
+  it("returns config without verbose when key is missing", () => {
+    const result = validateConfig({ plan: "claude" });
+    expect(result).toEqual({ plan: "claude" });
+    expect(result.verbose).toBeUndefined();
+  });
+
+  it('rejects { verbose: "yes" } with error', () => {
+    expect(() => validateConfig({ verbose: "yes" })).toThrow(
+      /verbose.*must be a boolean.*got "yes"/,
+    );
+  });
+
+  it("rejects { verbose: 1 } with error", () => {
+    expect(() => validateConfig({ verbose: 1 })).toThrow(
+      /verbose.*must be a boolean.*got "1"/,
     );
   });
 
