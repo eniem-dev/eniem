@@ -6,6 +6,7 @@ import { SUPPORTED_CLIS, getAdapter, checkBinary, isValidCLI } from "../lib/adap
 import type { EniConfig } from "../lib/eni-config.js";
 import { readConfig, writeConfig } from "../lib/eni-config.js";
 
+import { Confirm } from "../components/Confirm.js";
 import { SectionHeader } from "../components/SectionHeader.js";
 import { Select } from "../components/Select.js";
 import { Spinner } from "../components/Spinner.js";
@@ -15,7 +16,7 @@ interface ConfigCommandProps {
   cwd: string;
 }
 
-type Step = "loading" | "plan" | "build" | "saving" | "done" | "error";
+type Step = "loading" | "plan" | "build" | "verbose" | "saving" | "done" | "error";
 
 interface AdapterInfo {
   adapter: CLIAdapter;
@@ -29,6 +30,7 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
   const [currentConfig, setCurrentConfig] = useState<EniConfig | null>(null);
   const [planCLI, setPlanCLI] = useState<CLIId | null>(null);
   const [buildCLI, setBuildCLI] = useState<CLIId | null>(null);
+  const [verboseChoice, setVerboseChoice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadedRef = useRef(false);
 
@@ -78,11 +80,16 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
     const info = adapters.find((a) => a.adapter.id === value);
     if (!info?.available) return;
 
-    const selectedBuild = value as CLIId;
-    setBuildCLI(selectedBuild);
+    setBuildCLI(value as CLIId);
+    setVerboseChoice(currentConfig?.verbose ?? false);
+    setStep("verbose");
+  };
+
+  const handleVerboseSelect = (confirmed: boolean) => {
+    setVerboseChoice(confirmed);
     setStep("saving");
 
-    const config: EniConfig = { plan: planCLI!, build: selectedBuild };
+    const config: EniConfig = { plan: planCLI!, build: buildCLI!, verbose: confirmed };
     void writeConfig(cwd, config)
       .then(() => setStep("done"))
       .catch((err: unknown) => {
@@ -102,7 +109,8 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
       {currentConfig && step === "plan" && (
         <StatusMessage status="info">
           Current config — plan: {currentConfig.plan ?? "not set"}, build:{" "}
-          {currentConfig.build ?? "not set"}
+          {currentConfig.build ?? "not set"}, verbose:{" "}
+          {String(currentConfig.verbose ?? false)}
         </StatusMessage>
       )}
 
@@ -130,9 +138,25 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
         </Box>
       )}
 
-      {buildCLI && (step === "saving" || step === "done") && (
+      {buildCLI && step !== "build" && step !== "plan" && (
         <StatusMessage status="success">Build CLI: {buildCLI}</StatusMessage>
       )}
+
+      {step === "verbose" && (
+        <Box marginTop={1} flexDirection="column">
+          <Confirm
+            label="Enable verbose output?"
+            onConfirm={handleVerboseSelect}
+            defaultValue={currentConfig?.verbose ?? false}
+          />
+        </Box>
+      )}
+
+      {step === "saving" || step === "done" ? (
+        <StatusMessage status="success">
+          Verbose: {String(verboseChoice)}
+        </StatusMessage>
+      ) : null}
 
       {step === "saving" && <Spinner label="Saving configuration..." />}
 
@@ -193,20 +217,40 @@ export const ConfigShowCommand = ({ cwd }: ConfigShowCommandProps) => {
   return (
     <Box flexDirection="column">
       <Text bold>CLI Configuration (.eni/config.json):</Text>
-      <Text>  plan:  {config.plan ?? "not set"}</Text>
-      <Text>  build: {config.build ?? "not set"}</Text>
+      <Text>  plan:    {config.plan ?? "not set"}</Text>
+      <Text>  build:   {config.build ?? "not set"}</Text>
+      <Text>  verbose: {String(config.verbose ?? false)}</Text>
     </Box>
   );
 };
 
 // --- ConfigSetCommand ---
 
-const VALID_COMMANDS = ["plan", "build"] as const;
+const VALID_COMMANDS = ["plan", "build", "verbose"] as const;
 
 interface ConfigSetCommandProps {
   cwd: string;
   command?: string;
   cliName?: string;
+}
+
+function getUsageError(command?: string, value?: string): string | null {
+  if (!command || !value) {
+    return `Usage: eni config set <plan|build|verbose> <value>`;
+  }
+  if (!VALID_COMMANDS.includes(command as (typeof VALID_COMMANDS)[number])) {
+    return `Invalid command: "${command}". Must be one of: ${VALID_COMMANDS.join(", ")}`;
+  }
+  if (command === "verbose") {
+    if (value !== "true" && value !== "false") {
+      return `Invalid value for verbose: must be true or false`;
+    }
+    return null;
+  }
+  if (!isValidCLI(value)) {
+    return `Invalid CLI: "${value}". Must be one of: ${SUPPORTED_CLIS.join(", ")}`;
+  }
+  return null;
 }
 
 export const ConfigSetCommand = ({ cwd, command, cliName }: ConfigSetCommandProps) => {
@@ -215,13 +259,7 @@ export const ConfigSetCommand = ({ cwd, command, cliName }: ConfigSetCommandProp
   const [error, setError] = useState<string | null>(null);
   const startedRef = useRef(false);
 
-  const usageError = !command || !cliName
-    ? `Usage: eni config set <plan|build> <${SUPPORTED_CLIS.join("|")}>`
-    : !VALID_COMMANDS.includes(command as (typeof VALID_COMMANDS)[number])
-      ? `Invalid command: "${command}". Must be one of: ${VALID_COMMANDS.join(", ")}`
-      : !isValidCLI(cliName)
-        ? `Invalid CLI: "${cliName}". Must be one of: ${SUPPORTED_CLIS.join(", ")}`
-        : null;
+  const usageError = getUsageError(command, cliName);
 
   useEffect(() => {
     if (usageError || startedRef.current) return;
@@ -229,7 +267,10 @@ export const ConfigSetCommand = ({ cwd, command, cliName }: ConfigSetCommandProp
 
     const run = async () => {
       const existing = (await readConfig(cwd).catch(() => null)) ?? {};
-      const updated: EniConfig = { ...existing, [command!]: cliName as CLIId };
+      const updated: EniConfig =
+        command === "verbose"
+          ? { ...existing, verbose: cliName === "true" }
+          : { ...existing, [command!]: cliName as CLIId };
       await writeConfig(cwd, updated);
       setDone(true);
     };
@@ -252,11 +293,9 @@ export const ConfigSetCommand = ({ cwd, command, cliName }: ConfigSetCommandProp
   }
 
   if (done) {
-    return (
-      <StatusMessage status="success">
-        Set {command} CLI to {cliName}
-      </StatusMessage>
-    );
+    const display =
+      command === "verbose" ? `Set verbose to ${cliName}` : `Set ${command} CLI to ${cliName}`;
+    return <StatusMessage status="success">{display}</StatusMessage>;
   }
 
   return null;

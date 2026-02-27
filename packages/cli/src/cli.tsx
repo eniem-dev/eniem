@@ -38,7 +38,7 @@ const cli = meow(
     $ eni ready
     $ eni config
     $ eni config show
-    $ eni config set <plan|build> <claude|codex|gemini|opencode>
+    $ eni config set <plan|build|verbose> <value>
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
     $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
     $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
@@ -48,7 +48,7 @@ const cli = meow(
     ready          Generate production .env interactively
     config         Configure default AI CLI backends interactively
     config show    Display current CLI configuration
-    config set     Set a CLI backend (e.g. eni config set plan gemini)
+    config set     Set a config value (e.g. eni config set plan gemini, eni config set verbose true)
     products       Manage Polar products interactively
     plan           Run AI planning loop on a spec file
     build          Run AI build loop on a planned spec file
@@ -77,6 +77,7 @@ const cli = meow(
     $ eni config show
     $ eni config set plan gemini
     $ eni config set build codex
+    $ eni config set verbose true
     $ eni products
     $ eni products --prod
     $ eni products --prod --token=polar_xxx
@@ -181,7 +182,7 @@ if (command === "ready") {
   );
 } else if (command === "config" && subcommand && subcommand !== "show" && subcommand !== "set") {
   console.error(`\x1b[31m✗ Unknown config subcommand: ${subcommand}\x1b[0m`);
-  console.error(`  Usage: eni config [show | set <plan|build> <cli>]`);
+  console.error(`  Usage: eni config [show | set <plan|build|verbose> <value>]`);
   process.exit(1);
 } else if (command === "config") {
   const projectDir = process.cwd();
