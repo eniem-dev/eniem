@@ -8,6 +8,9 @@ vi.mock("../../lib/eni-config.js", () => ({
   writeConfig: vi.fn(() => Promise.resolve()),
 }));
 
+import { writeConfig } from "../../lib/eni-config.js";
+const mockWriteConfig = vi.mocked(writeConfig);
+
 function makeAdapter(
   id: "claude" | "codex" | "gemini" | "opencode",
   name: string,
@@ -117,5 +120,94 @@ describe("FirstRunPrompt", () => {
         build: "claude",
       });
     });
+  });
+
+  it("shows narration selector after build selection", async () => {
+    const { lastFrame, stdin } = render(
+      <FirstRunPrompt
+        available={[claude, codex]}
+        cwd="/tmp"
+        onComplete={() => {}}
+      />,
+    );
+
+    // Wait for plan selector to render
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Default CLI for plan:");
+    });
+
+    // Select plan CLI
+    await new Promise((r) => setTimeout(r, 50));
+    stdin.write("\r");
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Default CLI for build:");
+    });
+
+    // Select build CLI
+    await new Promise((r) => setTimeout(r, 50));
+    stdin.write("\r");
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Narration style:");
+      expect(lastFrame()).toContain("Concise");
+      expect(lastFrame()).toContain("Explicit");
+    });
+  });
+
+  it("saves narration choice in writeConfig call", async () => {
+    const onComplete = vi.fn();
+    const { lastFrame, stdin } = render(
+      <FirstRunPrompt
+        available={[claude, codex]}
+        cwd="/tmp"
+        onComplete={onComplete}
+      />,
+    );
+
+    // Wait for plan selector
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Default CLI for plan:");
+    });
+
+    // Select plan CLI
+    await new Promise((r) => setTimeout(r, 50));
+    stdin.write("\r");
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Default CLI for build:");
+    });
+
+    // Select build CLI
+    await new Promise((r) => setTimeout(r, 50));
+    stdin.write("\r");
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Narration style:");
+    });
+
+    // Select narration (first option = concise)
+    await new Promise((r) => setTimeout(r, 50));
+    stdin.write("\r");
+    await vi.waitFor(() => {
+      expect(mockWriteConfig).toHaveBeenCalledWith(
+        "/tmp",
+        expect.objectContaining({ narration: "concise" }),
+      );
+    });
+  });
+
+  it("auto-select mode omits narration from config", async () => {
+    const onComplete = vi.fn();
+    render(
+      <FirstRunPrompt
+        available={[claude]}
+        cwd="/tmp"
+        onComplete={onComplete}
+      />,
+    );
+
+    await vi.waitFor(() => {
+      expect(mockWriteConfig).toHaveBeenCalled();
+    });
+
+    const savedConfig = mockWriteConfig.mock.calls[0]![1];
+    expect(savedConfig).not.toHaveProperty("narration");
   });
 });
