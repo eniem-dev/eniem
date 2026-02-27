@@ -96,6 +96,18 @@ describe("writeConfig", () => {
       JSON.stringify({ plan: "claude", verbose: true }, null, 2) + "\n",
     );
   });
+
+  it("writes narration field to config file", async () => {
+    mockedMkdir.mockResolvedValue(undefined);
+    mockedWriteFile.mockResolvedValue();
+
+    await writeConfig(CWD, { plan: "claude", narration: "explicit" });
+
+    expect(mockedWriteFile).toHaveBeenCalledWith(
+      CONFIG_PATH,
+      JSON.stringify({ plan: "claude", narration: "explicit" }, null, 2) + "\n",
+    );
+  });
 });
 
 describe("validateConfig", () => {
@@ -140,6 +152,34 @@ describe("validateConfig", () => {
   it("rejects { verbose: 1 } with error", () => {
     expect(() => validateConfig({ verbose: 1 })).toThrow(
       /verbose.*must be a boolean.*got "1"/,
+    );
+  });
+
+  it('accepts { narration: "concise" }', () => {
+    const result = validateConfig({ narration: "concise" });
+    expect(result).toEqual({ narration: "concise" });
+  });
+
+  it('accepts { narration: "explicit" }', () => {
+    const result = validateConfig({ narration: "explicit" });
+    expect(result).toEqual({ narration: "explicit" });
+  });
+
+  it("returns config without narration when key is missing", () => {
+    const result = validateConfig({ plan: "claude" });
+    expect(result).toEqual({ plan: "claude" });
+    expect(result.narration).toBeUndefined();
+  });
+
+  it('rejects { narration: "loud" } with error', () => {
+    expect(() => validateConfig({ narration: "loud" })).toThrow(
+      /narration.*must be one of: concise, explicit.*got "loud"/,
+    );
+  });
+
+  it("rejects { narration: 123 } with error", () => {
+    expect(() => validateConfig({ narration: 123 })).toThrow(
+      /narration.*must be one of: concise, explicit.*got "123"/,
     );
   });
 
