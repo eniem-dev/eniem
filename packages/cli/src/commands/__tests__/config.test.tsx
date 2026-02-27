@@ -126,7 +126,7 @@ describe("ConfigCommand", () => {
     expect(lastFrame()).toContain("Build CLI: claude");
   });
 
-  it("shows summary after all selections", async () => {
+  it("shows narration selector after verbose confirmation", async () => {
     const { lastFrame, stdin } = render(<ConfigCommand cwd="/tmp" />);
 
     await vi.waitFor(() => {
@@ -149,8 +149,51 @@ describe("ConfigCommand", () => {
 
     await new Promise((r) => setTimeout(r, 50));
 
-    // Confirm verbose (press 'n' to select No)
     stdin.write("n");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Narration style:");
+      expect(lastFrame()).toContain("Concise");
+      expect(lastFrame()).toContain("Explicit");
+    });
+    expect(lastFrame()).toContain("Plan CLI: claude");
+    expect(lastFrame()).toContain("Build CLI: claude");
+    expect(lastFrame()).toContain("Verbose: false");
+  });
+
+  it("shows summary after all selections including narration", async () => {
+    const { lastFrame, stdin } = render(<ConfigCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Default CLI for plan:");
+    });
+
+    stdin.write("\r");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Default CLI for build:");
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    stdin.write("\r");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Enable verbose output?");
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    stdin.write("n");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Narration style:");
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Select first option (Concise) with Enter
+    stdin.write("\r");
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain("Saved to .eni/config.json");
@@ -158,9 +201,10 @@ describe("ConfigCommand", () => {
     expect(lastFrame()).toContain("Plan CLI: claude");
     expect(lastFrame()).toContain("Build CLI: claude");
     expect(lastFrame()).toContain("Verbose: false");
+    expect(lastFrame()).toContain("Narration: concise");
   });
 
-  it("calls writeConfig with selected values including verbose", async () => {
+  it("calls writeConfig with selected values including verbose and narration", async () => {
     const { lastFrame, stdin } = render(<ConfigCommand cwd="/tmp" />);
 
     await vi.waitFor(() => {
@@ -187,11 +231,53 @@ describe("ConfigCommand", () => {
     stdin.write("y");
 
     await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Narration style:");
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Select first option (Concise) with Enter
+    stdin.write("\r");
+
+    await vi.waitFor(() => {
       expect(mockWriteConfig).toHaveBeenCalledWith("/tmp", {
         plan: "claude",
         build: "claude",
         verbose: true,
+        narration: "concise",
       });
+    });
+  });
+
+  it("pre-selects current narration value from existing config", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "codex", verbose: false, narration: "explicit" });
+
+    const { lastFrame, stdin } = render(<ConfigCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("narration: explicit");
+    });
+
+    stdin.write("\r");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Default CLI for build:");
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    stdin.write("\r");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Enable verbose output?");
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+
+    stdin.write("n");
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Narration style:");
     });
   });
 });

@@ -16,7 +16,7 @@ interface ConfigCommandProps {
   cwd: string;
 }
 
-type Step = "loading" | "plan" | "build" | "verbose" | "saving" | "done" | "error";
+type Step = "loading" | "plan" | "build" | "verbose" | "narration" | "saving" | "done" | "error";
 
 interface AdapterInfo {
   adapter: CLIAdapter;
@@ -31,6 +31,7 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
   const [planCLI, setPlanCLI] = useState<CLIId | null>(null);
   const [buildCLI, setBuildCLI] = useState<CLIId | null>(null);
   const [verboseChoice, setVerboseChoice] = useState(false);
+  const [narrationChoice, setNarrationChoice] = useState<Narration>("concise");
   const [error, setError] = useState<string | null>(null);
   const loadedRef = useRef(false);
 
@@ -87,9 +88,21 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
 
   const handleVerboseSelect = (confirmed: boolean) => {
     setVerboseChoice(confirmed);
+    setNarrationChoice(currentConfig?.narration ?? "concise");
+    setStep("narration");
+  };
+
+  const narrationOptions = [
+    { label: "Concise — no narration, fewer tokens (default)", value: "concise" },
+    { label: "Explicit — model narrates tool activity", value: "explicit" },
+  ];
+
+  const handleNarrationSelect = (value: string) => {
+    const narration = value as Narration;
+    setNarrationChoice(narration);
     setStep("saving");
 
-    const config: EniConfig = { plan: planCLI!, build: buildCLI!, verbose: confirmed };
+    const config: EniConfig = { plan: planCLI!, build: buildCLI!, verbose: verboseChoice, narration };
     void writeConfig(cwd, config)
       .then(() => setStep("done"))
       .catch((err: unknown) => {
@@ -153,11 +166,27 @@ export const ConfigCommand = ({ cwd }: ConfigCommandProps) => {
         </Box>
       )}
 
-      {step === "saving" || step === "done" ? (
+      {(step === "narration" || step === "saving" || step === "done") && (
         <StatusMessage status="success">
           Verbose: {String(verboseChoice)}
         </StatusMessage>
-      ) : null}
+      )}
+
+      {step === "narration" && (
+        <Box marginTop={1} flexDirection="column">
+          <Select
+            label="Narration style:"
+            options={narrationOptions}
+            onSelect={handleNarrationSelect}
+          />
+        </Box>
+      )}
+
+      {(step === "saving" || step === "done") && (
+        <StatusMessage status="success">
+          Narration: {narrationChoice}
+        </StatusMessage>
+      )}
 
       {step === "saving" && <Spinner label="Saving configuration..." />}
 
