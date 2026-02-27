@@ -12,6 +12,23 @@ vi.mock("../../lib/ai-init.js", () => ({
   cleanupTempDir: vi.fn(),
 }));
 
+// Mock adapters
+vi.mock("../../lib/adapters/index.js", () => ({
+  SUPPORTED_CLIS: ["claude", "codex"],
+  getAdapter: vi.fn((id: string) => ({
+    name: id === "claude" ? "Claude Code" : "Codex",
+    id,
+    binary: id,
+  })),
+  checkBinary: vi.fn().mockResolvedValue(true),
+}));
+
+// Mock eni-config
+vi.mock("../../lib/eni-config.js", () => ({
+  readConfig: vi.fn().mockResolvedValue(null),
+  writeConfig: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {
   checkEniExists,
   sparseCloneBoilerplate,
@@ -19,17 +36,22 @@ import {
   ensureSpecsFolder,
   cleanupTempDir,
 } from "../../lib/ai-init.js";
+import { readConfig, writeConfig } from "../../lib/eni-config.js";
 
 const mockCheckEniExists = vi.mocked(checkEniExists);
 const mockSparseCloneBoilerplate = vi.mocked(sparseCloneBoilerplate);
 const mockCopyAiFiles = vi.mocked(copyAiFiles);
 const mockEnsureSpecsFolder = vi.mocked(ensureSpecsFolder);
 const mockCleanupTempDir = vi.mocked(cleanupTempDir);
+const mockReadConfig = vi.mocked(readConfig);
+const mockWriteConfig = vi.mocked(writeConfig);
 
 describe("AiCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCleanupTempDir.mockResolvedValue(undefined);
+    mockReadConfig.mockResolvedValue(null);
+    mockWriteConfig.mockResolvedValue(undefined);
   });
 
   describe("Initial State", () => {
@@ -104,26 +126,53 @@ describe("AiCommand", () => {
   });
 
   describe("Successful Initialization", () => {
-    it("shows success message with copied files", async () => {
-      mockCheckEniExists.mockResolvedValue(false);
+    /** Helper: set up mocks for a successful file copy and advance through config selection */
+    function setupSuccessMocks({
+      eniExists = false,
+      copiedFiles = [".eni/loop.sh"],
+      specsCreated = false,
+    } = {}) {
+      mockCheckEniExists.mockResolvedValue(eniExists);
       mockSparseCloneBoilerplate.mockResolvedValue({
         success: true,
         tempDir: "/tmp/test",
       });
       mockCopyAiFiles.mockResolvedValue({
         success: true,
-        copiedFiles: [".eni/loop.sh", ".eni/PROMPT_plan.md", ".claude/settings.local.json"],
+        copiedFiles,
       });
       mockEnsureSpecsFolder.mockResolvedValue({
         success: true,
-        created: true,
+        created: specsCreated,
+      });
+    }
+
+    /** Advance through plan → build → verbose selection to reach complete */
+    async function advanceThroughConfigSteps(stdin: { write: (s: string) => void }) {
+      // Wait for adapters to load and plan select to render
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Select first plan CLI (Enter)
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Select first build CLI (Enter)
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Confirm verbose (Enter accepts default=No)
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    it("shows success message with copied files", async () => {
+      setupSuccessMocks({
+        copiedFiles: [".eni/loop.sh", ".eni/PROMPT_plan.md", ".claude/settings.local.json"],
+        specsCreated: true,
       });
 
-      const { lastFrame } = render(
+      const { lastFrame, stdin } = render(
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await advanceThroughConfigSteps(stdin);
 
       expect(lastFrame()).toContain("AI workflow initialized!");
       expect(lastFrame()).toContain("Copied files:");
@@ -134,43 +183,43 @@ describe("AiCommand", () => {
     });
 
     it("shows update message when updating existing workflow", async () => {
-      mockCheckEniExists.mockResolvedValue(true);
-      mockSparseCloneBoilerplate.mockResolvedValue({
-        success: true,
-        tempDir: "/tmp/test",
-      });
-      mockCopyAiFiles.mockResolvedValue({
-        success: true,
-        copiedFiles: [".eni/loop.sh"],
-      });
-      mockEnsureSpecsFolder.mockResolvedValue({
-        success: true,
-        created: false,
-      });
+      setupSuccessMocks({ eniExists: true });
 
-      const { lastFrame } = render(
+      const { lastFrame, stdin } = render(
         <AiCommand forceFlag={true} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await advanceThroughConfigSteps(stdin);
 
       expect(lastFrame()).toContain("AI workflow files updated!");
     });
 
-    it("shows hint about loop.sh on success", async () => {
-      mockCheckEniExists.mockResolvedValue(false);
-      mockSparseCloneBoilerplate.mockResolvedValue({
-        success: true,
-        tempDir: "/tmp/test",
-      });
-      mockCopyAiFiles.mockResolvedValue({
-        success: true,
-        copiedFiles: [".eni/loop.sh"],
-      });
-      mockEnsureSpecsFolder.mockResolvedValue({
-        success: true,
-        created: false,
-      });
+    it("shows hint about eni plan on success", async () => {
+      setupSuccessMocks();
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(lastFrame()).toContain("eni plan");
+    });
+
+    it("shows config saved message on success", async () => {
+      setupSuccessMocks();
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(lastFrame()).toContain("Saved to .eni/config.json");
+    });
+
+    it("shows CLI selection prompts after file copy", async () => {
+      setupSuccessMocks();
 
       const { lastFrame } = render(
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
@@ -178,29 +227,17 @@ describe("AiCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(lastFrame()).toContain("./loop.sh plan");
+      expect(lastFrame()).toContain("Default CLI for plan:");
     });
 
     it("does not show specs created message when specs already existed", async () => {
-      mockCheckEniExists.mockResolvedValue(false);
-      mockSparseCloneBoilerplate.mockResolvedValue({
-        success: true,
-        tempDir: "/tmp/test",
-      });
-      mockCopyAiFiles.mockResolvedValue({
-        success: true,
-        copiedFiles: [".eni/loop.sh"],
-      });
-      mockEnsureSpecsFolder.mockResolvedValue({
-        success: true,
-        created: false,
-      });
+      setupSuccessMocks({ specsCreated: false });
 
-      const { lastFrame } = render(
+      const { lastFrame, stdin } = render(
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await advanceThroughConfigSteps(stdin);
 
       expect(lastFrame()).not.toContain("Created specs/");
     });
