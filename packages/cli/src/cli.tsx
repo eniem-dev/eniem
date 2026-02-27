@@ -2,6 +2,7 @@ import { render, Box } from "ink";
 import React from "react";
 import meow from "meow";
 import { join } from "path";
+import { listSpecs } from "./lib/specs.js";
 import { ConfigProvider } from "./config/index.js";
 
 import { Wizard } from "./Wizard.js";
@@ -38,8 +39,8 @@ const cli = meow(
     $ eni config show
     $ eni config set <plan|build> <claude|codex|gemini|opencode>
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
-    $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
-    $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>]
+    $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
+    $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
     $ eni ai init [--force]
 
   Commands
@@ -62,6 +63,7 @@ const cli = meow(
     --iterations   Number of iterations (default: 3 for plan, 10 for build)
     --verbose      Show tool usage during plan/build execution
     --cli          AI CLI backend for plan/build (claude, codex, gemini, opencode)
+    --list         List available spec names for plan/build and exit
     --force        Skip confirmation when updating existing AI workflow
     --help, -h     Show this help message
     --version, -v  Show version number
@@ -84,6 +86,8 @@ const cli = meow(
     $ eni build
     $ eni build --spec=my-feature --iterations=20 --verbose
     $ eni build --cli gemini
+    $ eni plan --list
+    $ eni build --list
     $ eni ai init
     $ eni ai init --force
 `,
@@ -101,6 +105,7 @@ const cli = meow(
       iterations: { type: "number" },
       verbose: { type: "boolean", default: false },
       cli: { type: "string" },
+      list: { type: "boolean", default: false },
       force: { type: "boolean", default: false },
       help: { type: "boolean", shortFlag: "h" },
       version: { type: "boolean", shortFlag: "v" },
@@ -120,6 +125,25 @@ const specFlag = cli.flags.spec;
 const iterationsFlag = cli.flags.iterations;
 const verboseFlag = cli.flags.verbose;
 const cliFlag = cli.flags.cli;
+const listFlag = cli.flags.list;
+
+// --list: print spec names and exit (before any validation)
+if (listFlag && (command === "plan" || command === "build")) {
+  const projectDir = process.cwd();
+  const specsDir =
+    command === "plan"
+      ? join(projectDir, "specs")
+      : join(projectDir, "specs", "planned");
+  const specs = await listSpecs(specsDir);
+  if (specs.length === 0) {
+    const label = command === "plan" ? "No specs to plan" : "No planned specs to build";
+    process.stderr.write(`${label}\n`);
+    process.exit(0);
+  }
+  const names = specs.map((s) => s.name).sort();
+  process.stdout.write(names.join("\n"));
+  process.exit(0);
+}
 
 // Validate --iterations flag (must be >= 1)
 if (iterationsFlag !== undefined && iterationsFlag < 1) {
