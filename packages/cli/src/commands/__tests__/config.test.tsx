@@ -69,6 +69,7 @@ describe("ConfigCommand", () => {
       expect(lastFrame()).toContain("plan: claude");
       expect(lastFrame()).toContain("build: codex");
       expect(lastFrame()).toContain("verbose: true");
+      expect(lastFrame()).toContain("narration: concise");
     });
   });
 
@@ -207,9 +208,12 @@ describe("ConfigShowCommand", () => {
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain("CLI Configuration (.eni/config.json):");
-      expect(lastFrame()).toContain("plan:    claude");
-      expect(lastFrame()).toContain("build:   codex");
-      expect(lastFrame()).toContain("verbose: false");
+      expect(lastFrame()).toContain("plan:");
+      expect(lastFrame()).toContain("claude");
+      expect(lastFrame()).toContain("build:");
+      expect(lastFrame()).toContain("codex");
+      expect(lastFrame()).toContain("verbose:");
+      expect(lastFrame()).toContain("false");
     });
   });
 
@@ -219,7 +223,8 @@ describe("ConfigShowCommand", () => {
     const { lastFrame } = render(<ConfigShowCommand cwd="/tmp" />);
 
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain("verbose: true");
+      expect(lastFrame()).toContain("verbose:");
+      expect(lastFrame()).toContain("true");
     });
   });
 
@@ -229,7 +234,28 @@ describe("ConfigShowCommand", () => {
     const { lastFrame } = render(<ConfigShowCommand cwd="/tmp" />);
 
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain("verbose: false");
+      expect(lastFrame()).toContain("verbose:");
+      expect(lastFrame()).toContain("false");
+    });
+  });
+
+  it("displays narration: concise when narration key is missing", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "codex" });
+
+    const { lastFrame } = render(<ConfigShowCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("narration: concise");
+    });
+  });
+
+  it("displays narration: explicit when set", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "codex", narration: "explicit" });
+
+    const { lastFrame } = render(<ConfigShowCommand cwd="/tmp" />);
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("narration: explicit");
     });
   });
 
@@ -336,13 +362,57 @@ describe("ConfigSetCommand", () => {
     });
   });
 
+  it("sets narration to concise", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "claude" });
+
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="narration" cliName="concise" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Set narration to concise");
+    });
+    expect(mockWriteConfig).toHaveBeenCalledWith("/tmp", {
+      plan: "claude",
+      build: "claude",
+      narration: "concise",
+    });
+  });
+
+  it("sets narration to explicit", async () => {
+    mockReadConfig.mockResolvedValue({ plan: "claude", build: "claude" });
+
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="narration" cliName="explicit" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Set narration to explicit");
+    });
+    expect(mockWriteConfig).toHaveBeenCalledWith("/tmp", {
+      plan: "claude",
+      build: "claude",
+      narration: "explicit",
+    });
+  });
+
+  it("rejects invalid narration value", async () => {
+    const { lastFrame } = render(
+      <ConfigSetCommand cwd="/tmp" command="narration" cliName="loud" />,
+    );
+
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Invalid value for narration: must be one of: concise, explicit");
+    });
+  });
+
   it("shows usage error when command is missing", async () => {
     const { lastFrame } = render(
       <ConfigSetCommand cwd="/tmp" command={undefined} cliName="claude" />,
     );
 
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain("Usage: eni config set <plan|build|verbose>");
+      expect(lastFrame()).toContain("Usage: eni config set <plan|build|verbose|narration>");
     });
   });
 
@@ -352,7 +422,7 @@ describe("ConfigSetCommand", () => {
     );
 
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain("Usage: eni config set <plan|build|verbose>");
+      expect(lastFrame()).toContain("Usage: eni config set <plan|build|verbose|narration>");
     });
   });
 
@@ -363,7 +433,7 @@ describe("ConfigSetCommand", () => {
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain('Invalid command: "deploy"');
-      expect(lastFrame()).toContain("plan, build, verbose");
+      expect(lastFrame()).toContain("plan, build, verbose, narration");
     });
   });
 
