@@ -26,6 +26,26 @@ These are all normal and expected. Don't modify or delete them manually.
 
 The `eni` CLI configures beads automatically when you set up your project. No manual setup is needed.
 
+## Git Hooks
+
+Beads provides git hooks that automate syncing so you never need to run `bd sync` manually.
+
+Install them with:
+
+```bash
+bd hooks install
+```
+
+| Hook | What it does |
+| --- | --- |
+| `pre-commit` | Flushes pending changes to JSONL before each commit |
+| `post-merge` | Imports updated JSONL after a pull or merge |
+| `pre-push` | Prevents pushing stale JSONL to the remote |
+| `post-checkout` | Imports JSONL after switching branches |
+| `prepare-commit-msg` | Adds agent identity trailers for audit trails |
+
+If you prefer not to install hooks, you can run `bd sync` manually before pushing.
+
 ## Learn more
 
 For a deeper look at how beads works under the hood, visit the [beads GitHub repository](https://github.com/steveyegge/beads).
