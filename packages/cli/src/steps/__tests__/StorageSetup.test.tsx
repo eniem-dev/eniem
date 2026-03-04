@@ -15,7 +15,7 @@ describe("StorageSetup", () => {
     const { lastFrame } = render(
       <StorageSetup onComplete={() => {}} />
     );
-    expect(lastFrame()).toContain("Configure DO Spaces storage?");
+    expect(lastFrame()).toContain("Configure DigitalOcean Spaces for file storage?");
   });
 
   it("shows yes/no options in enable step", () => {

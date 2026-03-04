@@ -24,7 +24,7 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
       setStep("endpoint");
     } else {
       setStep("done");
-      onComplete({ enabled: false });
+      onComplete({ enabled: false, provider: "database" });
     }
   };
 
@@ -58,6 +58,7 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
     setStep("done");
     onComplete({
       enabled: true,
+      provider: "digitalocean",
       endpoint,
       bucket,
       accessKeyId,
@@ -71,12 +72,12 @@ export const StorageSetup = ({ onComplete }: StorageSetupProps) => {
       <SectionHeader title="Storage (DigitalOcean Spaces)" />
 
       {step === "enable" && (
-        <Confirm label="Configure DO Spaces storage?" onConfirm={handleEnableConfirm} />
+        <Confirm label="Configure DigitalOcean Spaces for file storage?" onConfirm={handleEnableConfirm} />
       )}
 
       {step !== "enable" && (
         <StatusMessage status={enabled ? "success" : "skip"}>
-          DO Spaces: {enabled ? "Enabled" : "Skipped"}
+          {enabled ? "DO Spaces: Enabled" : "Skipped — using database storage for development"}
         </StatusMessage>
       )}
 

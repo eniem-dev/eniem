@@ -28,6 +28,7 @@ export interface PaymentConfig {
 
 export interface StorageConfig {
   enabled: boolean;
+  provider?: "database" | "digitalocean";
   endpoint?: string;
   bucket?: string;
   accessKeyId?: string;
