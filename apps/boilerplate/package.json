@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "velite --watch & next dev --turbopack",
+    "prebuild": "prisma generate",
     "build": "velite && next build --turbopack",
     "postbuild": "next-sitemap --config next-sitemap.config.cjs",
     "postinstall": "prisma generate",
