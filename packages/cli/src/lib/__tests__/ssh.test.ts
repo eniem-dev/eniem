@@ -32,7 +32,7 @@ describe("ssh", () => {
 
       const result = await ensureSshAgent();
 
-      expect(result).toEqual({ status: "ready" });
+      expect(result).toEqual({ status: "ready", remediated: false });
       expect(execa).toHaveBeenCalledTimes(1);
       expect(execa).toHaveBeenCalledWith("ssh-add", ["-l"], { stdio: "pipe" });
     });
@@ -47,7 +47,7 @@ describe("ssh", () => {
 
       const result = await ensureSshAgent();
 
-      expect(result).toEqual({ status: "ready" });
+      expect(result).toEqual({ status: "ready", remediated: true });
       expect(execa).toHaveBeenCalledTimes(3);
       expect(execa).toHaveBeenNthCalledWith(2, "ssh-add", [], { stdio: "inherit" });
     });
@@ -66,7 +66,7 @@ describe("ssh", () => {
 
       const result = await ensureSshAgent();
 
-      expect(result).toEqual({ status: "ready" });
+      expect(result).toEqual({ status: "ready", remediated: true });
       expect(execa).toHaveBeenNthCalledWith(2, "ssh-agent", ["-s"], { stdio: "pipe" });
       expect(execa).toHaveBeenNthCalledWith(3, "ssh-add", [], { stdio: "inherit" });
       expect(process.env.SSH_AUTH_SOCK).toBe("/tmp/ssh-xxx/agent.123");

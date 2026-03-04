@@ -2,6 +2,7 @@ import { execa } from "execa";
 
 export interface SshCheckResult {
   status: "ready" | "failed";
+  remediated?: boolean;
   error?: string;
 }
 
@@ -19,7 +20,7 @@ export async function ensureSshAgent(): Promise<SshCheckResult> {
   const checkResult = await checkSshAgent();
 
   if (checkResult === 0) {
-    return { status: "ready" };
+    return { status: "ready", remediated: false };
   }
 
   if (checkResult === 2) {
@@ -50,7 +51,7 @@ export async function ensureSshAgent(): Promise<SshCheckResult> {
     };
   }
 
-  return { status: "ready" };
+  return { status: "ready", remediated: true };
 }
 
 /**
