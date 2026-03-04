@@ -49,7 +49,7 @@ const cli = meow(
     ready          Generate production .env interactively
     config         Configure default AI CLI backends interactively
     config show    Display current CLI configuration
-    config set     Set a config value (e.g. eni config set plan gemini, eni config set verbose true)
+    config set     Set a config value (e.g. eni config set plan codex, eni config set verbose true)
     products       Manage Polar products interactively
     plan           Run AI planning loop on a spec file
     build          Run AI build loop on a planned spec file
@@ -65,7 +65,7 @@ const cli = meow(
     --iterations   Number of iterations (default: 3 for plan, 10 for build)
     --verbose      Show tool usage during plan/build (overrides config)
     --no-verbose   Disable verbose output (overrides config)
-    --cli          AI CLI backend for plan/build (claude, codex, gemini, opencode)
+    --cli          AI CLI backend for plan/build (claude, codex, opencode)
     --list         List available spec names for plan/build and exit
     --force        Skip confirmation when updating existing AI workflow
     --help, -h     Show this help message
@@ -78,7 +78,7 @@ const cli = meow(
     $ eni ready
     $ eni config
     $ eni config show
-    $ eni config set plan gemini
+    $ eni config set plan codex
     $ eni config set build codex
     $ eni config set verbose true
     $ eni products
@@ -89,7 +89,7 @@ const cli = meow(
     $ eni plan --cli codex
     $ eni build
     $ eni build --spec=my-feature --iterations=20 --verbose
-    $ eni build --cli gemini
+    $ eni build --cli opencode
     $ eni plan --list
     $ eni build --list
     $ eni ai init

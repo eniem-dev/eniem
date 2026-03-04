@@ -5,7 +5,7 @@ import { MissingBinaryFallback } from "../MissingBinaryFallback.js";
 import type { CLIAdapter } from "../../lib/adapters/index.js";
 
 function makeAdapter(
-  id: "claude" | "codex" | "gemini" | "opencode",
+  id: "claude" | "codex" | "opencode",
   name: string,
 ): CLIAdapter {
   return {
@@ -20,14 +20,14 @@ function makeAdapter(
 }
 
 const claude = makeAdapter("claude", "Claude Code");
-const gemini = makeAdapter("gemini", "Gemini CLI");
+const codex = makeAdapter("codex", "Codex");
 
 describe("MissingBinaryFallback", () => {
   it("renders warning with missing CLI name", () => {
     const { lastFrame } = render(
       <MissingBinaryFallback
         missing="codex"
-        available={[claude, gemini]}
+        available={[claude, codex]}
         onSelect={() => {}}
       />,
     );
@@ -38,13 +38,13 @@ describe("MissingBinaryFallback", () => {
     const { lastFrame } = render(
       <MissingBinaryFallback
         missing="codex"
-        available={[claude, gemini]}
+        available={[claude, codex]}
         onSelect={() => {}}
       />,
     );
     expect(lastFrame()).toContain("Choose an available CLI:");
     expect(lastFrame()).toContain("Claude Code (claude)");
-    expect(lastFrame()).toContain("Gemini CLI (gemini)");
+    expect(lastFrame()).toContain("Codex (codex)");
   });
 
   it("calls onSelect with chosen adapter", async () => {
@@ -52,7 +52,7 @@ describe("MissingBinaryFallback", () => {
     const { stdin } = render(
       <MissingBinaryFallback
         missing="codex"
-        available={[claude, gemini]}
+        available={[claude, codex]}
         onSelect={onSelect}
       />,
     );
@@ -76,7 +76,6 @@ describe("MissingBinaryFallback", () => {
     expect(lastFrame()).toContain("No supported CLI is installed");
     expect(lastFrame()).toContain("claude");
     expect(lastFrame()).toContain("codex");
-    expect(lastFrame()).toContain("gemini");
     expect(lastFrame()).toContain("opencode");
   });
 

@@ -125,7 +125,7 @@ export const BuildCommand = ({
           setFallbackAvailable(result.available);
           setStep("fallback");
         } else {
-          setError("No supported CLI is installed. Install one of: claude, codex, gemini, opencode");
+          setError("No supported CLI is installed. Install one of: claude, codex, opencode");
           setStep("error");
         }
       } catch (err: unknown) {

@@ -128,7 +128,7 @@ export const PlanCommand = ({
         }
 
         if (!("resolved" in result)) {
-          setError("No supported CLI is installed. Install one of: claude, codex, gemini, opencode");
+          setError("No supported CLI is installed. Install one of: claude, codex, opencode");
           setStep("error");
           isResolvingRef.current = false;
           return;
