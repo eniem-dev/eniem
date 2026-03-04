@@ -4,8 +4,8 @@ import type { CLIAdapter, CLIId, CLIResult, CLIRunner, RunOptions } from "../typ
 import { SUPPORTED_CLIS } from "../types.js";
 
 describe("SUPPORTED_CLIS", () => {
-  it("contains exactly 4 entries", () => {
-    expect(SUPPORTED_CLIS).toHaveLength(4);
+  it("contains exactly 3 entries", () => {
+    expect(SUPPORTED_CLIS).toHaveLength(3);
   });
 
   it("includes claude", () => {
@@ -16,10 +16,6 @@ describe("SUPPORTED_CLIS", () => {
     expect(SUPPORTED_CLIS).toContain("codex");
   });
 
-  it("includes gemini", () => {
-    expect(SUPPORTED_CLIS).toContain("gemini");
-  });
-
   it("includes opencode", () => {
     expect(SUPPORTED_CLIS).toContain("opencode");
   });
@@ -27,8 +23,8 @@ describe("SUPPORTED_CLIS", () => {
 
 describe("CLIId type", () => {
   it("accepts valid CLI identifiers", () => {
-    const ids: CLIId[] = ["claude", "codex", "gemini", "opencode"];
-    expect(ids).toHaveLength(4);
+    const ids: CLIId[] = ["claude", "codex", "opencode"];
+    expect(ids).toHaveLength(3);
   });
 });
 

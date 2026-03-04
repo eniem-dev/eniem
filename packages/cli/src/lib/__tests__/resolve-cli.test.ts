@@ -27,7 +27,7 @@ function makeAdapter(id: CLIId): CLIAdapter {
 
 const claudeAdapter = makeAdapter("claude");
 const codexAdapter = makeAdapter("codex");
-const geminiAdapter = makeAdapter("gemini");
+const opencodeAdapter = makeAdapter("opencode");
 
 const CWD = "/tmp/test-project";
 
@@ -36,14 +36,14 @@ beforeEach(() => {
 
   mockedIsValidCLI.mockImplementation(
     (id: string) =>
-      ["claude", "codex", "gemini", "opencode"].includes(id) as boolean,
+      ["claude", "codex", "opencode"].includes(id) as boolean,
   );
 
   mockedGetAdapter.mockImplementation((id: string) => {
     const adapters: Record<string, CLIAdapter> = {
       claude: claudeAdapter,
       codex: codexAdapter,
-      gemini: geminiAdapter,
+      opencode: opencodeAdapter,
     };
     const adapter = adapters[id];
     if (!adapter) throw new Error(`Unknown CLI adapter "${id}"`);
@@ -91,7 +91,7 @@ describe("resolveCLI", () => {
       await expect(
         resolveCLI({ cliFlag: "invalid", command: "plan", cwd: CWD }),
       ).rejects.toThrow(
-        '"invalid" is not a valid CLI. Valid options: claude, codex, gemini, opencode',
+        '"invalid" is not a valid CLI. Valid options: claude, codex, opencode',
       );
     });
 
@@ -175,40 +175,40 @@ describe("resolveCLI", () => {
   describe("missing binary fallback", () => {
     it("returns needsFallback when binary not on PATH", async () => {
       mockedReadConfig.mockResolvedValue({
-        plan: "gemini",
-        build: "gemini",
+        plan: "opencode",
+        build: "opencode",
       });
-      // gemini is not in the available list
+      // opencode is not in the available list
       mockedListAvailable.mockResolvedValue([claudeAdapter, codexAdapter]);
 
       const result = await resolveCLI({ command: "plan", cwd: CWD });
 
       expect(result).toEqual({
         needsFallback: true,
-        configured: "gemini",
+        configured: "opencode",
         available: [claudeAdapter, codexAdapter],
       });
     });
 
     it("returns needsFallback when flag binary not on PATH", async () => {
-      // gemini not in available list
+      // opencode not in available list
       mockedListAvailable.mockResolvedValue([claudeAdapter, codexAdapter]);
 
       const result = await resolveCLI({
-        cliFlag: "gemini",
+        cliFlag: "opencode",
         command: "build",
         cwd: CWD,
       });
 
       expect(result).toEqual({
         needsFallback: true,
-        configured: "gemini",
+        configured: "opencode",
         available: [claudeAdapter, codexAdapter],
       });
     });
 
     it("returns noClisAvailable when no binaries found at all", async () => {
-      mockedReadConfig.mockResolvedValue({ plan: "gemini" });
+      mockedReadConfig.mockResolvedValue({ plan: "opencode" });
       mockedListAvailable.mockResolvedValue([]);
 
       const result = await resolveCLI({ command: "plan", cwd: CWD });

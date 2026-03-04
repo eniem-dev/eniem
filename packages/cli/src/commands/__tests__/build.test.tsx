@@ -123,8 +123,8 @@ describe("BuildCommand", () => {
 
   describe("CLI Resolution", () => {
     it("renders FirstRunPrompt when no config exists", async () => {
-      const geminiAdapter = { name: "Gemini CLI", id: "gemini" as const, binary: "gemini", run: mockRun };
-      mockResolveCLI.mockResolvedValue({ needsFirstRun: true, available: [claudeAdapter, geminiAdapter] });
+      const codexAdapter = { name: "Codex", id: "codex" as const, binary: "codex", run: mockRun };
+      mockResolveCLI.mockResolvedValue({ needsFirstRun: true, available: [claudeAdapter, codexAdapter] });
 
       const { lastFrame } = render(
         <BuildCommand {...defaultProps} spec="test" />

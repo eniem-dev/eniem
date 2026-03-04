@@ -1,4 +1,4 @@
-export const SUPPORTED_CLIS = ["claude", "codex", "gemini", "opencode"] as const;
+export const SUPPORTED_CLIS = ["claude", "codex", "opencode"] as const;
 
 export type CLIId = (typeof SUPPORTED_CLIS)[number];
 

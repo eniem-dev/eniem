@@ -29,7 +29,7 @@ describe("CLI --cli flag", () => {
 
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toContain("Unknown CLI: invalid");
-    expect(result.stderr).toContain("claude, codex, gemini, opencode");
+    expect(result.stderr).toContain("claude, codex, opencode");
   }, 15_000);
 
   it("help text includes --cli option", async () => {
