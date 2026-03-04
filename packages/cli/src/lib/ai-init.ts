@@ -205,6 +205,48 @@ export async function ensureSpecsFolder(targetDir: string): Promise<{
   }
 }
 
+export interface LegacySymlinkResult {
+  handled: boolean;
+  action?: "symlink_reversed";
+}
+
+/**
+ * Ensures AGENTS.md is the primary file and CLAUDE.md is a symlink to it.
+ * Handles legacy projects where CLAUDE.md was the primary file.
+ *
+ * - If CLAUDE.md is a real file and AGENTS.md doesn't exist:
+ *   rename CLAUDE.md → AGENTS.md, create CLAUDE.md as symlink → AGENTS.md
+ * - Otherwise: no-op
+ */
+export async function ensureAgentsMdPrimary(targetDir: string): Promise<LegacySymlinkResult> {
+  const claudePath = path.join(targetDir, "CLAUDE.md");
+  const agentsPath = path.join(targetDir, "AGENTS.md");
+
+  try {
+    const claudeStat = await fs.lstat(claudePath);
+
+    // If CLAUDE.md is already a symlink, nothing to do
+    if (claudeStat.isSymbolicLink()) {
+      return { handled: false };
+    }
+
+    // CLAUDE.md is a real file — check if AGENTS.md exists
+    try {
+      await fs.lstat(agentsPath);
+      // AGENTS.md already exists, don't overwrite
+      return { handled: false };
+    } catch {
+      // AGENTS.md doesn't exist — reverse the symlink
+      await fs.rename(claudePath, agentsPath);
+      await fs.symlink("AGENTS.md", claudePath);
+      return { handled: true, action: "symlink_reversed" };
+    }
+  } catch {
+    // CLAUDE.md doesn't exist at all, nothing to do
+    return { handled: false };
+  }
+}
+
 /**
  * Cleans up temporary directory
  */

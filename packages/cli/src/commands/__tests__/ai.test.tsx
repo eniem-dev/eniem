@@ -9,6 +9,7 @@ vi.mock("../../lib/ai-init.js", () => ({
   sparseCloneBoilerplate: vi.fn(),
   copyAiFiles: vi.fn(),
   ensureSpecsFolder: vi.fn(),
+  ensureAgentsMdPrimary: vi.fn().mockResolvedValue({ handled: false }),
   cleanupTempDir: vi.fn(),
   getCliFileInfo: vi.fn().mockResolvedValue({ cliId: "", cliName: "", folders: [], rootFiles: [], hasFiles: false }),
   removeCliConfig: vi.fn().mockResolvedValue(undefined),
@@ -38,6 +39,7 @@ import {
   sparseCloneBoilerplate,
   copyAiFiles,
   ensureSpecsFolder,
+  ensureAgentsMdPrimary,
   cleanupTempDir,
 } from "../../lib/ai-init.js";
 import { readConfig, writeConfig } from "../../lib/eni-config.js";
@@ -46,6 +48,7 @@ const mockCheckEniExists = vi.mocked(checkEniExists);
 const mockSparseCloneBoilerplate = vi.mocked(sparseCloneBoilerplate);
 const mockCopyAiFiles = vi.mocked(copyAiFiles);
 const mockEnsureSpecsFolder = vi.mocked(ensureSpecsFolder);
+const mockEnsureAgentsMdPrimary = vi.mocked(ensureAgentsMdPrimary);
 const mockCleanupTempDir = vi.mocked(cleanupTempDir);
 const mockReadConfig = vi.mocked(readConfig);
 const mockWriteConfig = vi.mocked(writeConfig);
@@ -54,6 +57,7 @@ describe("AiCommand", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCleanupTempDir.mockResolvedValue(undefined);
+    mockEnsureAgentsMdPrimary.mockResolvedValue({ handled: false });
     mockReadConfig.mockResolvedValue(null);
     mockWriteConfig.mockResolvedValue(undefined);
   });
@@ -349,6 +353,36 @@ describe("AiCommand", () => {
 
       expect(lastFrame()).toContain("Narration: concise");
     });
+
+    it("shows legacy symlink message when CLAUDE.md was reversed", async () => {
+      setupSuccessMocks();
+      mockEnsureAgentsMdPrimary.mockResolvedValue({ handled: true, action: "symlink_reversed" });
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(lastFrame()).toContain("AGENTS.md is now primary");
+      expect(lastFrame()).toContain("CLAUDE.md");
+
+      // Reset mock
+      mockEnsureAgentsMdPrimary.mockResolvedValue({ handled: false });
+    });
+
+    it("does not show legacy symlink message when not needed", async () => {
+      setupSuccessMocks();
+      mockEnsureAgentsMdPrimary.mockResolvedValue({ handled: false });
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(lastFrame()).not.toContain("AGENTS.md is now primary");
+    });
   });
 
   describe("CLI Multi-Select", () => {
@@ -487,6 +521,118 @@ describe("AiCommand", () => {
 
       // Should proceed to plan CLI selection (no crash)
       expect(lastFrame()).toContain("Default CLI for plan:");
+    });
+  });
+
+  describe("Step Wiring: remove_unselected & restore_selected", () => {
+    function setupSuccessToCliSelect() {
+      mockCheckEniExists.mockResolvedValue(false);
+      mockSparseCloneBoilerplate.mockResolvedValue({
+        success: true,
+        tempDir: "/tmp/test",
+      });
+      mockCopyAiFiles.mockResolvedValue({
+        success: true,
+        report: { addedFiles: [".eni/PROMPT_plan.md"], skippedFiles: [] },
+      });
+      mockEnsureSpecsFolder.mockResolvedValue({
+        success: true,
+        created: false,
+      });
+    }
+
+    async function advanceThroughConfigSteps(stdin: { write: (s: string) => void }) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      stdin.write("\r"); // submit CLI multi-select
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      stdin.write("\r"); // plan
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      stdin.write("\r"); // build
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      stdin.write("\r"); // verbose
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      stdin.write("\r"); // narration
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    it("shows selected CLIs in complete summary", async () => {
+      setupSuccessToCliSelect();
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(lastFrame()).toContain("CLIs: claude, codex");
+      expect(lastFrame()).toContain("AI workflow initialized.");
+    });
+
+    it("skips remove_unselected when no unselected CLIs have files", async () => {
+      setupSuccessToCliSelect();
+      const { getCliFileInfo } = await import("../../lib/ai-init.js");
+      const mockGetCliFileInfo = vi.mocked(getCliFileInfo);
+      mockGetCliFileInfo.mockResolvedValue({ cliId: "", cliName: "", folders: [], rootFiles: [], hasFiles: false });
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      stdin.write("\r"); // submit CLI multi-select
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should skip directly to plan CLI selection (no removal prompts shown)
+      expect(lastFrame()).toContain("Default CLI for plan:");
+      expect(lastFrame()).not.toContain("Remove?");
+    });
+
+    it("skips restore_selected when all selected CLIs have configs", async () => {
+      setupSuccessToCliSelect();
+      const { findClisNeedingRestore } = await import("../../lib/ai-init.js");
+      vi.mocked(findClisNeedingRestore).mockResolvedValue([]);
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      stdin.write("\r"); // submit CLI multi-select
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should skip directly to plan CLI selection (no restoration spinner)
+      expect(lastFrame()).toContain("Default CLI for plan:");
+      expect(lastFrame()).not.toContain("Restoring config");
+    });
+
+    it("shows restoration reports in complete summary when CLIs were restored", async () => {
+      setupSuccessToCliSelect();
+      const { findClisNeedingRestore, restoreCliConfigs } = await import("../../lib/ai-init.js");
+      vi.mocked(findClisNeedingRestore).mockResolvedValue(["claude"]);
+      vi.mocked(restoreCliConfigs).mockResolvedValue({
+        success: true,
+        reports: [
+          {
+            cliId: "claude",
+            cliName: "Claude Code",
+            report: { addedFiles: [".claude/settings.json"], skippedFiles: [] },
+          },
+        ],
+      });
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await advanceThroughConfigSteps(stdin);
+
+      expect(lastFrame()).toContain("Setting up config for Claude Code");
+      expect(lastFrame()).toContain("Added .claude/settings.json");
+      expect(lastFrame()).toContain("AI workflow initialized.");
+
+      // Reset mocks
+      vi.mocked(findClisNeedingRestore).mockResolvedValue([]);
+      vi.mocked(restoreCliConfigs).mockResolvedValue({ success: true, reports: [] });
     });
   });
 

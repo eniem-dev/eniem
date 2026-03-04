@@ -7,6 +7,7 @@ import {
   sparseCloneBoilerplate,
   copyAiFiles,
   ensureSpecsFolder,
+  ensureAgentsMdPrimary,
   cleanupTempDir,
   getCliFileInfo,
   removeCliConfig,
@@ -494,6 +495,58 @@ describe("ai-init", () => {
       const result = await findClisNeedingRestore(tempDir, ["unknown-cli"]);
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("ensureAgentsMdPrimary", () => {
+    it("reverses symlink when CLAUDE.md is primary and AGENTS.md missing", async () => {
+      await fs.writeFile(path.join(tempDir, "CLAUDE.md"), "# Instructions");
+
+      const result = await ensureAgentsMdPrimary(tempDir);
+
+      expect(result.handled).toBe(true);
+      expect(result.action).toBe("symlink_reversed");
+
+      // AGENTS.md should now be the real file
+      const agentsStat = await fs.lstat(path.join(tempDir, "AGENTS.md"));
+      expect(agentsStat.isSymbolicLink()).toBe(false);
+      const agentsContent = await fs.readFile(path.join(tempDir, "AGENTS.md"), "utf-8");
+      expect(agentsContent).toBe("# Instructions");
+
+      // CLAUDE.md should be a symlink to AGENTS.md
+      const claudeStat = await fs.lstat(path.join(tempDir, "CLAUDE.md"));
+      expect(claudeStat.isSymbolicLink()).toBe(true);
+      const target = await fs.readlink(path.join(tempDir, "CLAUDE.md"));
+      expect(target).toBe("AGENTS.md");
+    });
+
+    it("does nothing when CLAUDE.md is already a symlink", async () => {
+      await fs.writeFile(path.join(tempDir, "AGENTS.md"), "# Instructions");
+      await fs.symlink("AGENTS.md", path.join(tempDir, "CLAUDE.md"));
+
+      const result = await ensureAgentsMdPrimary(tempDir);
+
+      expect(result.handled).toBe(false);
+    });
+
+    it("does nothing when both CLAUDE.md and AGENTS.md are real files", async () => {
+      await fs.writeFile(path.join(tempDir, "CLAUDE.md"), "# Claude");
+      await fs.writeFile(path.join(tempDir, "AGENTS.md"), "# Agents");
+
+      const result = await ensureAgentsMdPrimary(tempDir);
+
+      expect(result.handled).toBe(false);
+      // Both files should be unchanged
+      const claudeContent = await fs.readFile(path.join(tempDir, "CLAUDE.md"), "utf-8");
+      expect(claudeContent).toBe("# Claude");
+      const agentsContent = await fs.readFile(path.join(tempDir, "AGENTS.md"), "utf-8");
+      expect(agentsContent).toBe("# Agents");
+    });
+
+    it("does nothing when neither file exists", async () => {
+      const result = await ensureAgentsMdPrimary(tempDir);
+
+      expect(result.handled).toBe(false);
     });
   });
 

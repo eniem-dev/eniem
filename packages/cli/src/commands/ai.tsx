@@ -13,6 +13,7 @@ import {
   sparseCloneBoilerplate,
   copyAiFiles,
   ensureSpecsFolder,
+  ensureAgentsMdPrimary,
   cleanupTempDir,
   getCliFileInfo,
   removeCliConfig,
@@ -21,6 +22,7 @@ import {
   type CopyReport,
   type CliFileInfo,
   type CliRestoreReport,
+  type LegacySymlinkResult,
 } from "../lib/ai-init.js";
 import type { CLIAdapter, CLIId } from "../lib/adapters/index.js";
 import { SUPPORTED_CLIS, getAdapter, checkBinary } from "../lib/adapters/index.js";
@@ -68,6 +70,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
   const [currentRemovalIndex, setCurrentRemovalIndex] = useState(0);
   const [removalResults, setRemovalResults] = useState<{ cliName: string; removed: boolean }[]>([]);
   const [restorationReports, setRestorationReports] = useState<CliRestoreReport[]>([]);
+  const [legacySymlink, setLegacySymlink] = useState<LegacySymlinkResult>({ handled: false });
 
   // Refs to prevent duplicate effect runs
   const isCheckingRef = useRef(false);
@@ -147,6 +150,10 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
         if (specsResult.created) {
           report.addedFiles = [...report.addedFiles, "specs/.gitkeep"];
         }
+
+        // Ensure AGENTS.md is primary (handle legacy CLAUDE.md-as-primary projects)
+        const symResult = await ensureAgentsMdPrimary(targetDir);
+        setLegacySymlink(symResult);
 
         // Cleanup temp directory
         await cleanupTempDir(tempDir);
@@ -585,6 +592,14 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
           {specsCreated && (
             <Box marginTop={1}>
               <Text dimColor>Created specs/ folder for feature specs</Text>
+            </Box>
+          )}
+
+          {legacySymlink.handled && (
+            <Box marginTop={1}>
+              <StatusMessage status="success">
+                AGENTS.md is now primary, CLAUDE.md → symlink
+              </StatusMessage>
             </Box>
           )}
 
