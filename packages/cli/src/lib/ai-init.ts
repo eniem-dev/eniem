@@ -6,6 +6,11 @@ import { BOILERPLATE_REPO_PATH } from "./constants.js";
 const FOLDERS_TO_COPY = [".eni", ".claude", ".opencode", ".codex", ".agents"];
 const FILES_TO_COPY = ["opencode.json"];
 
+export interface CopyReport {
+  addedFiles: string[];
+  skippedFiles: string[];
+}
+
 export interface AiInitResult {
   success: boolean;
   copiedFiles: string[];
@@ -81,19 +86,19 @@ export async function sparseCloneBoilerplate(gitHost: string): Promise<{
 }
 
 /**
- * Copies .eni and .claude folders from source to target directory
- * Returns list of copied file paths (relative to target)
+ * Copies AI config folders from source to target using additive merge.
+ * Files that don't exist locally are added; existing files are preserved.
+ * Returns a report of which files were added vs skipped.
  */
 export async function copyAiFiles(
   sourceDir: string,
   targetDir: string
-): Promise<{ success: boolean; copiedFiles: string[]; error?: string }> {
-  const copiedFiles: string[] = [];
+): Promise<{ success: boolean; report: CopyReport; error?: string }> {
+  const report: CopyReport = { addedFiles: [], skippedFiles: [] };
 
   try {
     for (const folder of FOLDERS_TO_COPY) {
       const sourcePath = path.join(sourceDir, folder);
-      const targetPath = path.join(targetDir, folder);
 
       // Check if source folder exists
       try {
@@ -102,18 +107,11 @@ export async function copyAiFiles(
         continue; // Skip if folder doesn't exist in source
       }
 
-      // Remove existing folder in target (to ensure clean copy)
-      try {
-        await fs.rm(targetPath, { recursive: true, force: true });
-      } catch {
-        // Ignore if doesn't exist
-      }
-
-      // Recursively copy folder
-      await copyDir(sourcePath, targetPath, folder, copiedFiles);
+      // Recursively merge folder (skip existing files)
+      await mergeDir(sourcePath, path.join(targetDir, folder), folder, report);
     }
 
-    // Copy root files
+    // Merge root files (skip if already exists)
     for (const file of FILES_TO_COPY) {
       const sourcePath = path.join(sourceDir, file);
       const targetPath = path.join(targetDir, file);
@@ -124,26 +122,31 @@ export async function copyAiFiles(
         continue; // Skip if file doesn't exist in source
       }
 
-      await fs.copyFile(sourcePath, targetPath);
-      copiedFiles.push(file);
+      try {
+        await fs.access(targetPath);
+        report.skippedFiles.push(file);
+      } catch {
+        await fs.copyFile(sourcePath, targetPath);
+        report.addedFiles.push(file);
+      }
     }
 
-    return { success: true, copiedFiles };
+    return { success: true, report };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
-    return { success: false, copiedFiles, error: errorMessage };
+    return { success: false, report, error: errorMessage };
   }
 }
 
 /**
- * Recursively copies a directory and tracks copied files
+ * Recursively merges a directory, skipping files that already exist at dest
  */
-async function copyDir(
+async function mergeDir(
   src: string,
   dest: string,
   basePath: string,
-  copiedFiles: string[]
+  report: CopyReport
 ): Promise<void> {
   await fs.mkdir(dest, { recursive: true });
   const entries = await fs.readdir(src, { withFileTypes: true });
@@ -154,10 +157,15 @@ async function copyDir(
     const relativePath = path.join(basePath, entry.name);
 
     if (entry.isDirectory()) {
-      await copyDir(srcPath, destPath, relativePath, copiedFiles);
+      await mergeDir(srcPath, destPath, relativePath, report);
     } else {
-      await fs.copyFile(srcPath, destPath);
-      copiedFiles.push(relativePath);
+      try {
+        await fs.access(destPath);
+        report.skippedFiles.push(relativePath);
+      } catch {
+        await fs.copyFile(srcPath, destPath);
+        report.addedFiles.push(relativePath);
+      }
     }
   }
 }

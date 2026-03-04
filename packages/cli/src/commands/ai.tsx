@@ -14,6 +14,7 @@ import {
   copyAiFiles,
   ensureSpecsFolder,
   cleanupTempDir,
+  type CopyReport,
 } from "../lib/ai-init.js";
 import type { CLIAdapter, CLIId } from "../lib/adapters/index.js";
 import { SUPPORTED_CLIS, getAdapter, checkBinary } from "../lib/adapters/index.js";
@@ -43,7 +44,7 @@ interface AiCommandProps {
 export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => {
   const [step, setStep] = useState<AiInitStep>("checking");
   const [eniExists, setEniExists] = useState(false);
-  const [copiedFiles, setCopiedFiles] = useState<string[]>([]);
+  const [copyReport, setCopyReport] = useState<CopyReport>({ addedFiles: [], skippedFiles: [] });
   const [specsCreated, setSpecsCreated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tempDir, setTempDir] = useState<string | null>(null);
@@ -107,7 +108,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
     if (step === "copying" && tempDir && !isCopyingRef.current) {
       isCopyingRef.current = true;
       const copy = async () => {
-        // Copy .eni and .claude folders
+        // Copy AI config folders (additive merge — preserves existing files)
         const copyResult = await copyAiFiles(tempDir, targetDir);
         if (!copyResult.success) {
           await cleanupTempDir(tempDir);
@@ -127,16 +128,16 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
           return;
         }
 
-        // Add specs/.gitkeep to copied files if specs folder was created
-        const allCopiedFiles = [...copyResult.copiedFiles];
+        // Add specs/.gitkeep to report if specs folder was created
+        const report = { ...copyResult.report };
         if (specsResult.created) {
-          allCopiedFiles.push("specs/.gitkeep");
+          report.addedFiles = [...report.addedFiles, "specs/.gitkeep"];
         }
 
         // Cleanup temp directory
         await cleanupTempDir(tempDir);
 
-        setCopiedFiles(allCopiedFiles);
+        setCopyReport(report);
         setSpecsCreated(specsResult.created);
         setStep("select_clis");
         isCopyingRef.current = false;
@@ -384,10 +385,14 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
           </StatusMessage>
 
           <Box flexDirection="column" marginTop={1} marginLeft={2}>
-            <Text bold>Copied files:</Text>
-            {copiedFiles.map((file) => (
+            {copyReport.addedFiles.map((file) => (
               <Text key={file} color="green">
-                - {file}
+                {"  ✓ Added "}{file}
+              </Text>
+            ))}
+            {copyReport.skippedFiles.map((file) => (
+              <Text key={file} color="gray">
+                {"  ⊘ Skipped "}{file}{" (already exists)"}
               </Text>
             ))}
           </Box>

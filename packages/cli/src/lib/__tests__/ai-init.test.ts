@@ -126,110 +126,137 @@ describe("ai-init", () => {
   });
 
   describe("copyAiFiles", () => {
-    it("copies all CLI folders and root files from source to target", async () => {
-      // Create source structure
+    it("adds new files from source to empty target", async () => {
       const sourceDir = path.join(tempDir, "source");
       const targetDir = path.join(tempDir, "target");
       await fs.mkdir(sourceDir);
       await fs.mkdir(targetDir);
 
-      // Create .eni folder with files
+      // Create source structure
       const eniDir = path.join(sourceDir, ".eni");
       await fs.mkdir(eniDir);
       await fs.writeFile(path.join(eniDir, "loop.sh"), "#!/bin/bash\n");
-      await fs.writeFile(path.join(eniDir, "PROMPT_plan.md"), "# Plan\n");
 
-      // Create .claude folder with nested structure
       const claudeDir = path.join(sourceDir, ".claude");
       const commandsDir = path.join(claudeDir, "commands");
       await fs.mkdir(commandsDir, { recursive: true });
       await fs.writeFile(path.join(claudeDir, "settings.local.json"), "{}");
       await fs.writeFile(path.join(commandsDir, "test.md"), "# Test\n");
 
-      // Create .opencode folder
       const opencodeDir = path.join(sourceDir, ".opencode");
       const opencodeSkillsDir = path.join(opencodeDir, "skills");
       await fs.mkdir(opencodeSkillsDir, { recursive: true });
       await fs.writeFile(path.join(opencodeSkillsDir, "build.md"), "# Build\n");
 
-      // Create .codex folder
       const codexDir = path.join(sourceDir, ".codex");
       await fs.mkdir(codexDir);
       await fs.writeFile(path.join(codexDir, "config.toml"), "[codex]\n");
 
-      // Create .agents folder
       const agentsDir = path.join(sourceDir, ".agents");
       const agentsSkillsDir = path.join(agentsDir, "skills");
       await fs.mkdir(agentsSkillsDir, { recursive: true });
       await fs.writeFile(path.join(agentsSkillsDir, "plan.md"), "# Plan\n");
 
-      // Create opencode.json root file
       await fs.writeFile(path.join(sourceDir, "opencode.json"), '{"theme":"dark"}');
 
       const result = await copyAiFiles(sourceDir, targetDir);
 
       expect(result.success).toBe(true);
-      expect(result.copiedFiles).toContain(".eni/loop.sh");
-      expect(result.copiedFiles).toContain(".eni/PROMPT_plan.md");
-      expect(result.copiedFiles).toContain(".claude/settings.local.json");
-      expect(result.copiedFiles).toContain(".claude/commands/test.md");
-      expect(result.copiedFiles).toContain(".opencode/skills/build.md");
-      expect(result.copiedFiles).toContain(".codex/config.toml");
-      expect(result.copiedFiles).toContain(".agents/skills/plan.md");
-      expect(result.copiedFiles).toContain("opencode.json");
+      expect(result.report.addedFiles).toContain(".eni/loop.sh");
+      expect(result.report.addedFiles).toContain(".claude/settings.local.json");
+      expect(result.report.addedFiles).toContain(".claude/commands/test.md");
+      expect(result.report.addedFiles).toContain(".opencode/skills/build.md");
+      expect(result.report.addedFiles).toContain(".codex/config.toml");
+      expect(result.report.addedFiles).toContain(".agents/skills/plan.md");
+      expect(result.report.addedFiles).toContain("opencode.json");
+      expect(result.report.skippedFiles).toHaveLength(0);
 
       // Verify files exist in target
-      expect(
-        await fs.stat(path.join(targetDir, ".eni", "loop.sh"))
-      ).toBeTruthy();
-      expect(
-        await fs.stat(path.join(targetDir, ".claude", "commands", "test.md"))
-      ).toBeTruthy();
-      expect(
-        await fs.stat(path.join(targetDir, ".opencode", "skills", "build.md"))
-      ).toBeTruthy();
-      expect(
-        await fs.stat(path.join(targetDir, ".codex", "config.toml"))
-      ).toBeTruthy();
-      expect(
-        await fs.stat(path.join(targetDir, ".agents", "skills", "plan.md"))
-      ).toBeTruthy();
-      const opencodeJson = await fs.readFile(
-        path.join(targetDir, "opencode.json"),
-        "utf-8"
-      );
+      expect(await fs.stat(path.join(targetDir, ".eni", "loop.sh"))).toBeTruthy();
+      expect(await fs.stat(path.join(targetDir, ".claude", "commands", "test.md"))).toBeTruthy();
+      const opencodeJson = await fs.readFile(path.join(targetDir, "opencode.json"), "utf-8");
       expect(opencodeJson).toBe('{"theme":"dark"}');
     });
 
-    it("replaces existing target folders", async () => {
+    it("preserves existing files and only adds missing ones", async () => {
       const sourceDir = path.join(tempDir, "source");
       const targetDir = path.join(tempDir, "target");
       await fs.mkdir(sourceDir);
       await fs.mkdir(targetDir);
 
-      // Create source .eni
+      // Create source .eni with two files
       const sourceEni = path.join(sourceDir, ".eni");
       await fs.mkdir(sourceEni);
-      await fs.writeFile(path.join(sourceEni, "new.txt"), "new content");
+      await fs.writeFile(path.join(sourceEni, "new-file.txt"), "new content");
+      await fs.writeFile(path.join(sourceEni, "existing.txt"), "template content");
 
-      // Create existing target .eni with different content
+      // Create target .eni with one existing file (different content)
       const targetEni = path.join(targetDir, ".eni");
       await fs.mkdir(targetEni);
-      await fs.writeFile(path.join(targetEni, "old.txt"), "old content");
+      await fs.writeFile(path.join(targetEni, "existing.txt"), "user customized");
 
-      await copyAiFiles(sourceDir, targetDir);
+      const result = await copyAiFiles(sourceDir, targetDir);
 
-      // Old file should be removed
-      await expect(
-        fs.access(path.join(targetDir, ".eni", "old.txt"))
-      ).rejects.toThrow();
+      expect(result.success).toBe(true);
+      expect(result.report.addedFiles).toContain(".eni/new-file.txt");
+      expect(result.report.skippedFiles).toContain(".eni/existing.txt");
 
-      // New file should exist
-      const content = await fs.readFile(
-        path.join(targetDir, ".eni", "new.txt"),
-        "utf-8"
-      );
-      expect(content).toBe("new content");
+      // New file should be added
+      const newContent = await fs.readFile(path.join(targetDir, ".eni", "new-file.txt"), "utf-8");
+      expect(newContent).toBe("new content");
+
+      // Existing file should NOT be overwritten
+      const existingContent = await fs.readFile(path.join(targetDir, ".eni", "existing.txt"), "utf-8");
+      expect(existingContent).toBe("user customized");
+    });
+
+    it("skips existing root files", async () => {
+      const sourceDir = path.join(tempDir, "source");
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(sourceDir);
+      await fs.mkdir(targetDir);
+
+      // Source has opencode.json
+      await fs.writeFile(path.join(sourceDir, "opencode.json"), '{"template":true}');
+
+      // Target already has opencode.json with user customizations
+      await fs.writeFile(path.join(targetDir, "opencode.json"), '{"user":"custom"}');
+
+      const result = await copyAiFiles(sourceDir, targetDir);
+
+      expect(result.success).toBe(true);
+      expect(result.report.skippedFiles).toContain("opencode.json");
+      expect(result.report.addedFiles).not.toContain("opencode.json");
+
+      // User's file should be preserved
+      const content = await fs.readFile(path.join(targetDir, "opencode.json"), "utf-8");
+      expect(content).toBe('{"user":"custom"}');
+    });
+
+    it("works with nested directories", async () => {
+      const sourceDir = path.join(tempDir, "source");
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(sourceDir);
+      await fs.mkdir(targetDir);
+
+      // Source has nested skill directory
+      const skillDir = path.join(sourceDir, ".claude", "skills", "custom-skill");
+      await fs.mkdir(skillDir, { recursive: true });
+      await fs.writeFile(path.join(skillDir, "SKILL.md"), "# Template skill");
+
+      // Target has the same skill directory with user customization
+      const targetSkillDir = path.join(targetDir, ".claude", "skills", "custom-skill");
+      await fs.mkdir(targetSkillDir, { recursive: true });
+      await fs.writeFile(path.join(targetSkillDir, "SKILL.md"), "# My custom skill");
+
+      const result = await copyAiFiles(sourceDir, targetDir);
+
+      expect(result.success).toBe(true);
+      expect(result.report.skippedFiles).toContain(".claude/skills/custom-skill/SKILL.md");
+
+      // User's customization preserved
+      const content = await fs.readFile(path.join(targetSkillDir, "SKILL.md"), "utf-8");
+      expect(content).toBe("# My custom skill");
     });
 
     it("skips folders that do not exist in source", async () => {
@@ -246,10 +273,8 @@ describe("ai-init", () => {
       const result = await copyAiFiles(sourceDir, targetDir);
 
       expect(result.success).toBe(true);
-      expect(result.copiedFiles).toContain(".eni/file.txt");
-      expect(result.copiedFiles.some((f) => f.startsWith(".claude"))).toBe(
-        false
-      );
+      expect(result.report.addedFiles).toContain(".eni/file.txt");
+      expect(result.report.addedFiles.some((f) => f.startsWith(".claude"))).toBe(false);
     });
   });
 

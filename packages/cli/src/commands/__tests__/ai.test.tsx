@@ -129,7 +129,8 @@ describe("AiCommand", () => {
     /** Helper: set up mocks for a successful file copy and advance through config selection */
     function setupSuccessMocks({
       eniExists = false,
-      copiedFiles = [".eni/PROMPT_plan.md"],
+      addedFiles = [".eni/PROMPT_plan.md"],
+      skippedFiles = [] as string[],
       specsCreated = false,
     } = {}) {
       mockCheckEniExists.mockResolvedValue(eniExists);
@@ -139,7 +140,7 @@ describe("AiCommand", () => {
       });
       mockCopyAiFiles.mockResolvedValue({
         success: true,
-        copiedFiles,
+        report: { addedFiles, skippedFiles },
       });
       mockEnsureSpecsFolder.mockResolvedValue({
         success: true,
@@ -170,7 +171,7 @@ describe("AiCommand", () => {
 
     it("shows success message with copied files", async () => {
       setupSuccessMocks({
-        copiedFiles: [".eni/PROMPT_plan.md", ".eni/PROMPT_build.md", ".claude/settings.local.json"],
+        addedFiles: [".eni/PROMPT_plan.md", ".eni/PROMPT_build.md", ".claude/settings.local.json"],
         specsCreated: true,
       });
 
@@ -181,11 +182,10 @@ describe("AiCommand", () => {
       await advanceThroughConfigSteps(stdin);
 
       expect(lastFrame()).toContain("AI workflow initialized.");
-      expect(lastFrame()).toContain("Copied files:");
-      expect(lastFrame()).toContain(".eni/PROMPT_plan.md");
-      expect(lastFrame()).toContain(".eni/PROMPT_build.md");
-      expect(lastFrame()).toContain(".claude/settings.local.json");
-      expect(lastFrame()).toContain("specs/.gitkeep");
+      expect(lastFrame()).toContain("Added .eni/PROMPT_plan.md");
+      expect(lastFrame()).toContain("Added .eni/PROMPT_build.md");
+      expect(lastFrame()).toContain("Added .claude/settings.local.json");
+      expect(lastFrame()).toContain("Added specs/.gitkeep");
     });
 
     it("shows update message when updating existing workflow", async () => {
@@ -357,7 +357,7 @@ describe("AiCommand", () => {
       });
       mockCopyAiFiles.mockResolvedValue({
         success: true,
-        copiedFiles: [".eni/PROMPT_plan.md"],
+        report: { addedFiles: [".eni/PROMPT_plan.md"], skippedFiles: [] },
       });
       mockEnsureSpecsFolder.mockResolvedValue({
         success: true,
@@ -508,7 +508,7 @@ describe("AiCommand", () => {
       });
       mockCopyAiFiles.mockResolvedValue({
         success: false,
-        copiedFiles: [],
+        report: { addedFiles: [], skippedFiles: [] },
         error: "Permission denied",
       });
 
@@ -529,7 +529,7 @@ describe("AiCommand", () => {
       });
       mockCopyAiFiles.mockResolvedValue({
         success: true,
-        copiedFiles: [".eni/PROMPT_plan.md"],
+        report: { addedFiles: [".eni/PROMPT_plan.md"], skippedFiles: [] },
       });
       mockEnsureSpecsFolder.mockResolvedValue({
         success: false,
@@ -554,7 +554,7 @@ describe("AiCommand", () => {
       });
       mockCopyAiFiles.mockResolvedValue({
         success: false,
-        copiedFiles: [],
+        report: { addedFiles: [], skippedFiles: [] },
         error: "Copy failed",
       });
 
