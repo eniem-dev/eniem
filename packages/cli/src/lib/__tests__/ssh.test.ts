@@ -126,7 +126,7 @@ describe("ssh", () => {
 
       expect(result.error).toContain('eval "$(ssh-agent -s)"');
       expect(result.error).toContain("ssh-add ~/.ssh/your-key");
-      expect(result.error).toContain("eni ai init");
+      expect(result.error).toContain("Then try again.");
       expect(result.error).toContain("keychain");
     });
   });

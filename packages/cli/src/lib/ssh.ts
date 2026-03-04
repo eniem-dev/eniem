@@ -113,7 +113,7 @@ function sshFailureMessage(): string {
     '  1. eval "$(ssh-agent -s)"',
     "  2. ssh-add ~/.ssh/your-key",
     "",
-    "Then run `eni ai init` again.",
+    "Then try again.",
     "",
     "Tip: Install `keychain` to avoid this. See docs.eniem.dev/guides/ssh-setup",
   ].join("\n");
