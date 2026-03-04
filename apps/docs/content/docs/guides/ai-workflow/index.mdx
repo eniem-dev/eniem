@@ -3,12 +3,16 @@ title: "AI Workflow"
 description: "Plan and build features with AI-driven development using the eni CLI."
 ---
 
-The AI workflow is an autonomous development system that uses Claude Code to implement features from specifications. It follows a spec-driven approach: define requirements, plan tasks, then build iteratively — producing atomic commits, tested code, and PRs automatically.
+The AI workflow is an autonomous development system that uses an AI coding CLI to implement features from specifications. It follows a spec-driven approach: define requirements, plan tasks, then build iteratively — producing atomic commits, tested code, and PRs automatically.
 
 ## Prerequisites
 
 - `eni` CLI installed (`pnpm add -g @eniem/cli` or as a local dependency)
-- `claude` CLI installed (`npm install -g @anthropic-ai/claude-code`)
+- An AI coding CLI installed (pick one):
+  - Claude Code: `npm install -g @anthropic-ai/claude-code`
+  - Codex: `npm install -g @openai/codex`
+  - OpenCode: `curl -fsSL https://opencode.ai/install | bash`
+- Run `eni config` to select your preferred CLI
 - `bd` (beads) CLI installed (`npm install -g @beads-cli/bd`)
 - Beads initialized in the project (`.beads/` directory)
 
@@ -94,7 +98,7 @@ The interview covers:
 
 Output is saved to `specs/<feature-name>.md`.
 
-## Claude Commands
+## Slash Commands
 
 ### `/functional-spec-interview`
 
