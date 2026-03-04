@@ -43,6 +43,24 @@ describe("readConfig", () => {
     expect(config).toBeNull();
   });
 
+  it("returns clis array when present in config", async () => {
+    mockedReadFile.mockResolvedValue(
+      JSON.stringify({ plan: "claude", clis: ["claude", "codex"] }),
+    );
+
+    const config = await readConfig(CWD);
+
+    expect(config).toEqual({ plan: "claude", clis: ["claude", "codex"] });
+  });
+
+  it("returns undefined for clis when not in config", async () => {
+    mockedReadFile.mockResolvedValue(JSON.stringify({ plan: "claude" }));
+
+    const config = await readConfig(CWD);
+
+    expect(config?.clis).toBeUndefined();
+  });
+
   it("returns config without verbose when key is absent in file", async () => {
     mockedReadFile.mockResolvedValue(JSON.stringify({ plan: "claude" }));
 
@@ -94,6 +112,22 @@ describe("writeConfig", () => {
     expect(mockedWriteFile).toHaveBeenCalledWith(
       CONFIG_PATH,
       JSON.stringify({ plan: "claude", verbose: true }, null, 2) + "\n",
+    );
+  });
+
+  it("writes clis field to config file", async () => {
+    mockedMkdir.mockResolvedValue(undefined);
+    mockedWriteFile.mockResolvedValue();
+
+    await writeConfig(CWD, { plan: "claude", clis: ["claude", "opencode"] });
+
+    expect(mockedWriteFile).toHaveBeenCalledWith(
+      CONFIG_PATH,
+      JSON.stringify(
+        { plan: "claude", clis: ["claude", "opencode"] },
+        null,
+        2,
+      ) + "\n",
     );
   });
 
@@ -180,6 +214,34 @@ describe("validateConfig", () => {
   it("rejects { narration: 123 } with error", () => {
     expect(() => validateConfig({ narration: 123 })).toThrow(
       /narration.*must be one of: concise, explicit.*got "123"/,
+    );
+  });
+
+  it('accepts { clis: ["claude", "codex"] }', () => {
+    const result = validateConfig({ clis: ["claude", "codex"] });
+    expect(result).toEqual({ clis: ["claude", "codex"] });
+  });
+
+  it("accepts { clis: [] } (empty array)", () => {
+    const result = validateConfig({ clis: [] });
+    expect(result).toEqual({ clis: [] });
+  });
+
+  it("returns config without clis when key is missing", () => {
+    const result = validateConfig({ plan: "claude" });
+    expect(result).toEqual({ plan: "claude" });
+    expect(result.clis).toBeUndefined();
+  });
+
+  it('rejects { clis: ["invalid"] } with error', () => {
+    expect(() => validateConfig({ clis: ["invalid"] })).toThrow(
+      /clis.*invalid CLI ID.*"invalid".*must be one of/,
+    );
+  });
+
+  it('rejects { clis: "claude" } (not an array) with error', () => {
+    expect(() => validateConfig({ clis: "claude" })).toThrow(
+      /clis.*must be an array/,
     );
   });
 
