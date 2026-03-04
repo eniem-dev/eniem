@@ -47,7 +47,7 @@ sqlite.db
 public/robots.txt
 public/sitemap.xml
 public/sitemap-*.xml
-/lib/generated/prisma
+/src/generated/prisma
 *.db
 .env.local
 
