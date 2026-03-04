@@ -147,10 +147,13 @@ describe("AiCommand", () => {
       });
     }
 
-    /** Advance through plan → build → verbose → narration selection to reach complete */
+    /** Advance through select_clis → plan → build → verbose → narration to reach complete */
     async function advanceThroughConfigSteps(stdin: { write: (s: string) => void }) {
-      // Wait for adapters to load and plan select to render
+      // Wait for adapters to load and CLI multi-select to render
       await new Promise((resolve) => setTimeout(resolve, 100));
+      // Submit CLI multi-select (Enter — pre-selected installed CLIs)
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 50));
       // Select first plan CLI (Enter)
       stdin.write("\r");
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -245,7 +248,7 @@ describe("AiCommand", () => {
       expect(lastFrame()).toContain("Config saved to .eni/config.json");
     });
 
-    it("shows CLI selection prompts after file copy", async () => {
+    it("shows CLI multi-select after file copy", async () => {
       setupSuccessMocks();
 
       const { lastFrame } = render(
@@ -254,7 +257,7 @@ describe("AiCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      expect(lastFrame()).toContain("Default CLI for plan:");
+      expect(lastFrame()).toContain("Which CLIs do you want to configure?");
     });
 
     it("does not show specs created message when specs already existed", async () => {
@@ -276,8 +279,10 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      // Advance through plan → build → verbose
+      // Advance through select_clis → plan → build → verbose
       await new Promise((resolve) => setTimeout(resolve, 100));
+      stdin.write("\r"); // submit CLI multi-select
+      await new Promise((resolve) => setTimeout(resolve, 50));
       stdin.write("\r"); // plan
       await new Promise((resolve) => setTimeout(resolve, 50));
       stdin.write("\r"); // build
@@ -313,8 +318,10 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      // Advance through plan → build → verbose
+      // Advance through select_clis → plan → build → verbose
       await new Promise((resolve) => setTimeout(resolve, 100));
+      stdin.write("\r"); // submit CLI multi-select
+      await new Promise((resolve) => setTimeout(resolve, 50));
       stdin.write("\r"); // plan
       await new Promise((resolve) => setTimeout(resolve, 50));
       stdin.write("\r"); // build
@@ -336,6 +343,142 @@ describe("AiCommand", () => {
       await advanceThroughConfigSteps(stdin);
 
       expect(lastFrame()).toContain("Narration: concise");
+    });
+  });
+
+  describe("CLI Multi-Select", () => {
+    function setupSuccessToCliSelect({
+      eniExists = false,
+    } = {}) {
+      mockCheckEniExists.mockResolvedValue(eniExists);
+      mockSparseCloneBoilerplate.mockResolvedValue({
+        success: true,
+        tempDir: "/tmp/test",
+      });
+      mockCopyAiFiles.mockResolvedValue({
+        success: true,
+        copiedFiles: [".eni/PROMPT_plan.md"],
+      });
+      mockEnsureSpecsFolder.mockResolvedValue({
+        success: true,
+        created: false,
+      });
+    }
+
+    it("shows install status for each CLI option", async () => {
+      setupSuccessToCliSelect();
+      // Mock one CLI as not installed
+      const { checkBinary } = await import("../../lib/adapters/index.js");
+      const mockCheckBinary = vi.mocked(checkBinary);
+      mockCheckBinary.mockImplementation(async (name: string) => name !== "codex");
+
+      const { lastFrame } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(lastFrame()).toContain("Claude Code (installed)");
+      expect(lastFrame()).toContain("Codex (not found)");
+
+      // Reset mock
+      mockCheckBinary.mockResolvedValue(true);
+    });
+
+    it("pre-selects CLIs from existing config on re-run", async () => {
+      setupSuccessToCliSelect();
+      mockReadConfig.mockResolvedValue({ plan: "claude", build: "claude", clis: ["codex"], verbose: false, narration: "concise" });
+
+      const { lastFrame } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Should show the multi-select with existing config clis pre-selected
+      expect(lastFrame()).toContain("Which CLIs do you want to configure?");
+      expect(lastFrame()).toContain("Selected: 1 item");
+    });
+
+    it("saves selected CLIs to config", async () => {
+      setupSuccessToCliSelect();
+
+      const { stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      // Wait for CLI multi-select
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Submit with pre-selected (both installed)
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      // plan CLI
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      // build CLI
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      // verbose
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      // narration
+      stdin.write("\r");
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      expect(mockWriteConfig).toHaveBeenCalledWith(
+        "/test/project",
+        expect.objectContaining({ clis: ["claude", "codex"] }),
+      );
+    });
+
+    it("shows warnings for selected CLIs that are not installed", async () => {
+      setupSuccessToCliSelect();
+      const { checkBinary } = await import("../../lib/adapters/index.js");
+      const mockCheckBinary = vi.mocked(checkBinary);
+      mockCheckBinary.mockImplementation(async (name: string) => name !== "codex");
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Toggle codex on (it's not pre-selected since not installed), then submit
+      // Navigate to Codex (second item) and toggle it
+      stdin.write("j"); // move down to Codex
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      stdin.write(" "); // toggle Codex on
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      stdin.write("\r"); // submit
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(lastFrame()).toContain("binary not found");
+
+      // Reset mock
+      mockCheckBinary.mockResolvedValue(true);
+    });
+
+    it("allows empty CLI selection", async () => {
+      setupSuccessToCliSelect();
+
+      const { lastFrame, stdin } = render(
+        <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Deselect all pre-selected CLIs
+      stdin.write(" "); // toggle off first (claude)
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      stdin.write("j"); // move to second
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      stdin.write(" "); // toggle off second (codex)
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      stdin.write("\r"); // submit empty
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Should proceed to plan CLI selection (no crash)
+      expect(lastFrame()).toContain("Default CLI for plan:");
     });
   });
 

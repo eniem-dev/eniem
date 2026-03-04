@@ -4,6 +4,7 @@ import {
   Spinner,
   Confirm,
   Select,
+  MultiSelect,
   SectionHeader,
   StatusMessage,
 } from "../components/index.js";
@@ -24,6 +25,7 @@ type AiInitStep =
   | "confirm_update"
   | "cloning"
   | "copying"
+  | "select_clis"
   | "select_plan_cli"
   | "select_build_cli"
   | "select_verbose"
@@ -51,6 +53,8 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
   const [verboseChoice, setVerboseChoice] = useState(false);
   const [narrationChoice, setNarrationChoice] = useState<Narration>("concise");
   const [existingConfig, setExistingConfig] = useState<EniConfig | null>(null);
+  const [selectedClis, setSelectedClis] = useState<CLIId[]>([]);
+  const [cliWarnings, setCliWarnings] = useState<string[]>([]);
 
   // Refs to prevent duplicate effect runs
   const isCheckingRef = useRef(false);
@@ -134,7 +138,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
 
         setCopiedFiles(allCopiedFiles);
         setSpecsCreated(specsResult.created);
-        setStep("select_plan_cli");
+        setStep("select_clis");
         isCopyingRef.current = false;
       };
       void copy();
@@ -150,22 +154,23 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
     }
   };
 
-  // Load adapters and existing config when entering select_plan_cli
+  // Load adapters and existing config when entering select_clis
   useEffect(() => {
-    if (step !== "select_plan_cli" || isLoadingAdaptersRef.current) return;
+    if (step !== "select_clis" || isLoadingAdaptersRef.current) return;
     isLoadingAdaptersRef.current = true;
 
     const load = async () => {
-      const infos = await Promise.all(
-        SUPPORTED_CLIS.map(async (id) => ({
-          adapter: getAdapter(id),
-          available: await checkBinary(getAdapter(id).binary),
-        })),
-      );
-      setAdapters(infos);
-
-      const config = await readConfig(targetDir).catch(() => null);
+      const [infos, config] = await Promise.all([
+        Promise.all(
+          SUPPORTED_CLIS.map(async (id) => ({
+            adapter: getAdapter(id),
+            available: await checkBinary(getAdapter(id).binary),
+          })),
+        ),
+        readConfig(targetDir).catch(() => null),
+      ]);
       setExistingConfig(config);
+      setAdapters(infos);
       isLoadingAdaptersRef.current = false;
     };
 
@@ -177,7 +182,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
     if (step !== "saving_config" || isSavingConfigRef.current) return;
     isSavingConfigRef.current = true;
 
-    const config: EniConfig = { plan: planCLI!, build: buildCLI!, verbose: verboseChoice, narration: narrationChoice };
+    const config: EniConfig = { plan: planCLI!, build: buildCLI!, clis: selectedClis, verbose: verboseChoice, narration: narrationChoice };
     void writeConfig(targetDir, config)
       .then(() => setStep("complete"))
       .catch((err: unknown) => {
@@ -185,7 +190,30 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
         setStep("error");
       })
       .finally(() => { isSavingConfigRef.current = false; });
-  }, [step, targetDir, planCLI, buildCLI, verboseChoice, narrationChoice]);
+  }, [step, targetDir, planCLI, buildCLI, selectedClis, verboseChoice, narrationChoice]);
+
+  const cliMultiSelectItems = adapters.map(({ adapter, available }) => ({
+    label: available
+      ? `${adapter.name} (installed)`
+      : `${adapter.name} (not found)`,
+    value: adapter.id,
+  }));
+
+  const handleClisSelect = (values: string[]) => {
+    const selected = values as CLIId[];
+    setSelectedClis(selected);
+
+    // Warn about selected CLIs that are not installed
+    const warnings = selected
+      .filter((id) => !adapters.find((a) => a.adapter.id === id)?.available)
+      .map((id) => {
+        const adapter = adapters.find((a) => a.adapter.id === id);
+        return `⚠ ${adapter?.adapter.name ?? id} binary not found. You can still set up config and install it later.`;
+      });
+    setCliWarnings(warnings);
+
+    setStep("select_plan_cli");
+  };
 
   const adapterOptions = adapters.map(({ adapter, available }) => ({
     label: available
@@ -252,8 +280,37 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
 
       {step === "copying" && <Spinner label="Copying files to project..." />}
 
-      {step === "select_plan_cli" && adapters.length === 0 && (
+      {step === "select_clis" && adapters.length === 0 && (
         <Spinner label="Checking installed CLIs..." />
+      )}
+
+      {step === "select_clis" && adapters.length > 0 && (
+        <Box marginTop={1} flexDirection="column">
+          <MultiSelect
+            label="Which CLIs do you want to configure?"
+            items={cliMultiSelectItems}
+            onSubmit={handleClisSelect}
+            initialSelected={existingConfig?.clis ?? adapters.filter((a) => a.available).map((a) => a.adapter.id)}
+          />
+        </Box>
+      )}
+
+      {step !== "select_clis" && selectedClis.length > 0 && (
+        <StatusMessage status="success">
+          CLIs: {selectedClis.join(", ")}
+        </StatusMessage>
+      )}
+
+      {cliWarnings.length > 0 && step !== "select_clis" && (
+        <Box flexDirection="column" marginLeft={2}>
+          {cliWarnings.map((warning) => (
+            <Text key={warning} color="yellow">{warning}</Text>
+          ))}
+        </Box>
+      )}
+
+      {step === "select_plan_cli" && adapters.length === 0 && (
+        <Spinner label="Loading CLI adapters..." />
       )}
 
       {step === "select_plan_cli" && adapters.length > 0 && (
