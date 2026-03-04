@@ -145,6 +145,10 @@ export const OPTIONAL_GROUPS: OptionalGroup[] = [
     label: "File Uploads (DigitalOcean Spaces)",
     vars: [
       {
+        key: "FILE_UPLOAD_PROVIDER",
+        promptLabel: "File upload provider (database or digitalocean)",
+      },
+      {
         key: "DIGITALOCEAN_SPACES_ENDPOINT",
         promptLabel: "Spaces endpoint URL",
       },

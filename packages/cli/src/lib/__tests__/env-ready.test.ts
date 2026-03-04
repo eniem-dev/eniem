@@ -246,7 +246,7 @@ describe("env-ready", () => {
         "twitter-oauth": 2,
         walletconnect: 1,
         analytics: 0, // vars come from sub-selection options
-        "file-uploads": 7,
+        "file-uploads": 8,
         "email-branding": 3,
         "site-config": 1,
       };
