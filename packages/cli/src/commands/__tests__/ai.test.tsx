@@ -10,6 +10,8 @@ vi.mock("../../lib/ai-init.js", () => ({
   copyAiFiles: vi.fn(),
   ensureSpecsFolder: vi.fn(),
   cleanupTempDir: vi.fn(),
+  getCliFileInfo: vi.fn().mockResolvedValue({ cliId: "", cliName: "", folders: [], rootFiles: [], hasFiles: false }),
+  removeCliConfig: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock adapters

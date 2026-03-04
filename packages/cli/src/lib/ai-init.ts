@@ -215,3 +215,76 @@ export async function cleanupTempDir(tempDir: string): Promise<void> {
     // Ignore cleanup errors
   }
 }
+
+/** Maps each CLI to its config folders and root files */
+export const CLI_CONFIG_PATHS: Record<string, { folders: string[]; rootFiles: string[] }> = {
+  claude: { folders: [".claude"], rootFiles: [] },
+  opencode: { folders: [".opencode"], rootFiles: ["opencode.json"] },
+  codex: { folders: [".codex", ".agents"], rootFiles: [] },
+  gemini: { folders: [], rootFiles: [] },
+};
+
+export interface CliFileInfo {
+  cliId: string;
+  cliName: string;
+  folders: { path: string; fileCount: number }[];
+  rootFiles: string[];
+  hasFiles: boolean;
+}
+
+/** Counts files recursively in a directory */
+async function countFiles(dirPath: string): Promise<number> {
+  let count = 0;
+  const entries = await fs.readdir(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      count += await countFiles(path.join(dirPath, entry.name));
+    } else {
+      count++;
+    }
+  }
+  return count;
+}
+
+/** Checks which config files exist for a CLI */
+export async function getCliFileInfo(
+  targetDir: string,
+  cliId: string,
+  cliName: string,
+): Promise<CliFileInfo> {
+  const config = CLI_CONFIG_PATHS[cliId] ?? { folders: [], rootFiles: [] };
+  const folders: { path: string; fileCount: number }[] = [];
+  const rootFiles: string[] = [];
+
+  for (const folder of config.folders) {
+    try {
+      await fs.access(path.join(targetDir, folder));
+      const fileCount = await countFiles(path.join(targetDir, folder));
+      folders.push({ path: folder, fileCount });
+    } catch {
+      // Folder doesn't exist
+    }
+  }
+
+  for (const file of config.rootFiles) {
+    try {
+      await fs.access(path.join(targetDir, file));
+      rootFiles.push(file);
+    } catch {
+      // File doesn't exist
+    }
+  }
+
+  return { cliId, cliName, folders, rootFiles, hasFiles: folders.length > 0 || rootFiles.length > 0 };
+}
+
+/** Removes all config files and folders for a CLI */
+export async function removeCliConfig(targetDir: string, cliId: string): Promise<void> {
+  const config = CLI_CONFIG_PATHS[cliId] ?? { folders: [], rootFiles: [] };
+  for (const folder of config.folders) {
+    await fs.rm(path.join(targetDir, folder), { recursive: true, force: true });
+  }
+  for (const file of config.rootFiles) {
+    await fs.rm(path.join(targetDir, file), { force: true });
+  }
+}

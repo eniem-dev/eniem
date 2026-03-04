@@ -8,6 +8,8 @@ import {
   copyAiFiles,
   ensureSpecsFolder,
   cleanupTempDir,
+  getCliFileInfo,
+  removeCliConfig,
 } from "../ai-init.js";
 
 vi.mock("execa", () => ({
@@ -345,6 +347,106 @@ describe("ai-init", () => {
       await expect(
         cleanupTempDir("/non/existent/path")
       ).resolves.not.toThrow();
+    });
+  });
+
+  describe("getCliFileInfo", () => {
+    it("detects existing config folder with file count", async () => {
+      // Create .opencode/ with 2 files
+      const opencodeDir = path.join(tempDir, ".opencode");
+      await fs.mkdir(path.join(opencodeDir, "skills"), { recursive: true });
+      await fs.writeFile(path.join(opencodeDir, "config.json"), "{}");
+      await fs.writeFile(path.join(opencodeDir, "skills", "build.md"), "# Build");
+
+      const info = await getCliFileInfo(tempDir, "opencode", "OpenCode");
+
+      expect(info.hasFiles).toBe(true);
+      expect(info.folders).toHaveLength(1);
+      expect(info.folders[0].path).toBe(".opencode");
+      expect(info.folders[0].fileCount).toBe(2);
+    });
+
+    it("detects root files for opencode", async () => {
+      await fs.writeFile(path.join(tempDir, "opencode.json"), "{}");
+
+      const info = await getCliFileInfo(tempDir, "opencode", "OpenCode");
+
+      expect(info.hasFiles).toBe(true);
+      expect(info.rootFiles).toContain("opencode.json");
+    });
+
+    it("returns hasFiles=false when no config exists", async () => {
+      const info = await getCliFileInfo(tempDir, "claude", "Claude Code");
+
+      expect(info.hasFiles).toBe(false);
+      expect(info.folders).toHaveLength(0);
+      expect(info.rootFiles).toHaveLength(0);
+    });
+
+    it("detects both .codex and .agents folders for codex", async () => {
+      await fs.mkdir(path.join(tempDir, ".codex"));
+      await fs.writeFile(path.join(tempDir, ".codex", "config.toml"), "[codex]");
+      await fs.mkdir(path.join(tempDir, ".agents", "skills"), { recursive: true });
+      await fs.writeFile(path.join(tempDir, ".agents", "skills", "plan.md"), "# Plan");
+
+      const info = await getCliFileInfo(tempDir, "codex", "Codex");
+
+      expect(info.hasFiles).toBe(true);
+      expect(info.folders).toHaveLength(2);
+      expect(info.folders.map((f) => f.path)).toEqual([".codex", ".agents"]);
+    });
+
+    it("skips non-existent folders while detecting existing ones", async () => {
+      // Only .codex exists, not .agents
+      await fs.mkdir(path.join(tempDir, ".codex"));
+      await fs.writeFile(path.join(tempDir, ".codex", "config.toml"), "[codex]");
+
+      const info = await getCliFileInfo(tempDir, "codex", "Codex");
+
+      expect(info.hasFiles).toBe(true);
+      expect(info.folders).toHaveLength(1);
+      expect(info.folders[0].path).toBe(".codex");
+    });
+  });
+
+  describe("removeCliConfig", () => {
+    it("removes config folder and root files for opencode", async () => {
+      const opencodeDir = path.join(tempDir, ".opencode");
+      await fs.mkdir(opencodeDir);
+      await fs.writeFile(path.join(opencodeDir, "config.json"), "{}");
+      await fs.writeFile(path.join(tempDir, "opencode.json"), "{}");
+
+      await removeCliConfig(tempDir, "opencode");
+
+      await expect(fs.access(opencodeDir)).rejects.toThrow();
+      await expect(fs.access(path.join(tempDir, "opencode.json"))).rejects.toThrow();
+    });
+
+    it("removes both .codex and .agents for codex", async () => {
+      await fs.mkdir(path.join(tempDir, ".codex"));
+      await fs.writeFile(path.join(tempDir, ".codex", "config.toml"), "[codex]");
+      await fs.mkdir(path.join(tempDir, ".agents"));
+      await fs.writeFile(path.join(tempDir, ".agents", "plan.md"), "# Plan");
+
+      await removeCliConfig(tempDir, "codex");
+
+      await expect(fs.access(path.join(tempDir, ".codex"))).rejects.toThrow();
+      await expect(fs.access(path.join(tempDir, ".agents"))).rejects.toThrow();
+    });
+
+    it("does not throw when config does not exist", async () => {
+      await expect(removeCliConfig(tempDir, "claude")).resolves.not.toThrow();
+    });
+
+    it("removes nested files within config folder", async () => {
+      const claudeDir = path.join(tempDir, ".claude");
+      await fs.mkdir(path.join(claudeDir, "skills", "custom"), { recursive: true });
+      await fs.writeFile(path.join(claudeDir, "settings.json"), "{}");
+      await fs.writeFile(path.join(claudeDir, "skills", "custom", "SKILL.md"), "# Skill");
+
+      await removeCliConfig(tempDir, "claude");
+
+      await expect(fs.access(claudeDir)).rejects.toThrow();
     });
   });
 });

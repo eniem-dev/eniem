@@ -14,7 +14,10 @@ import {
   copyAiFiles,
   ensureSpecsFolder,
   cleanupTempDir,
+  getCliFileInfo,
+  removeCliConfig,
   type CopyReport,
+  type CliFileInfo,
 } from "../lib/ai-init.js";
 import type { CLIAdapter, CLIId } from "../lib/adapters/index.js";
 import { SUPPORTED_CLIS, getAdapter, checkBinary } from "../lib/adapters/index.js";
@@ -27,6 +30,7 @@ type AiInitStep =
   | "cloning"
   | "copying"
   | "select_clis"
+  | "remove_unselected"
   | "select_plan_cli"
   | "select_build_cli"
   | "select_verbose"
@@ -56,6 +60,9 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
   const [existingConfig, setExistingConfig] = useState<EniConfig | null>(null);
   const [selectedClis, setSelectedClis] = useState<CLIId[]>([]);
   const [cliWarnings, setCliWarnings] = useState<string[]>([]);
+  const [removalQueue, setRemovalQueue] = useState<CliFileInfo[]>([]);
+  const [currentRemovalIndex, setCurrentRemovalIndex] = useState(0);
+  const [removalResults, setRemovalResults] = useState<{ cliName: string; removed: boolean }[]>([]);
 
   // Refs to prevent duplicate effect runs
   const isCheckingRef = useRef(false);
@@ -63,6 +70,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
   const isCopyingRef = useRef(false);
   const isLoadingAdaptersRef = useRef(false);
   const isSavingConfigRef = useRef(false);
+  const isCheckingRemovalRef = useRef(false);
 
   // Step 1: Check if .eni exists
   useEffect(() => {
@@ -193,6 +201,53 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
       .finally(() => { isSavingConfigRef.current = false; });
   }, [step, targetDir, planCLI, buildCLI, selectedClis, verboseChoice, narrationChoice]);
 
+  // Check for unselected CLIs with existing config files
+  useEffect(() => {
+    if (step !== "remove_unselected" || isCheckingRemovalRef.current) return;
+    if (removalQueue.length > 0) return; // Already populated
+    isCheckingRemovalRef.current = true;
+
+    const check = async () => {
+      const unselected = adapters
+        .filter(({ adapter }) => !selectedClis.includes(adapter.id))
+        .map(({ adapter }) => adapter);
+
+      const infos = await Promise.all(
+        unselected.map((a) => getCliFileInfo(targetDir, a.id, a.name)),
+      );
+
+      const withFiles = infos.filter((info) => info.hasFiles);
+      if (withFiles.length === 0) {
+        setStep("select_plan_cli");
+      } else {
+        setRemovalQueue(withFiles);
+      }
+      isCheckingRemovalRef.current = false;
+    };
+
+    void check();
+  }, [step, adapters, selectedClis, targetDir, removalQueue.length]);
+
+  const handleRemovalConfirm = (confirmed: boolean) => {
+    const current = removalQueue[currentRemovalIndex];
+
+    const proceed = () => {
+      setRemovalResults((prev) => [...prev, { cliName: current.cliName, removed: confirmed }]);
+      const nextIndex = currentRemovalIndex + 1;
+      if (nextIndex >= removalQueue.length) {
+        setStep("select_plan_cli");
+      } else {
+        setCurrentRemovalIndex(nextIndex);
+      }
+    };
+
+    if (confirmed) {
+      void removeCliConfig(targetDir, current.cliId).then(proceed);
+    } else {
+      proceed();
+    }
+  };
+
   const cliMultiSelectItems = adapters.map(({ adapter, available }) => ({
     label: available
       ? `${adapter.name} (installed)`
@@ -213,7 +268,11 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
       });
     setCliWarnings(warnings);
 
-    setStep("select_plan_cli");
+    setRemovalQueue([]);
+    setCurrentRemovalIndex(0);
+    setRemovalResults([]);
+    isCheckingRemovalRef.current = false;
+    setStep("remove_unselected");
   };
 
   const adapterOptions = adapters.map(({ adapter, available }) => ({
@@ -306,6 +365,59 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
         <Box flexDirection="column" marginLeft={2}>
           {cliWarnings.map((warning) => (
             <Text key={warning} color="yellow">{warning}</Text>
+          ))}
+        </Box>
+      )}
+
+      {step === "remove_unselected" && removalQueue.length === 0 && (
+        <Spinner label="Checking for unselected CLI configs..." />
+      )}
+
+      {step === "remove_unselected" && removalQueue.length > 0 && (
+        <Box flexDirection="column" marginTop={1}>
+          {removalResults.map(({ cliName, removed }) => (
+            <StatusMessage key={cliName} status={removed ? "success" : "skip"}>
+              {removed ? `Removed ${cliName} config` : `Kept ${cliName} config`}
+            </StatusMessage>
+          ))}
+
+          {currentRemovalIndex < removalQueue.length && (() => {
+            const current = removalQueue[currentRemovalIndex];
+            return (
+              <Box flexDirection="column" marginTop={removalResults.length > 0 ? 1 : 0}>
+                <Text>
+                  You didn{"'"}t select <Text bold>{current.cliName}</Text>. Remove its config files?
+                </Text>
+                <Box flexDirection="column" marginLeft={2} marginTop={1}>
+                  <Text dimColor>Will remove:</Text>
+                  {current.folders.map(({ path: folderPath, fileCount }) => (
+                    <Text key={folderPath} dimColor>
+                      {"  "}{folderPath}/ ({fileCount} {fileCount === 1 ? "file" : "files"})
+                    </Text>
+                  ))}
+                  {current.rootFiles.map((file) => (
+                    <Text key={file} dimColor>{"  "}{file}</Text>
+                  ))}
+                </Box>
+                <Box marginTop={1}>
+                  <Confirm
+                    label="Remove?"
+                    onConfirm={handleRemovalConfirm}
+                    defaultValue={false}
+                  />
+                </Box>
+              </Box>
+            );
+          })()}
+        </Box>
+      )}
+
+      {step !== "remove_unselected" && step !== "select_clis" && removalResults.length > 0 && (
+        <Box flexDirection="column">
+          {removalResults.map(({ cliName, removed }) => (
+            <StatusMessage key={cliName} status={removed ? "success" : "skip"}>
+              {removed ? `Removed ${cliName} config` : `Kept ${cliName} config`}
+            </StatusMessage>
           ))}
         </Box>
       )}
