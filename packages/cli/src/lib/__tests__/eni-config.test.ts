@@ -95,11 +95,11 @@ describe("writeConfig", () => {
     mockedMkdir.mockResolvedValue(undefined);
     mockedWriteFile.mockResolvedValue();
 
-    await writeConfig(CWD, { plan: "gemini", build: "codex" });
+    await writeConfig(CWD, { plan: "opencode", build: "codex" });
 
     expect(mockedWriteFile).toHaveBeenCalledWith(
       CONFIG_PATH,
-      JSON.stringify({ plan: "gemini", build: "codex" }, null, 2) + "\n",
+      JSON.stringify({ plan: "opencode", build: "codex" }, null, 2) + "\n",
     );
   });
 
@@ -157,7 +157,7 @@ describe("validateConfig", () => {
 
   it('rejects { plan: "invalid" } with error listing valid CLIs', () => {
     expect(() => validateConfig({ plan: "invalid" })).toThrow(
-      /must be one of: claude, codex, gemini, opencode.*got "invalid"/,
+      /must be one of: claude, codex, opencode.*got "invalid"/,
     );
   });
 

@@ -16,10 +16,10 @@ vi.mock("../../lib/eni-config.js", () => ({
 }));
 
 vi.mock("../../lib/adapters/index.js", () => ({
-  SUPPORTED_CLIS: ["claude", "codex", "gemini", "opencode"] as const,
+  SUPPORTED_CLIS: ["claude", "codex", "opencode"] as const,
   getAdapter: vi.fn((id: string) => ({
     id,
-    name: { claude: "Claude Code", codex: "Codex", gemini: "Gemini CLI", opencode: "OpenCode" }[id],
+    name: { claude: "Claude Code", codex: "Codex", opencode: "OpenCode" }[id],
     binary: id,
     run: () => ({
       result: Promise.resolve({ exitCode: 0, sentinelDetected: false, stderr: "" }),
@@ -28,7 +28,7 @@ vi.mock("../../lib/adapters/index.js", () => ({
   })),
   checkBinary: vi.fn(() => Promise.resolve(true)),
   isValidCLI: vi.fn((name: string) =>
-    ["claude", "codex", "gemini", "opencode"].includes(name),
+    ["claude", "codex", "opencode"].includes(name),
   ),
 }));
 
@@ -56,7 +56,6 @@ describe("ConfigCommand", () => {
     });
     expect(lastFrame()).toContain("Claude Code (claude)");
     expect(lastFrame()).toContain("Codex (codex)");
-    expect(lastFrame()).toContain("Gemini CLI (gemini)");
     expect(lastFrame()).toContain("OpenCode (opencode)");
   });
 
@@ -75,13 +74,13 @@ describe("ConfigCommand", () => {
 
   it("grays out unavailable CLIs with 'not installed' label", async () => {
     mockCheckBinary.mockImplementation(async (name: string) =>
-      name !== "gemini",
+      name !== "opencode",
     );
 
     const { lastFrame } = render(<ConfigCommand cwd="/tmp" />);
 
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain("Gemini CLI (gemini) — not installed");
+      expect(lastFrame()).toContain("OpenCode (opencode) — not installed");
     });
     expect(lastFrame()).not.toContain("Claude Code (claude) — not installed");
   });
@@ -377,14 +376,14 @@ describe("ConfigSetCommand", () => {
     mockReadConfig.mockResolvedValue({ plan: "claude", build: "claude" });
 
     const { lastFrame } = render(
-      <ConfigSetCommand cwd="/tmp" command="plan" cliName="gemini" />,
+      <ConfigSetCommand cwd="/tmp" command="plan" cliName="opencode" />,
     );
 
     await vi.waitFor(() => {
-      expect(lastFrame()).toContain("Set plan CLI to gemini");
+      expect(lastFrame()).toContain("Set plan CLI to opencode");
     });
     expect(mockWriteConfig).toHaveBeenCalledWith("/tmp", {
-      plan: "gemini",
+      plan: "opencode",
       build: "claude",
     });
   });
@@ -530,7 +529,7 @@ describe("ConfigSetCommand", () => {
 
     await vi.waitFor(() => {
       expect(lastFrame()).toContain('Invalid CLI: "invalid"');
-      expect(lastFrame()).toContain("claude, codex, gemini, opencode");
+      expect(lastFrame()).toContain("claude, codex, opencode");
     });
   });
 });
