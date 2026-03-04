@@ -52,7 +52,7 @@ interface AiCommandProps {
   protocol?: "ssh" | "https";
 }
 
-export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol: _protocol }: AiCommandProps) => {
+export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol }: AiCommandProps) => {
   const [step, setStep] = useState<AiInitStep>("checking");
   const [eniExists, setEniExists] = useState(false);
   const [copyReport, setCopyReport] = useState<CopyReport>({ addedFiles: [], skippedFiles: [] });
@@ -106,7 +106,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol: _protocol }
     if (step === "cloning" && !isCloningRef.current) {
       isCloningRef.current = true;
       const clone = async () => {
-        const result = await sparseCloneBoilerplate(gitHost);
+        const result = await sparseCloneBoilerplate(gitHost, protocol);
         if (!result.success) {
           setError(result.error ?? "Failed to clone boilerplate");
           setStep("error");
@@ -119,7 +119,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol: _protocol }
       };
       void clone();
     }
-  }, [step, gitHost]);
+  }, [step, gitHost, protocol]);
 
   // Step 3: Copy files and ensure specs folder
   useEffect(() => {
@@ -257,7 +257,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol: _protocol }
       }
 
       // Clone boilerplate to get fresh config files
-      const cloneResult = await sparseCloneBoilerplate(gitHost);
+      const cloneResult = await sparseCloneBoilerplate(gitHost, protocol);
       if (!cloneResult.success) {
         setError(cloneResult.error ?? "Could not fetch boilerplate config. Check your connection and retry.");
         setStep("error");
@@ -287,7 +287,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol: _protocol }
     };
 
     void restore();
-  }, [step, targetDir, selectedClis, gitHost, adapters]);
+  }, [step, targetDir, selectedClis, gitHost, protocol, adapters]);
 
   const handleRemovalConfirm = (confirmed: boolean) => {
     const current = removalQueue[currentRemovalIndex];

@@ -17,17 +17,17 @@ export interface CloneResult {
   fallbackUsed?: boolean;
 }
 
-const SSH_TIMEOUT_MS = 10_000;
+export const SSH_TIMEOUT_MS = 10_000;
 
-function buildSshUrl(gitHost: string): string {
+export function buildSshUrl(gitHost: string): string {
   return `git@${gitHost}:${BOILERPLATE_REPO_PATH}`;
 }
 
-function buildHttpsUrl(gitHost: string): string {
+export function buildHttpsUrl(gitHost: string): string {
   return `https://${gitHost}/${BOILERPLATE_REPO_PATH}`;
 }
 
-function isNetworkError(error: unknown): boolean {
+export function isNetworkError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : "";
   const timedOut = (error as { timedOut?: boolean }).timedOut === true;
 
@@ -40,7 +40,7 @@ function isNetworkError(error: unknown): boolean {
   );
 }
 
-function isAuthError(message: string): boolean {
+export function isAuthError(message: string): boolean {
   return (
     message.includes("Permission denied") ||
     message.includes("Could not read from remote repository") ||
