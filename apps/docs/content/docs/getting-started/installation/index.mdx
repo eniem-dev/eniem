@@ -27,6 +27,14 @@ bunx eniem-cli@latest [YOUR_APP_NAME]
 
 Open [http://localhost:3000](http://localhost:3000) to see your site.
 
+**Network issues with SSH?** If SSH port 22 is blocked (corporate networks, CI/CD), use HTTPS:
+
+```bash
+npx eniem-cli@latest my-app --https
+```
+
+See [AI Workflow — Git Protocol Flags](/guides/ai-workflow#git-protocol-flags) for details on `--protocol`, `--https`, and `--ssh` flags.
+
 ## Configure Products
 
 After setting up your app, configure your Polar products using the CLI:
