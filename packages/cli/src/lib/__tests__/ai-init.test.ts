@@ -73,6 +73,21 @@ describe("ai-init", () => {
       expect(result.success).toBe(true);
       expect(result.tempDir).toBeTruthy();
 
+      // Verify sparse-checkout includes all CLI folders and root files
+      const sparseCheckoutPath = path.join(
+        result.tempDir,
+        ".git",
+        "info",
+        "sparse-checkout"
+      );
+      const sparseContent = await fs.readFile(sparseCheckoutPath, "utf-8");
+      expect(sparseContent).toContain(".eni");
+      expect(sparseContent).toContain(".claude");
+      expect(sparseContent).toContain(".opencode");
+      expect(sparseContent).toContain(".codex");
+      expect(sparseContent).toContain(".agents");
+      expect(sparseContent).toContain("opencode.json");
+
       // Verify git commands were called
       expect(execa).toHaveBeenCalledWith("git", ["init"], expect.any(Object));
       expect(execa).toHaveBeenCalledWith(
@@ -111,7 +126,7 @@ describe("ai-init", () => {
   });
 
   describe("copyAiFiles", () => {
-    it("copies files from source to target", async () => {
+    it("copies all CLI folders and root files from source to target", async () => {
       // Create source structure
       const sourceDir = path.join(tempDir, "source");
       const targetDir = path.join(tempDir, "target");
@@ -131,6 +146,26 @@ describe("ai-init", () => {
       await fs.writeFile(path.join(claudeDir, "settings.local.json"), "{}");
       await fs.writeFile(path.join(commandsDir, "test.md"), "# Test\n");
 
+      // Create .opencode folder
+      const opencodeDir = path.join(sourceDir, ".opencode");
+      const opencodeSkillsDir = path.join(opencodeDir, "skills");
+      await fs.mkdir(opencodeSkillsDir, { recursive: true });
+      await fs.writeFile(path.join(opencodeSkillsDir, "build.md"), "# Build\n");
+
+      // Create .codex folder
+      const codexDir = path.join(sourceDir, ".codex");
+      await fs.mkdir(codexDir);
+      await fs.writeFile(path.join(codexDir, "config.toml"), "[codex]\n");
+
+      // Create .agents folder
+      const agentsDir = path.join(sourceDir, ".agents");
+      const agentsSkillsDir = path.join(agentsDir, "skills");
+      await fs.mkdir(agentsSkillsDir, { recursive: true });
+      await fs.writeFile(path.join(agentsSkillsDir, "plan.md"), "# Plan\n");
+
+      // Create opencode.json root file
+      await fs.writeFile(path.join(sourceDir, "opencode.json"), '{"theme":"dark"}');
+
       const result = await copyAiFiles(sourceDir, targetDir);
 
       expect(result.success).toBe(true);
@@ -138,6 +173,10 @@ describe("ai-init", () => {
       expect(result.copiedFiles).toContain(".eni/PROMPT_plan.md");
       expect(result.copiedFiles).toContain(".claude/settings.local.json");
       expect(result.copiedFiles).toContain(".claude/commands/test.md");
+      expect(result.copiedFiles).toContain(".opencode/skills/build.md");
+      expect(result.copiedFiles).toContain(".codex/config.toml");
+      expect(result.copiedFiles).toContain(".agents/skills/plan.md");
+      expect(result.copiedFiles).toContain("opencode.json");
 
       // Verify files exist in target
       expect(
@@ -146,6 +185,20 @@ describe("ai-init", () => {
       expect(
         await fs.stat(path.join(targetDir, ".claude", "commands", "test.md"))
       ).toBeTruthy();
+      expect(
+        await fs.stat(path.join(targetDir, ".opencode", "skills", "build.md"))
+      ).toBeTruthy();
+      expect(
+        await fs.stat(path.join(targetDir, ".codex", "config.toml"))
+      ).toBeTruthy();
+      expect(
+        await fs.stat(path.join(targetDir, ".agents", "skills", "plan.md"))
+      ).toBeTruthy();
+      const opencodeJson = await fs.readFile(
+        path.join(targetDir, "opencode.json"),
+        "utf-8"
+      );
+      expect(opencodeJson).toBe('{"theme":"dark"}');
     });
 
     it("replaces existing target folders", async () => {

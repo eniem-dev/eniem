@@ -3,7 +3,8 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 import { BOILERPLATE_REPO_PATH } from "./constants.js";
-const FOLDERS_TO_COPY = [".eni", ".claude"];
+const FOLDERS_TO_COPY = [".eni", ".claude", ".opencode", ".codex", ".agents"];
+const FILES_TO_COPY = ["opencode.json"];
 
 export interface AiInitResult {
   success: boolean;
@@ -55,7 +56,8 @@ export async function sparseCloneBoilerplate(gitHost: string): Promise<{
       "info",
       "sparse-checkout"
     );
-    await fs.writeFile(sparseCheckoutPath, FOLDERS_TO_COPY.join("\n") + "\n");
+    const sparseEntries = [...FOLDERS_TO_COPY, ...FILES_TO_COPY];
+    await fs.writeFile(sparseCheckoutPath, sparseEntries.join("\n") + "\n");
 
     // Fetch and checkout
     await execa("git", ["fetch", "--depth", "1", "origin", "main"], {
@@ -109,6 +111,21 @@ export async function copyAiFiles(
 
       // Recursively copy folder
       await copyDir(sourcePath, targetPath, folder, copiedFiles);
+    }
+
+    // Copy root files
+    for (const file of FILES_TO_COPY) {
+      const sourcePath = path.join(sourceDir, file);
+      const targetPath = path.join(targetDir, file);
+
+      try {
+        await fs.access(sourcePath);
+      } catch {
+        continue; // Skip if file doesn't exist in source
+      }
+
+      await fs.copyFile(sourcePath, targetPath);
+      copiedFiles.push(file);
     }
 
     return { success: true, copiedFiles };
