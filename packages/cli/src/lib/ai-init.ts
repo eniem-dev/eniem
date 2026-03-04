@@ -288,3 +288,104 @@ export async function removeCliConfig(targetDir: string, cliId: string): Promise
     await fs.rm(path.join(targetDir, file), { force: true });
   }
 }
+
+export interface CliRestoreReport {
+  cliId: string;
+  cliName: string;
+  report: CopyReport;
+}
+
+/**
+ * Returns CLI IDs from the given list that have missing config folders or root files.
+ */
+export async function findClisNeedingRestore(
+  targetDir: string,
+  cliIds: string[],
+): Promise<string[]> {
+  const needsRestore: string[] = [];
+
+  for (const cliId of cliIds) {
+    const config = CLI_CONFIG_PATHS[cliId] ?? { folders: [], rootFiles: [] };
+    let hasMissing = false;
+
+    for (const folder of config.folders) {
+      try {
+        await fs.access(path.join(targetDir, folder));
+      } catch {
+        hasMissing = true;
+        break;
+      }
+    }
+
+    if (!hasMissing) {
+      for (const file of config.rootFiles) {
+        try {
+          await fs.access(path.join(targetDir, file));
+        } catch {
+          hasMissing = true;
+          break;
+        }
+      }
+    }
+
+    if (hasMissing) {
+      needsRestore.push(cliId);
+    }
+  }
+
+  return needsRestore;
+}
+
+/**
+ * Restores config files for specific CLIs from a boilerplate clone.
+ * Uses additive merge — new files are added, existing files are preserved.
+ */
+export async function restoreCliConfigs(
+  sourceDir: string,
+  targetDir: string,
+  cliIds: string[],
+  cliNames: Record<string, string>,
+): Promise<{ success: boolean; reports: CliRestoreReport[]; error?: string }> {
+  const reports: CliRestoreReport[] = [];
+
+  try {
+    for (const cliId of cliIds) {
+      const config = CLI_CONFIG_PATHS[cliId] ?? { folders: [], rootFiles: [] };
+      const report: CopyReport = { addedFiles: [], skippedFiles: [] };
+
+      for (const folder of config.folders) {
+        const sourcePath = path.join(sourceDir, folder);
+        try {
+          await fs.access(sourcePath);
+          await mergeDir(sourcePath, path.join(targetDir, folder), folder, report);
+        } catch {
+          continue;
+        }
+      }
+
+      for (const file of config.rootFiles) {
+        const sourcePath = path.join(sourceDir, file);
+        const targetPath = path.join(targetDir, file);
+        try {
+          await fs.access(sourcePath);
+        } catch {
+          continue;
+        }
+        try {
+          await fs.access(targetPath);
+          report.skippedFiles.push(file);
+        } catch {
+          await fs.copyFile(sourcePath, targetPath);
+          report.addedFiles.push(file);
+        }
+      }
+
+      reports.push({ cliId, cliName: cliNames[cliId] ?? cliId, report });
+    }
+
+    return { success: true, reports };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    return { success: false, reports, error: errorMessage };
+  }
+}

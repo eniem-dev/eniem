@@ -12,6 +12,8 @@ vi.mock("../../lib/ai-init.js", () => ({
   cleanupTempDir: vi.fn(),
   getCliFileInfo: vi.fn().mockResolvedValue({ cliId: "", cliName: "", folders: [], rootFiles: [], hasFiles: false }),
   removeCliConfig: vi.fn().mockResolvedValue(undefined),
+  findClisNeedingRestore: vi.fn().mockResolvedValue([]),
+  restoreCliConfigs: vi.fn().mockResolvedValue({ success: true, reports: [] }),
 }));
 
 // Mock adapters
@@ -150,13 +152,14 @@ describe("AiCommand", () => {
       });
     }
 
-    /** Advance through select_clis → plan → build → verbose → narration to reach complete */
+    /** Advance through select_clis → restore → plan → build → verbose → narration to reach complete */
     async function advanceThroughConfigSteps(stdin: { write: (s: string) => void }) {
       // Wait for adapters to load and CLI multi-select to render
       await new Promise((resolve) => setTimeout(resolve, 100));
       // Submit CLI multi-select (Enter — pre-selected installed CLIs)
       stdin.write("\r");
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for remove_unselected + restore_selected async steps to complete
+      await new Promise((resolve) => setTimeout(resolve, 100));
       // Select first plan CLI (Enter)
       stdin.write("\r");
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -281,10 +284,10 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      // Advance through select_clis → plan → build → verbose
+      // Advance through select_clis → restore → plan → build → verbose
       await new Promise((resolve) => setTimeout(resolve, 100));
       stdin.write("\r"); // submit CLI multi-select
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 100)); // wait for restore_selected
       stdin.write("\r"); // plan
       await new Promise((resolve) => setTimeout(resolve, 50));
       stdin.write("\r"); // build
@@ -320,10 +323,10 @@ describe("AiCommand", () => {
         <AiCommand forceFlag={false} targetDir="/test/project" gitHost="github.com" />
       );
 
-      // Advance through select_clis → plan → build → verbose
+      // Advance through select_clis → restore → plan → build → verbose
       await new Promise((resolve) => setTimeout(resolve, 100));
       stdin.write("\r"); // submit CLI multi-select
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 100)); // wait for restore_selected
       stdin.write("\r"); // plan
       await new Promise((resolve) => setTimeout(resolve, 50));
       stdin.write("\r"); // build
@@ -413,7 +416,8 @@ describe("AiCommand", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
       // Submit with pre-selected (both installed)
       stdin.write("\r");
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for remove_unselected + restore_selected async steps
+      await new Promise((resolve) => setTimeout(resolve, 100));
       // plan CLI
       stdin.write("\r");
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -452,7 +456,8 @@ describe("AiCommand", () => {
       stdin.write(" "); // toggle Codex on
       await new Promise((resolve) => setTimeout(resolve, 20));
       stdin.write("\r"); // submit
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for remove_unselected + restore_selected async steps
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(lastFrame()).toContain("binary not found");
 
@@ -477,7 +482,8 @@ describe("AiCommand", () => {
       stdin.write(" "); // toggle off second (codex)
       await new Promise((resolve) => setTimeout(resolve, 20));
       stdin.write("\r"); // submit empty
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Wait for remove_unselected + restore_selected async steps
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should proceed to plan CLI selection (no crash)
       expect(lastFrame()).toContain("Default CLI for plan:");

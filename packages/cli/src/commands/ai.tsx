@@ -16,8 +16,11 @@ import {
   cleanupTempDir,
   getCliFileInfo,
   removeCliConfig,
+  findClisNeedingRestore,
+  restoreCliConfigs,
   type CopyReport,
   type CliFileInfo,
+  type CliRestoreReport,
 } from "../lib/ai-init.js";
 import type { CLIAdapter, CLIId } from "../lib/adapters/index.js";
 import { SUPPORTED_CLIS, getAdapter, checkBinary } from "../lib/adapters/index.js";
@@ -31,6 +34,7 @@ type AiInitStep =
   | "copying"
   | "select_clis"
   | "remove_unselected"
+  | "restore_selected"
   | "select_plan_cli"
   | "select_build_cli"
   | "select_verbose"
@@ -63,6 +67,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
   const [removalQueue, setRemovalQueue] = useState<CliFileInfo[]>([]);
   const [currentRemovalIndex, setCurrentRemovalIndex] = useState(0);
   const [removalResults, setRemovalResults] = useState<{ cliName: string; removed: boolean }[]>([]);
+  const [restorationReports, setRestorationReports] = useState<CliRestoreReport[]>([]);
 
   // Refs to prevent duplicate effect runs
   const isCheckingRef = useRef(false);
@@ -71,6 +76,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
   const isLoadingAdaptersRef = useRef(false);
   const isSavingConfigRef = useRef(false);
   const isCheckingRemovalRef = useRef(false);
+  const isRestoringRef = useRef(false);
 
   // Step 1: Check if .eni exists
   useEffect(() => {
@@ -218,7 +224,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
 
       const withFiles = infos.filter((info) => info.hasFiles);
       if (withFiles.length === 0) {
-        setStep("select_plan_cli");
+        setStep("restore_selected");
       } else {
         setRemovalQueue(withFiles);
       }
@@ -228,6 +234,53 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
     void check();
   }, [step, adapters, selectedClis, targetDir, removalQueue.length]);
 
+  // Restore missing config for selected CLIs
+  useEffect(() => {
+    if (step !== "restore_selected" || isRestoringRef.current) return;
+    isRestoringRef.current = true;
+
+    const restore = async () => {
+      const clisToRestore = await findClisNeedingRestore(targetDir, selectedClis);
+
+      if (clisToRestore.length === 0) {
+        setStep("select_plan_cli");
+        isRestoringRef.current = false;
+        return;
+      }
+
+      // Clone boilerplate to get fresh config files
+      const cloneResult = await sparseCloneBoilerplate(gitHost);
+      if (!cloneResult.success) {
+        setError(cloneResult.error ?? "Could not fetch boilerplate config. Check your connection and retry.");
+        setStep("error");
+        isRestoringRef.current = false;
+        return;
+      }
+
+      // Build CLI name map from adapters
+      const cliNames: Record<string, string> = {};
+      for (const { adapter } of adapters) {
+        cliNames[adapter.id] = adapter.name;
+      }
+
+      const result = await restoreCliConfigs(cloneResult.tempDir, targetDir, clisToRestore, cliNames);
+      await cleanupTempDir(cloneResult.tempDir);
+
+      if (!result.success) {
+        setError(result.error ?? "Failed to restore CLI configs");
+        setStep("error");
+        isRestoringRef.current = false;
+        return;
+      }
+
+      setRestorationReports(result.reports);
+      setStep("select_plan_cli");
+      isRestoringRef.current = false;
+    };
+
+    void restore();
+  }, [step, targetDir, selectedClis, gitHost, adapters]);
+
   const handleRemovalConfirm = (confirmed: boolean) => {
     const current = removalQueue[currentRemovalIndex];
 
@@ -235,7 +288,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
       setRemovalResults((prev) => [...prev, { cliName: current.cliName, removed: confirmed }]);
       const nextIndex = currentRemovalIndex + 1;
       if (nextIndex >= removalQueue.length) {
-        setStep("select_plan_cli");
+        setStep("restore_selected");
       } else {
         setCurrentRemovalIndex(nextIndex);
       }
@@ -418,6 +471,26 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => 
             <StatusMessage key={cliName} status={removed ? "success" : "skip"}>
               {removed ? `Removed ${cliName} config` : `Kept ${cliName} config`}
             </StatusMessage>
+          ))}
+        </Box>
+      )}
+
+      {step === "restore_selected" && (
+        <Spinner label="Restoring config for selected CLIs..." />
+      )}
+
+      {step !== "restore_selected" && step !== "remove_unselected" && step !== "select_clis" && restorationReports.length > 0 && (
+        <Box flexDirection="column" marginTop={1}>
+          {restorationReports.map(({ cliName, report }) => (
+            <Box key={cliName} flexDirection="column">
+              <Text>Setting up config for {cliName}...</Text>
+              {report.addedFiles.map((file) => (
+                <Text key={file} color="green">{"  ✓ Added "}{file}</Text>
+              ))}
+              {report.skippedFiles.map((file) => (
+                <Text key={file} color="gray">{"  ⊘ Skipped "}{file}{" (already exists)"}</Text>
+              ))}
+            </Box>
           ))}
         </Box>
       )}

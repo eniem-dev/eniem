@@ -10,6 +10,8 @@ import {
   cleanupTempDir,
   getCliFileInfo,
   removeCliConfig,
+  findClisNeedingRestore,
+  restoreCliConfigs,
 } from "../ai-init.js";
 
 vi.mock("execa", () => ({
@@ -447,6 +449,165 @@ describe("ai-init", () => {
       await removeCliConfig(tempDir, "claude");
 
       await expect(fs.access(claudeDir)).rejects.toThrow();
+    });
+  });
+
+  describe("findClisNeedingRestore", () => {
+    it("returns CLIs with missing config folders", async () => {
+      // Only .claude exists, .opencode does not
+      await fs.mkdir(path.join(tempDir, ".claude"));
+
+      const result = await findClisNeedingRestore(tempDir, ["claude", "opencode"]);
+
+      expect(result).toEqual(["opencode"]);
+    });
+
+    it("returns CLIs with missing root files", async () => {
+      // .opencode folder exists but opencode.json does not
+      await fs.mkdir(path.join(tempDir, ".opencode"));
+
+      const result = await findClisNeedingRestore(tempDir, ["opencode"]);
+
+      expect(result).toEqual(["opencode"]);
+    });
+
+    it("returns empty when all configs are present", async () => {
+      await fs.mkdir(path.join(tempDir, ".claude"));
+      await fs.mkdir(path.join(tempDir, ".opencode"));
+      await fs.writeFile(path.join(tempDir, "opencode.json"), "{}");
+
+      const result = await findClisNeedingRestore(tempDir, ["claude", "opencode"]);
+
+      expect(result).toEqual([]);
+    });
+
+    it("detects missing .agents folder for codex", async () => {
+      // .codex exists but .agents does not
+      await fs.mkdir(path.join(tempDir, ".codex"));
+
+      const result = await findClisNeedingRestore(tempDir, ["codex"]);
+
+      expect(result).toEqual(["codex"]);
+    });
+
+    it("skips CLIs with no config paths defined", async () => {
+      const result = await findClisNeedingRestore(tempDir, ["unknown-cli"]);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("restoreCliConfigs", () => {
+    let sourceDir: string;
+
+    beforeEach(async () => {
+      sourceDir = path.join(tempDir, "source");
+      await fs.mkdir(sourceDir);
+    });
+
+    it("restores missing config files for a CLI", async () => {
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(targetDir);
+
+      // Create source with .claude config
+      await fs.mkdir(path.join(sourceDir, ".claude", "commands"), { recursive: true });
+      await fs.writeFile(path.join(sourceDir, ".claude", "settings.json"), '{"perms":true}');
+      await fs.writeFile(path.join(sourceDir, ".claude", "commands", "review.md"), "# Review");
+
+      const result = await restoreCliConfigs(sourceDir, targetDir, ["claude"], { claude: "Claude Code" });
+
+      expect(result.success).toBe(true);
+      expect(result.reports).toHaveLength(1);
+      expect(result.reports[0].cliName).toBe("Claude Code");
+      expect(result.reports[0].report.addedFiles).toContain(".claude/settings.json");
+      expect(result.reports[0].report.addedFiles).toContain(".claude/commands/review.md");
+
+      // Verify files exist
+      const content = await fs.readFile(path.join(targetDir, ".claude", "settings.json"), "utf-8");
+      expect(content).toBe('{"perms":true}');
+    });
+
+    it("preserves existing files during restoration", async () => {
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(path.join(targetDir, ".claude"), { recursive: true });
+      await fs.writeFile(path.join(targetDir, ".claude", "settings.json"), '{"user":"custom"}');
+
+      // Source has same file plus a new one
+      await fs.mkdir(path.join(sourceDir, ".claude"), { recursive: true });
+      await fs.writeFile(path.join(sourceDir, ".claude", "settings.json"), '{"template":true}');
+      await fs.writeFile(path.join(sourceDir, ".claude", "new-file.md"), "# New");
+
+      const result = await restoreCliConfigs(sourceDir, targetDir, ["claude"], { claude: "Claude Code" });
+
+      expect(result.success).toBe(true);
+      expect(result.reports[0].report.addedFiles).toContain(".claude/new-file.md");
+      expect(result.reports[0].report.skippedFiles).toContain(".claude/settings.json");
+
+      // User's file preserved
+      const content = await fs.readFile(path.join(targetDir, ".claude", "settings.json"), "utf-8");
+      expect(content).toBe('{"user":"custom"}');
+    });
+
+    it("restores root files for opencode", async () => {
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(targetDir);
+
+      await fs.mkdir(path.join(sourceDir, ".opencode"), { recursive: true });
+      await fs.writeFile(path.join(sourceDir, ".opencode", "config.json"), "{}");
+      await fs.writeFile(path.join(sourceDir, "opencode.json"), '{"theme":"dark"}');
+
+      const result = await restoreCliConfigs(sourceDir, targetDir, ["opencode"], { opencode: "OpenCode" });
+
+      expect(result.success).toBe(true);
+      expect(result.reports[0].report.addedFiles).toContain("opencode.json");
+
+      const content = await fs.readFile(path.join(targetDir, "opencode.json"), "utf-8");
+      expect(content).toBe('{"theme":"dark"}');
+    });
+
+    it("restores multiple CLIs at once", async () => {
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(targetDir);
+
+      await fs.mkdir(path.join(sourceDir, ".claude"), { recursive: true });
+      await fs.writeFile(path.join(sourceDir, ".claude", "settings.json"), "{}");
+      await fs.mkdir(path.join(sourceDir, ".codex"), { recursive: true });
+      await fs.writeFile(path.join(sourceDir, ".codex", "config.toml"), "[codex]");
+
+      const result = await restoreCliConfigs(sourceDir, targetDir, ["claude", "codex"], {
+        claude: "Claude Code",
+        codex: "Codex",
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.reports).toHaveLength(2);
+      expect(result.reports[0].cliName).toBe("Claude Code");
+      expect(result.reports[1].cliName).toBe("Codex");
+    });
+
+    it("uses CLI ID as fallback name when name not provided", async () => {
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(targetDir);
+
+      await fs.mkdir(path.join(sourceDir, ".claude"), { recursive: true });
+      await fs.writeFile(path.join(sourceDir, ".claude", "settings.json"), "{}");
+
+      const result = await restoreCliConfigs(sourceDir, targetDir, ["claude"], {});
+
+      expect(result.success).toBe(true);
+      expect(result.reports[0].cliName).toBe("claude");
+    });
+
+    it("handles source folder not existing gracefully", async () => {
+      const targetDir = path.join(tempDir, "target");
+      await fs.mkdir(targetDir);
+
+      // Source has no .claude folder
+      const result = await restoreCliConfigs(sourceDir, targetDir, ["claude"], { claude: "Claude Code" });
+
+      expect(result.success).toBe(true);
+      expect(result.reports[0].report.addedFiles).toHaveLength(0);
+      expect(result.reports[0].report.skippedFiles).toHaveLength(0);
     });
   });
 });
