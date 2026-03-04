@@ -49,9 +49,10 @@ interface AiCommandProps {
   forceFlag: boolean;
   targetDir: string;
   gitHost: string;
+  protocol?: "ssh" | "https";
 }
 
-export const AiCommand = ({ forceFlag, targetDir, gitHost }: AiCommandProps) => {
+export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol: _protocol }: AiCommandProps) => {
   const [step, setStep] = useState<AiInitStep>("checking");
   const [eniExists, setEniExists] = useState(false);
   const [copyReport, setCopyReport] = useState<CopyReport>({ addedFiles: [], skippedFiles: [] });

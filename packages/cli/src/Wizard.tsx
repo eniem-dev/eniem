@@ -32,10 +32,11 @@ interface WizardProps {
   initialProjectName?: string;
   initialAppName?: string;
   gitHost: string;
+  protocol?: "ssh" | "https";
   onComplete?: (config: AppConfig, destination: string) => void;
 }
 
-export const Wizard = ({ initialProjectName, initialAppName, gitHost, onComplete }: WizardProps) => {
+export const Wizard = ({ initialProjectName, initialAppName, gitHost, protocol: _protocol, onComplete }: WizardProps) => {
   const [step, setStep] = useState<WizardStep>("project");
   const [projectDestination, setProjectDestination] = useState<string>("");
   const { config, updateConfig } = useConfig();
