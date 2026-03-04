@@ -8,7 +8,7 @@ The AI workflow is an autonomous development system that uses Claude Code to imp
 ## Prerequisites
 
 - `eni` CLI installed (`pnpm add -g @eniem/cli` or as a local dependency)
-- `claude` CLI installed (`npm install -g @anthropic-ai/claude-code`)
+- At least one AI CLI installed: Claude Code, OpenCode, or Codex (see [Multi-CLI Setup](/docs/guides/multi-cli-setup))
 - `bd` (beads) CLI installed (`npm install -g @beads-cli/bd`)
 - Beads initialized in the project (`.beads/` directory)
 
@@ -137,13 +137,19 @@ repo/
 ├── .eni/
 │   ├── PROMPT_plan.md      # Plan prompt template
 │   └── PROMPT_build.md     # Build prompt template
+├── .claude/                # Claude Code config (hooks, commands, skills)
+├── .opencode/              # OpenCode config (plugins, commands, skills)
+├── .codex/                 # Codex config (config.toml)
+├── .agents/                # Codex skills
 ├── .beads/                 # Issue tracking database
 ├── specs/                  # Feature specifications
 │   ├── my-feature.md       # Unplanned specs
 │   ├── planned/            # Specs with generated tasks
 │   └── archive/            # Completed specs
-└── AGENTS.md               # Project conventions
+└── AGENTS.md               # Project conventions (used by all CLIs)
 ```
+
+For details on each CLI's config structure, see the [Multi-CLI Setup](/docs/guides/multi-cli-setup) guide.
 
 ## Workflow Example
 
