@@ -1,0 +1,137 @@
+---
+title: "Multi-CLI Setup"
+description: "Configure Claude Code, OpenCode, and Codex in your eniem project — understand what ships, how to select CLIs, and the differences between them."
+---
+
+The eniem boilerplate ships with pre-configured settings, skills, commands, and hooks for three AI coding CLIs: **Claude Code**, **OpenCode**, and **Codex**. You can use any combination of them in your project.
+
+## CLI Selection with `eni ai init`
+
+When you run `eni ai init`, the first interactive step asks which CLIs you use:
+
+```
+Which AI CLIs do you use? (space to toggle, enter to confirm)
+
+  ◉ Claude Code (installed)
+  ◯ OpenCode (not found)
+  ◯ Codex (installed)
+```
+
+Your selection is saved to `.eni/config.json` under the `clis` key. On re-run, previously selected CLIs are pre-checked.
+
+After selection:
+- **Unselected CLIs** with existing config folders prompt for removal (per-CLI confirmation)
+- **Selected CLIs** with missing config folders are restored from the boilerplate template using additive merge — existing files are never overwritten
+
+## What Ships with Each CLI
+
+### Claude Code (`.claude/`)
+
+| Path | Purpose |
+| --- | --- |
+| `.claude/settings.json` | Permissions, allowed domains, startup hooks |
+| `.claude/hooks/inject-commit-context.sh` | Injects last 10 git commits at session start |
+| `.claude/hooks/inject-tree-context.sh` | Injects project directory tree at session start |
+| `.claude/commands/fix-code-review.md` | `/fix-code-review` slash command for PR review automation |
+| `.claude/skills/functional-spec-interview/SKILL.md` | Guided spec creation through structured interview |
+
+Claude Code uses **bash hooks** triggered via `settings.json` and **markdown commands** for slash commands.
+
+### OpenCode (`.opencode/` + `opencode.json`)
+
+| Path | Purpose |
+| --- | --- |
+| `opencode.json` | Provider settings, tool permissions (root-level config) |
+| `.opencode/plugins/inject-commit-context.js` | JS plugin: injects git commits at session start |
+| `.opencode/plugins/inject-tree-context.js` | JS plugin: injects project tree at session start |
+| `.opencode/commands/fix-code-review.md` | `/fix-code-review` slash command |
+| `.opencode/skills/functional-spec-interview/SKILL.md` | Guided spec creation skill |
+
+OpenCode uses **JavaScript plugins** instead of bash hooks, and stores its root config in `opencode.json`.
+
+### Codex (`.codex/` + `.agents/`)
+
+| Path | Purpose |
+| --- | --- |
+| `.codex/config.toml` | Model settings, approval policy, sandbox mode |
+| `.agents/skills/functional-spec-interview/SKILL.md` | Guided spec creation skill |
+| `.agents/skills/fix-code-review/SKILL.md` | Code review skill (Codex uses skills, not slash commands) |
+
+Codex uses **TOML configuration** and stores skills under `.agents/skills/`. Note that Codex has **no general-purpose hooks system** — only notification hooks. Context injection (git commits, project tree) is not available in Codex sessions. See [Differences Between CLIs](#differences-between-clis) below.
+
+## Shared Resources
+
+These files are used by all three CLIs and are never removed during CLI selection:
+
+| Path | Purpose |
+| --- | --- |
+| `AGENTS.md` | Project conventions and patterns — the primary instructions file |
+| `CLAUDE.md` | Symlink to `AGENTS.md` (backwards compatibility) |
+| `.eni/` | eniem config and prompt templates (CLI-agnostic) |
+| `specs/` | Feature specifications (CLI-agnostic) |
+| `.beads/` | Issue tracking database (CLI-agnostic) |
+
+## Differences Between CLIs
+
+| Feature | Claude Code | OpenCode | Codex |
+| --- | --- | --- | --- |
+| **Config format** | JSON (`settings.json`) | JSON (`opencode.json`) | TOML (`config.toml`) |
+| **Config location** | `.claude/` | `.opencode/` + root `opencode.json` | `.codex/` + `.agents/` |
+| **Startup hooks** | Bash scripts in `.claude/hooks/` | JS plugins in `.opencode/plugins/` | Not supported |
+| **Slash commands** | `.claude/commands/*.md` | `.opencode/commands/*.md` | Not supported (use skills) |
+| **Skills** | `.claude/skills/*/SKILL.md` | `.opencode/skills/*/SKILL.md` | `.agents/skills/*/SKILL.md` |
+| **Instructions file** | `AGENTS.md` / `CLAUDE.md` | `AGENTS.md` | `AGENTS.md` |
+| **Permissions** | Allowlist in `settings.json` | Allow/deny/ask in `opencode.json` | `approval_policy` in `config.toml` |
+
+### Codex Limitations
+
+Codex does not support general-purpose hooks, so the startup context injection (recent commits, project tree) that Claude Code and OpenCode provide is unavailable. If you rely on these hooks for your workflow, prefer Claude Code or OpenCode.
+
+Codex also has no slash commands — the `/fix-code-review` command is instead shipped as a skill under `.agents/skills/fix-code-review/`.
+
+## Folder Management
+
+### Removing a CLI
+
+When you deselect a CLI during `eni ai init`, you're prompted to remove its files:
+
+```
+You didn't select OpenCode. Remove its config files?
+
+  Will remove:
+    .opencode/ (5 files)
+    opencode.json
+
+  ◯ Yes, remove
+  ◯ No, keep
+```
+
+If you decline, the files stay. They won't cause issues — they're inert without the CLI binary.
+
+### Restoring a CLI
+
+If you select a CLI whose config folder is missing, it's automatically restored from the boilerplate template:
+
+```
+Setting up config for Claude Code...
+  ✓ Added .claude/settings.json
+  ✓ Added .claude/commands/fix-code-review.md
+  ✓ Added .claude/skills/functional-spec-interview/
+  ⊘ Skipped .claude/hooks/inject-commit-context.sh (already exists)
+```
+
+The restoration uses **additive merge**: only missing files are added. Your customizations are never overwritten.
+
+## Config Persistence
+
+Selected CLIs are stored in `.eni/config.json`:
+
+```json
+{
+  "clis": ["claude", "opencode"],
+  "plan": "claude",
+  "build": "claude"
+}
+```
+
+The `clis` array tracks which CLI configs are managed. The `plan` and `build` fields control which CLI runs the [AI Workflow](/docs/guides/ai-workflow) commands.
