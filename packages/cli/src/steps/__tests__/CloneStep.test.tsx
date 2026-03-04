@@ -86,4 +86,61 @@ describe("CloneStep", () => {
       expect(lastFrame()).toContain("Clone failed");
     });
   });
+
+  it("passes protocol to cloneBoilerplate", async () => {
+    mockCloneBoilerplate.mockResolvedValue({
+      success: true,
+      destination: "/path/to/test-project",
+    });
+    render(
+      <CloneStep projectName="test-project" gitHost="github" protocol="https" onComplete={() => {}} />
+    );
+    await vi.waitFor(() => {
+      expect(mockCloneBoilerplate).toHaveBeenCalledWith(
+        expect.objectContaining({ protocol: "https" })
+      );
+    });
+  });
+
+  it("shows fallback tip when HTTPS fallback was used", async () => {
+    mockCloneBoilerplate.mockResolvedValue({
+      success: true,
+      destination: "/path/to/test-project",
+      fallbackUsed: true,
+    });
+    const { lastFrame } = render(
+      <CloneStep projectName="test-project" gitHost="github" onComplete={() => {}} />
+    );
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("--protocol https");
+    });
+  });
+
+  it("does not show fallback tip when no fallback occurred", async () => {
+    mockCloneBoilerplate.mockResolvedValue({
+      success: true,
+      destination: "/path/to/test-project",
+      fallbackUsed: false,
+    });
+    const { lastFrame } = render(
+      <CloneStep projectName="test-project" gitHost="github" onComplete={() => {}} />
+    );
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("Project cloned");
+    });
+    expect(lastFrame()).not.toContain("--protocol https");
+  });
+
+  it("shows SSH-specific error context when protocol is ssh", async () => {
+    mockCloneBoilerplate.mockResolvedValue({
+      success: false,
+      error: "Connection refused",
+    });
+    const { lastFrame } = render(
+      <CloneStep projectName="test-project" gitHost="github" protocol="ssh" onComplete={() => {}} />
+    );
+    await vi.waitFor(() => {
+      expect(lastFrame()).toContain("--protocol https");
+    });
+  });
 });
