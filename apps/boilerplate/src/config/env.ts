@@ -49,6 +49,7 @@ export const env = {
 
   // File Upload Configuration
   upload: {
+    provider: (process.env.FILE_UPLOAD_PROVIDER || "database") as "database" | "digitalocean",
     maxFileSizeMB: Number(process.env.MAX_FILE_SIZE_MB) || 1,
     maxFileSizeBytes: (Number(process.env.MAX_FILE_SIZE_MB) || 1) * 1024 * 1024,
   },

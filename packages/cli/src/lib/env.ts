@@ -73,9 +73,13 @@ export function generateEnvContent(config: AppConfig): string {
   lines.push(`NEXT_PUBLIC_POSTHOG_KEY=${posthogKey}`);
   lines.push(`NEXT_PUBLIC_POSTHOG_HOST=${posthogHost}`);
 
-  // DigitalOcean Spaces Configuration
+  // File Upload & DigitalOcean Spaces Configuration
   lines.push("");
-  lines.push("# DigitalOcean Spaces Configuration (for file uploads)");
+  lines.push("# File Upload Provider: \"database\" (default, zero-config) or \"digitalocean\"");
+  const fileUploadProvider = config.storage?.enabled ? "digitalocean" : "database";
+  lines.push(`FILE_UPLOAD_PROVIDER=${fileUploadProvider}`);
+  lines.push("");
+  lines.push("# DigitalOcean Spaces Configuration (when FILE_UPLOAD_PROVIDER=digitalocean)");
   lines.push("# Endpoint should be the region endpoint only (e.g., https://ams3.digitaloceanspaces.com)");
   lines.push("# Do NOT include the bucket name in the endpoint");
   lines.push(`DIGITALOCEAN_SPACES_ENDPOINT=${config.storage?.endpoint || "https://ams3.digitaloceanspaces.com"}`);

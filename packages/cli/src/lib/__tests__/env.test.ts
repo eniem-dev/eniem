@@ -158,7 +158,7 @@ describe("env", () => {
       expect(content).toContain("NEXT_PUBLIC_POSTHOG_HOST=https://eu.posthog.com");
     });
 
-    it("includes storage configuration", () => {
+    it("sets FILE_UPLOAD_PROVIDER=digitalocean when storage enabled", () => {
       const config: AppConfig = {
         storage: {
           enabled: true,
@@ -171,11 +171,28 @@ describe("env", () => {
       };
       const content = generateEnvContent(config);
 
+      expect(content).toContain("FILE_UPLOAD_PROVIDER=digitalocean");
       expect(content).toContain("DIGITALOCEAN_SPACES_ENDPOINT=https://nyc3.digitaloceanspaces.com");
       expect(content).toContain("DIGITALOCEAN_SPACES_REGION=nyc3");
       expect(content).toContain("DIGITALOCEAN_SPACES_BUCKET=my-bucket");
       expect(content).toContain("DIGITALOCEAN_SPACES_ACCESS_KEY_ID=access-key");
       expect(content).toContain("DIGITALOCEAN_SPACES_SECRET_ACCESS_KEY=secret-key");
+    });
+
+    it("sets FILE_UPLOAD_PROVIDER=database when storage skipped", () => {
+      const config: AppConfig = {};
+      const content = generateEnvContent(config);
+
+      expect(content).toContain("FILE_UPLOAD_PROVIDER=database");
+    });
+
+    it("sets FILE_UPLOAD_PROVIDER=database when storage explicitly disabled", () => {
+      const config: AppConfig = {
+        storage: { enabled: false },
+      };
+      const content = generateEnvContent(config);
+
+      expect(content).toContain("FILE_UPLOAD_PROVIDER=database");
     });
 
     it("uses default storage values", () => {
