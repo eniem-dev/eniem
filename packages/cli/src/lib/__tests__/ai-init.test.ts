@@ -97,7 +97,7 @@ describe("ai-init", () => {
       expect(execa).toHaveBeenCalledWith("git", ["init"], expect.any(Object));
       expect(execa).toHaveBeenCalledWith(
         "git",
-        ["remote", "add", "origin", "git@github.com:eniem-dev/eniem-boilerplate.git"],
+        ["remote", "add", "origin", "https://github.com/eniem-dev/eniem-boilerplate.git"],
         expect.any(Object)
       );
       expect(execa).toHaveBeenCalledWith(
@@ -108,7 +108,7 @@ describe("ai-init", () => {
       expect(execa).toHaveBeenCalledWith(
         "git",
         ["fetch", "--depth", "1", "origin", "main"],
-        expect.any(Object)
+        expect.objectContaining({ env: expect.objectContaining({ GIT_TERMINAL_PROMPT: "0" }) })
       );
       expect(execa).toHaveBeenCalledWith(
         "git",
@@ -129,49 +129,13 @@ describe("ai-init", () => {
       expect(result.error).toContain("git command failed");
     });
 
-    it("uses HTTPS URL when protocol is https", async () => {
+    it("uses SSH URL when protocol is ssh", async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       vi.mocked(execa).mockImplementation((async (...mockArgs: any[]) => {
         const [cmd, args, options] = mockArgs;
         if (cmd === "git" && Array.isArray(args) && args[0] === "init" && options?.cwd) {
           const gitInfoPath = path.join(options.cwd as string, ".git", "info");
           await fs.mkdir(gitInfoPath, { recursive: true });
-        }
-        return {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any);
-
-      const result = await sparseCloneBoilerplate("github.com", "https");
-
-      expect(result.success).toBe(true);
-      // Verify remote was added with HTTPS URL
-      expect(execa).toHaveBeenCalledWith(
-        "git",
-        ["remote", "add", "origin", "https://github.com/eniem-dev/eniem-boilerplate.git"],
-        expect.any(Object),
-      );
-      // Fetch should NOT have a timeout when protocol is explicit
-      expect(execa).toHaveBeenCalledWith(
-        "git",
-        ["fetch", "--depth", "1", "origin", "main"],
-        expect.objectContaining({ cwd: expect.any(String) }),
-      );
-
-      await cleanupTempDir(result.tempDir);
-    });
-
-    it("uses SSH URL when protocol is ssh with no fallback on timeout", async () => {
-      let initCwd: string | undefined;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(execa).mockImplementation((async (...mockArgs: any[]) => {
-        const [cmd, args, options] = mockArgs;
-        if (cmd === "git" && Array.isArray(args) && args[0] === "init" && options?.cwd) {
-          initCwd = options.cwd as string;
-          const gitInfoPath = path.join(initCwd, ".git", "info");
-          await fs.mkdir(gitInfoPath, { recursive: true });
-        }
-        if (cmd === "git" && Array.isArray(args) && args[0] === "fetch") {
-          throw Object.assign(new Error("Timed out"), { timedOut: true });
         }
         return {};
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -179,124 +143,15 @@ describe("ai-init", () => {
 
       const result = await sparseCloneBoilerplate("github.com", "ssh");
 
-      expect(result.success).toBe(false);
-      // Should NOT attempt HTTPS fallback
-      expect(execa).not.toHaveBeenCalledWith(
-        "git",
-        ["remote", "set-url", "origin", expect.stringContaining("https://")],
-        expect.any(Object),
-      );
-    });
-
-    it("falls back to HTTPS on SSH timeout in default protocol mode", async () => {
-      let fetchCallCount = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(execa).mockImplementation((async (...mockArgs: any[]) => {
-        const [cmd, args, options] = mockArgs;
-        if (cmd === "git" && Array.isArray(args) && args[0] === "init" && options?.cwd) {
-          const gitInfoPath = path.join(options.cwd as string, ".git", "info");
-          await fs.mkdir(gitInfoPath, { recursive: true });
-        }
-        if (cmd === "git" && Array.isArray(args) && args[0] === "fetch") {
-          fetchCallCount++;
-          if (fetchCallCount === 1) {
-            throw Object.assign(new Error("Timed out"), { timedOut: true });
-          }
-        }
-        return {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any);
-
-      const result = await sparseCloneBoilerplate("github.com");
-
       expect(result.success).toBe(true);
-      expect(result.fallbackUsed).toBe(true);
-      // Should have set remote URL to HTTPS before retrying
+      // Verify remote was added with SSH URL
       expect(execa).toHaveBeenCalledWith(
         "git",
-        ["remote", "set-url", "origin", "https://github.com/eniem-dev/eniem-boilerplate.git"],
+        ["remote", "add", "origin", "git@github.com:eniem-dev/eniem-boilerplate.git"],
         expect.any(Object),
       );
-      expect(fetchCallCount).toBe(2);
 
       await cleanupTempDir(result.tempDir);
-    });
-
-    it("falls back to HTTPS on connection refused in default mode", async () => {
-      let fetchCallCount = 0;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(execa).mockImplementation((async (...mockArgs: any[]) => {
-        const [cmd, args, options] = mockArgs;
-        if (cmd === "git" && Array.isArray(args) && args[0] === "init" && options?.cwd) {
-          const gitInfoPath = path.join(options.cwd as string, ".git", "info");
-          await fs.mkdir(gitInfoPath, { recursive: true });
-        }
-        if (cmd === "git" && Array.isArray(args) && args[0] === "fetch") {
-          fetchCallCount++;
-          if (fetchCallCount === 1) {
-            throw new Error("Connection refused");
-          }
-        }
-        return {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any);
-
-      const result = await sparseCloneBoilerplate("github.com");
-
-      expect(result.success).toBe(true);
-      expect(result.fallbackUsed).toBe(true);
-
-      await cleanupTempDir(result.tempDir);
-    });
-
-    it("does NOT fallback on auth error in default mode", async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(execa).mockImplementation((async (...mockArgs: any[]) => {
-        const [cmd, args, options] = mockArgs;
-        if (cmd === "git" && Array.isArray(args) && args[0] === "init" && options?.cwd) {
-          const gitInfoPath = path.join(options.cwd as string, ".git", "info");
-          await fs.mkdir(gitInfoPath, { recursive: true });
-        }
-        if (cmd === "git" && Array.isArray(args) && args[0] === "fetch") {
-          throw new Error("Permission denied (publickey)");
-        }
-        return {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any);
-
-      const result = await sparseCloneBoilerplate("github.com");
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Permission denied");
-      // Should NOT attempt HTTPS fallback
-      expect(execa).not.toHaveBeenCalledWith(
-        "git",
-        ["remote", "set-url", "origin", expect.stringContaining("https://")],
-        expect.any(Object),
-      );
-    });
-
-    it("applies timeout only in default protocol mode", async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(execa).mockImplementation((async (...mockArgs: any[]) => {
-        const [cmd, args, options] = mockArgs;
-        if (cmd === "git" && Array.isArray(args) && args[0] === "init" && options?.cwd) {
-          const gitInfoPath = path.join(options.cwd as string, ".git", "info");
-          await fs.mkdir(gitInfoPath, { recursive: true });
-        }
-        return {};
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      }) as any);
-
-      await sparseCloneBoilerplate("github.com");
-
-      // Find the fetch call and verify it has timeout
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fetchCall = (vi.mocked(execa).mock.calls as any[]).find(
-        (call) => call[0] === "git" && Array.isArray(call[1]) && call[1][0] === "fetch",
-      );
-      expect(fetchCall).toBeDefined();
-      expect(fetchCall[2]).toHaveProperty("timeout", 10_000);
     });
   });
 

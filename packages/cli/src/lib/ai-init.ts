@@ -6,8 +6,6 @@ import {
   type Protocol,
   buildSshUrl,
   buildHttpsUrl,
-  isNetworkError,
-  SSH_TIMEOUT_MS,
 } from "./clone.js";
 const FOLDERS_TO_COPY = [".eni", ".claude", ".opencode", ".codex", ".agents"];
 const FILES_TO_COPY = ["opencode.json"];
@@ -40,12 +38,11 @@ export interface SparseCloneResult {
   success: boolean;
   tempDir: string;
   error?: string;
-  fallbackUsed?: boolean;
 }
 
 /**
  * Sparse clones only .eni and .claude folders from eniem-boilerplate.
- * Supports protocol selection and SSH→HTTPS fallback on network errors.
+ * Uses HTTPS by default, SSH when explicitly requested.
  */
 export async function sparseCloneBoilerplate(
   gitHost: string,
@@ -77,54 +74,29 @@ export async function sparseCloneBoilerplate(
     const sparseEntries = [...FOLDERS_TO_COPY, ...FILES_TO_COPY];
     await fs.writeFile(sparseCheckoutPath, sparseEntries.join("\n") + "\n");
 
-    // Determine initial URL based on protocol
-    const initialUrl =
-      protocol === "https"
-        ? buildHttpsUrl(gitHost)
-        : buildSshUrl(gitHost);
+    const url =
+      protocol === "ssh"
+        ? buildSshUrl(gitHost)
+        : buildHttpsUrl(gitHost);
 
-    await execa("git", ["remote", "add", "origin", initialUrl], {
+    await execa("git", ["remote", "add", "origin", url], {
       cwd: tempDir,
     });
 
-    // Attempt fetch with timeout for default protocol (SSH with fallback)
-    const useTimeout = protocol === undefined;
-    let fallbackUsed = false;
-
-    try {
-      await execa(
-        "git",
-        ["fetch", "--depth", "1", "origin", "main"],
-        { cwd: tempDir, ...(useTimeout ? { timeout: SSH_TIMEOUT_MS } : {}) },
-      );
-    } catch (fetchError) {
-      // Only fallback when protocol is auto-detected (undefined) and it's a network error
-      if (protocol !== undefined || !isNetworkError(fetchError)) {
-        throw fetchError;
-      }
-
-      // Switch remote to HTTPS and retry
-      const httpsUrl = buildHttpsUrl(gitHost);
-      await execa(
-        "git",
-        ["remote", "set-url", "origin", httpsUrl],
-        { cwd: tempDir },
-      );
-      await execa(
-        "git",
-        ["fetch", "--depth", "1", "origin", "main"],
-        { cwd: tempDir },
-      );
-      fallbackUsed = true;
-    }
+    await execa(
+      "git",
+      ["fetch", "--depth", "1", "origin", "main"],
+      { cwd: tempDir, env: { ...process.env, GIT_TERMINAL_PROMPT: "0" } },
+    );
 
     await execa("git", ["checkout", "main"], { cwd: tempDir });
 
-    return { success: true, tempDir, fallbackUsed };
+    return { success: true, tempDir };
   } catch (error) {
     await cleanup();
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
+
     return { success: false, tempDir: "", error: errorMessage };
   }
 }
