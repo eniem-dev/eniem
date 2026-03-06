@@ -1,3 +1,36 @@
+# [eniem-cli-v1.7.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.6.0...eniem-cli-v1.7.0) (2026-03-06)
+
+
+### Bug Fixes
+
+* **cli:** prevent git clone/fetch from hanging when credentials are needed ([bc6b382](https://github.com/eniem-dev/eniem/commit/bc6b3825df664c2752199887534927a10bb3a3c8))
+* **cli:** remove orphaned error display block in Wizard ([d24a93a](https://github.com/eniem-dev/eniem/commit/d24a93acec64474e92afd4ef34f835d1a665c518))
+* **cli:** remove SSH agent check and fallbackUsed to fix typecheck ([a95a189](https://github.com/eniem-dev/eniem/commit/a95a18939dc9315f4f5f9e164ca7d781e41d03a4))
+* **cli:** remove unused imports after SSH check removal ([e2bc591](https://github.com/eniem-dev/eniem/commit/e2bc5915192e87e665a4436cf201f2878a4049bc))
+
+
+### Features
+
+* **database-file-upload:** add FILE_UPLOAD_PROVIDER to CLI env generation ([0da5a3f](https://github.com/eniem-dev/eniem/commit/0da5a3f21bca9b34f2da9adfe11836d779137df1))
+* **database-file-upload:** add FILE_UPLOAD_PROVIDER to CLI env-ready optional groups ([95d95b4](https://github.com/eniem-dev/eniem/commit/95d95b43d4c1b7240b41de486d2e65a338fb8ae6))
+* **database-file-upload:** update StorageSetup test for database skip message ([cf3ecc2](https://github.com/eniem-dev/eniem/commit/cf3ecc2e2db14f6619ab5e98905faf754d234247))
+* **database-file-upload:** update StorageSetup with database provider messaging ([c0e811a](https://github.com/eniem-dev/eniem/commit/c0e811a8fe987b638b184af53c2489398d664277))
+* **handle-ssh-agent-not-loaded:** add ensureSshAgent() utility function ([6009466](https://github.com/eniem-dev/eniem/commit/60094663d225df4c7b8752c506f3b682870ae7c9))
+* **handle-ssh-agent-not-loaded:** add SSH check to project init Wizard ([6e80676](https://github.com/eniem-dev/eniem/commit/6e8067670d61412d2869e3f55787196853692f5a))
+* **handle-ssh-agent-not-loaded:** integrate SSH check into ai init state machine ([3e9c0b5](https://github.com/eniem-dev/eniem/commit/3e9c0b58de797e00f3fc67e5cfa9b00a4232cc81))
+* **https-git-protocol-support:** add --protocol, --https, --ssh CLI flags with validation ([ca0cdf6](https://github.com/eniem-dev/eniem/commit/ca0cdf6429831ec6c80958a1d0705a518e17b0e2))
+* **https-git-protocol-support:** add protocol support to sparseCloneBoilerplate ([5b4b351](https://github.com/eniem-dev/eniem/commit/5b4b351e70f41a3008beace7f414d8dcf02f4df5))
+* **https-git-protocol-support:** add protocol-aware clone with HTTPS fallback ([85a041f](https://github.com/eniem-dev/eniem/commit/85a041f4989aa34ac8217a1127827b7d674b5a28))
+* **https-git-protocol-support:** wire protocol to CloneStep UI with fallback messaging ([896c4df](https://github.com/eniem-dev/eniem/commit/896c4df7a2473c9cd6b9510c54cdb4e1927b9586))
+* **multi-cli-config-setup:** add CLI selection multi-select step to ai init flow ([ef41ebe](https://github.com/eniem-dev/eniem/commit/ef41ebe4983bfcf4356d802a6bd42f71260a7c88))
+* **multi-cli-config-setup:** add clis field to EniConfig type and validation ([5abdae1](https://github.com/eniem-dev/eniem/commit/5abdae1361af55983cad9576a7650b6208a09d77))
+* **multi-cli-config-setup:** add folder removal step for unselected CLIs ([00541ac](https://github.com/eniem-dev/eniem/commit/00541ac1468bfcd86cf907293015c4785e72cf19))
+* **multi-cli-config-setup:** add folder restoration step for selected CLIs ([91d24af](https://github.com/eniem-dev/eniem/commit/91d24afddd1e8e3a5703ab1aea6df73a8aa21724))
+* **multi-cli-config-setup:** replace destructive copy with additive merge in copyAiFiles ([d22b47a](https://github.com/eniem-dev/eniem/commit/d22b47af12ea6058e63643ac76798fe163ed1dbd))
+* **multi-cli-config-setup:** update sparse clone to include all CLI config folders ([e350ef7](https://github.com/eniem-dev/eniem/commit/e350ef7432b8ec5374667e6ad15d206291bc5da1))
+* **multi-cli-config-setup:** wire removal and restoration steps into AiCommand state machine ([49bcc46](https://github.com/eniem-dev/eniem/commit/49bcc463a2352e44c8671e4127611ebd2228d636))
+* **remove-gemini-cli-support:** remove Gemini CLI adapter and all references ([0369586](https://github.com/eniem-dev/eniem/commit/03695866feec086c28482430896447f4402dd5a3))
+
 # [eniem-cli-v1.6.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.5.0...eniem-cli-v1.6.0) (2026-02-27)
 
 
