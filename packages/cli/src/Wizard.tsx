@@ -167,11 +167,6 @@ export const Wizard = ({ initialProjectName, initialAppName, gitHost, protocol, 
         </Box>
       )}
 
-      {error && (
-        <Box flexDirection="column">
-          <StatusMessage status="error">{error}</StatusMessage>
-        </Box>
-      )}
     </Box>
   );
 };
