@@ -13,7 +13,6 @@ import {
 } from "../registry.js";
 import { claudeAdapter } from "../claude.js";
 import { codexAdapter } from "../codex.js";
-import { geminiAdapter } from "../gemini.js";
 import { opencodeAdapter } from "../opencode.js";
 
 describe("registry", () => {
@@ -28,10 +27,6 @@ describe("registry", () => {
 
     it("returns the Codex adapter for 'codex'", () => {
       expect(getAdapter("codex")).toBe(codexAdapter);
-    });
-
-    it("returns the Gemini adapter for 'gemini'", () => {
-      expect(getAdapter("gemini")).toBe(geminiAdapter);
     });
 
     it("returns the OpenCode adapter for 'opencode'", () => {
@@ -49,7 +44,6 @@ describe("registry", () => {
     it("returns true for supported CLI ids", () => {
       expect(isValidCLI("claude")).toBe(true);
       expect(isValidCLI("codex")).toBe(true);
-      expect(isValidCLI("gemini")).toBe(true);
       expect(isValidCLI("opencode")).toBe(true);
     });
 
@@ -85,7 +79,7 @@ describe("registry", () => {
     it("returns adapters whose binary is on PATH", async () => {
       vi.mocked(execa).mockResolvedValue(undefined as never);
       const available = await listAvailable();
-      expect(available).toEqual([claudeAdapter, codexAdapter, geminiAdapter, opencodeAdapter]);
+      expect(available).toEqual([claudeAdapter, codexAdapter, opencodeAdapter]);
     });
 
     it("returns empty array when no binaries found", async () => {

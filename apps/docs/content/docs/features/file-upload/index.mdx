@@ -1,23 +1,60 @@
 ---
 title: "File Upload"
-description: "Type-safe file uploads to DigitalOcean Spaces with built-in validation, authentication, and CDN delivery."
+description: "Type-safe file uploads with database storage (zero-config) or DigitalOcean Spaces, built-in validation, and authentication."
 ---
+
+## Storage Providers
+
+File uploads support two storage providers, controlled by the `FILE_UPLOAD_PROVIDER` environment variable:
+
+| Provider        | Value            | Best for                    | Requires external service |
+| --------------- | ---------------- | --------------------------- | ------------------------- |
+| **Database**    | `database`       | Development, getting started | No                        |
+| **DigitalOcean**| `digitalocean`   | Production                  | Yes                       |
+
+The default is `database` — file uploads work out of the box with no external services.
+
+### Database Provider
+
+The database provider stores files as base64 in your Prisma database and serves them via `/api/files/[id]`. No configuration needed beyond your existing database.
+
+```bash
+# Default — no env var needed, but you can be explicit:
+FILE_UPLOAD_PROVIDER=database
+```
+
+> [!WARNING]
+> Database storage is intended for **development and prototyping only**. Storing files as base64 in the database increases database size and is not suitable for production workloads. Switch to DigitalOcean Spaces before going to production.
+
+**How it works:**
+1. Files are converted to base64 and stored in the `File` table
+2. The upload returns a relative URL like `/api/files/{id}`
+3. The `/api/files/[id]` route decodes and serves the file with correct `Content-Type` and cache headers
+
+### DigitalOcean Provider
+
+For production, switch to DigitalOcean Spaces for scalable object storage with CDN delivery.
+
+```bash
+FILE_UPLOAD_PROVIDER=digitalocean
+```
 
 ## Configuration
 
 ### Environment Variables
 
-Configure your DigitalOcean Spaces connection in `.env`:
-
 | Variable                                | Description                           | Example                                                  |
 | --------------------------------------- | ------------------------------------- | -------------------------------------------------------- |
+| `FILE_UPLOAD_PROVIDER`                  | Storage provider (`database` or `digitalocean`) | `database`                                     |
+| `MAX_FILE_SIZE_MB`                      | Maximum upload size in MB             | `1`                                                      |
 | `DIGITALOCEAN_SPACES_ENDPOINT`          | Region endpoint (without bucket name) | `https://ams3.digitaloceanspaces.com`                    |
 | `DIGITALOCEAN_SPACES_REGION`            | Region code                           | `ams3`                                                   |
 | `DIGITALOCEAN_SPACES_BUCKET`            | Your bucket name                      | `my-app-uploads`                                         |
 | `DIGITALOCEAN_SPACES_ACCESS_KEY_ID`     | Spaces access key                     | `DO00...`                                                |
 | `DIGITALOCEAN_SPACES_SECRET_ACCESS_KEY` | Spaces secret key                     | `...`                                                    |
 | `DIGITALOCEAN_SPACES_CDN`               | CDN URL for public access             | `https://my-app-uploads.ams3.cdn.digitaloceanspaces.com` |
-| `MAX_FILE_SIZE_MB`                      | Maximum upload size in MB             | `1`                                                      |
+
+The `DIGITALOCEAN_SPACES_*` variables are only required when `FILE_UPLOAD_PROVIDER=digitalocean`.
 
 ### DigitalOcean Setup
 
@@ -218,7 +255,24 @@ errors: {
 
 ### 4. Leverage the CDN
 
-Always use the CDN URL (configured via `DIGITALOCEAN_SPACES_CDN`) for serving files. The upload utility automatically returns CDN URLs.
+When using DigitalOcean, the CDN URL (configured via `DIGITALOCEAN_SPACES_CDN`) is used automatically for serving files.
+
+## Switching to Production
+
+When you're ready to deploy, switch from database to DigitalOcean Spaces:
+
+1. Set up a DigitalOcean Space (see [DigitalOcean Setup](#digitalocean-setup) above)
+2. Update your environment variables:
+   ```bash
+   FILE_UPLOAD_PROVIDER=digitalocean
+   DIGITALOCEAN_SPACES_ENDPOINT=https://ams3.digitaloceanspaces.com
+   DIGITALOCEAN_SPACES_REGION=ams3
+   DIGITALOCEAN_SPACES_BUCKET=my-app-uploads
+   DIGITALOCEAN_SPACES_ACCESS_KEY_ID=DO00...
+   DIGITALOCEAN_SPACES_SECRET_ACCESS_KEY=...
+   DIGITALOCEAN_SPACES_CDN=https://my-app-uploads.ams3.cdn.digitaloceanspaces.com
+   ```
+3. Deploy — new uploads go to DigitalOcean Spaces. Existing database-stored files continue to be served via `/api/files/[id]`.
 
 ## Security
 

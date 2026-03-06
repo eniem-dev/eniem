@@ -12,7 +12,7 @@ import { writeConfig } from "../../lib/eni-config.js";
 const mockWriteConfig = vi.mocked(writeConfig);
 
 function makeAdapter(
-  id: "claude" | "codex" | "gemini" | "opencode",
+  id: "claude" | "codex" | "opencode",
   name: string,
 ): CLIAdapter {
   return {
@@ -28,7 +28,7 @@ function makeAdapter(
 
 const claude = makeAdapter("claude", "Claude Code");
 const codex = makeAdapter("codex", "Codex");
-const gemini = makeAdapter("gemini", "Gemini CLI");
+const opencode = makeAdapter("opencode", "OpenCode");
 
 describe("FirstRunPrompt", () => {
   beforeEach(() => {
@@ -52,7 +52,7 @@ describe("FirstRunPrompt", () => {
   it("shows select picker with available CLIs", () => {
     const { lastFrame } = render(
       <FirstRunPrompt
-        available={[claude, codex, gemini]}
+        available={[claude, codex, opencode]}
         cwd="/tmp"
         onComplete={() => {}}
       />,
@@ -60,7 +60,7 @@ describe("FirstRunPrompt", () => {
     expect(lastFrame()).toContain("Default CLI for plan:");
     expect(lastFrame()).toContain("Claude Code (claude)");
     expect(lastFrame()).toContain("Codex (codex)");
-    expect(lastFrame()).toContain("Gemini CLI (gemini)");
+    expect(lastFrame()).toContain("OpenCode (opencode)");
   });
 
   it("auto-selects when only one CLI available", () => {
@@ -87,7 +87,6 @@ describe("FirstRunPrompt", () => {
     expect(lastFrame()).toContain("No supported CLI found");
     expect(lastFrame()).toContain("claude");
     expect(lastFrame()).toContain("codex");
-    expect(lastFrame()).toContain("gemini");
     expect(lastFrame()).toContain("opencode");
   });
 

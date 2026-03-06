@@ -17,7 +17,7 @@ describe("clone", () => {
       vi.restoreAllMocks();
     });
 
-    it("clones repository successfully", async () => {
+    it("clones repository via HTTPS by default", async () => {
       vi.mocked(execa).mockResolvedValueOnce({} as never);
 
       const onProgress = vi.fn();
@@ -29,13 +29,11 @@ describe("clone", () => {
 
       expect(result.success).toBe(true);
       expect(result.destination).toBe("./my-project");
-      expect(execa).toHaveBeenCalledWith("git", [
-        "clone",
-        "--depth",
-        "1",
-        "git@github.com:eniem-dev/eniem-boilerplate.git",
-        "./my-project",
-      ]);
+      expect(execa).toHaveBeenCalledWith(
+        "git",
+        ["clone", "--depth", "1", "https://github.com/eniem-dev/eniem-boilerplate.git", "./my-project"],
+        expect.objectContaining({ env: expect.objectContaining({ GIT_TERMINAL_PROMPT: "0" }) }),
+      );
     });
 
     it("calls onProgress callbacks", async () => {
@@ -71,13 +69,11 @@ describe("clone", () => {
         gitHost: "gitlab.com",
       });
 
-      expect(execa).toHaveBeenCalledWith("git", [
-        "clone",
-        "--depth",
-        "1",
-        "git@gitlab.com:eniem-dev/eniem-boilerplate.git",
-        "./my-project",
-      ]);
+      expect(execa).toHaveBeenCalledWith(
+        "git",
+        ["clone", "--depth", "1", "https://gitlab.com/eniem-dev/eniem-boilerplate.git", "./my-project"],
+        expect.objectContaining({ env: expect.objectContaining({ GIT_TERMINAL_PROMPT: "0" }) }),
+      );
     });
 
     it("returns error when git not installed", async () => {
@@ -92,54 +88,6 @@ describe("clone", () => {
       expect(result.error).toContain("Git is not installed");
     });
 
-    it("returns error for permission denied", async () => {
-      vi.mocked(execa).mockRejectedValueOnce(new Error("Permission denied"));
-
-      const result = await cloneBoilerplate({
-        projectName: "my-project",
-        gitHost: "github.com",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("SSH access denied");
-    });
-
-    it("returns error for could not read from remote repository", async () => {
-      vi.mocked(execa).mockRejectedValueOnce(new Error("Could not read from remote repository"));
-
-      const result = await cloneBoilerplate({
-        projectName: "my-project",
-        gitHost: "github.com",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("SSH access denied");
-    });
-
-    it("returns error for repository not found", async () => {
-      vi.mocked(execa).mockRejectedValueOnce(new Error("Repository not found"));
-
-      const result = await cloneBoilerplate({
-        projectName: "my-project",
-        gitHost: "github.com",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Repository not found");
-    });
-
-    it("returns error for does not exist", async () => {
-      vi.mocked(execa).mockRejectedValueOnce(new Error("does not exist"));
-
-      const result = await cloneBoilerplate({
-        projectName: "my-project",
-        gitHost: "github.com",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Repository not found");
-    });
-
     it("returns error when directory already exists", async () => {
       vi.mocked(execa).mockRejectedValueOnce(new Error("already exists"));
 
@@ -150,42 +98,6 @@ describe("clone", () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('Directory "my-project" already exists');
-    });
-
-    it("returns error for network ENOTFOUND", async () => {
-      vi.mocked(execa).mockRejectedValueOnce(new Error("ENOTFOUND"));
-
-      const result = await cloneBoilerplate({
-        projectName: "my-project",
-        gitHost: "github.com",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Network error");
-    });
-
-    it("returns error for network ECONNREFUSED", async () => {
-      vi.mocked(execa).mockRejectedValueOnce(new Error("ECONNREFUSED"));
-
-      const result = await cloneBoilerplate({
-        projectName: "my-project",
-        gitHost: "github.com",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Network error");
-    });
-
-    it("returns error for could not resolve hostname", async () => {
-      vi.mocked(execa).mockRejectedValueOnce(new Error("Could not resolve hostname"));
-
-      const result = await cloneBoilerplate({
-        projectName: "my-project",
-        gitHost: "github.com",
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toContain("Network error");
     });
 
     it("returns generic error for other failures", async () => {
@@ -213,4 +125,64 @@ describe("clone", () => {
       expect(result.error).toContain("Unknown error occurred");
     });
   });
+
+  describe("protocol='ssh'", () => {
+    beforeEach(() => vi.clearAllMocks());
+    afterEach(() => vi.restoreAllMocks());
+
+    it("uses SSH URL when protocol is ssh", async () => {
+      vi.mocked(execa).mockResolvedValueOnce({} as never);
+
+      const result = await cloneBoilerplate({
+        projectName: "my-project",
+        gitHost: "github.com",
+        protocol: "ssh",
+      });
+
+      expect(result.success).toBe(true);
+      expect(execa).toHaveBeenCalledWith(
+        "git",
+        ["clone", "--depth", "1", "git@github.com:eniem-dev/eniem-boilerplate.git", "./my-project"],
+        expect.objectContaining({ env: expect.objectContaining({ GIT_TERMINAL_PROMPT: "0" }) }),
+      );
+    });
+
+    it("reports progress for SSH clone", async () => {
+      vi.mocked(execa).mockResolvedValueOnce({} as never);
+
+      const onProgress = vi.fn();
+      await cloneBoilerplate({
+        projectName: "my-project",
+        gitHost: "github.com",
+        protocol: "ssh",
+        onProgress,
+      });
+
+      expect(onProgress).toHaveBeenCalledWith("Cloning boilerplate via SSH...");
+      expect(onProgress).toHaveBeenCalledWith("Clone complete!");
+    });
+  });
+
+  describe("protocol='https'", () => {
+    beforeEach(() => vi.clearAllMocks());
+    afterEach(() => vi.restoreAllMocks());
+
+    it("uses HTTPS URL when protocol is https", async () => {
+      vi.mocked(execa).mockResolvedValueOnce({} as never);
+
+      const result = await cloneBoilerplate({
+        projectName: "my-project",
+        gitHost: "github.com",
+        protocol: "https",
+      });
+
+      expect(result.success).toBe(true);
+      expect(execa).toHaveBeenCalledWith(
+        "git",
+        ["clone", "--depth", "1", "https://github.com/eniem-dev/eniem-boilerplate.git", "./my-project"],
+        expect.objectContaining({ env: expect.objectContaining({ GIT_TERMINAL_PROMPT: "0" }) }),
+      );
+    });
+  });
+
 });

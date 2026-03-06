@@ -43,13 +43,13 @@ const cli = meow(
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
     $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
     $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
-    $ eni ai init [--force]
+    $ eni ai init [--force] [--protocol=ssh|https] [--ssh]
 
   Commands
     ready          Generate production .env interactively
     config         Configure default AI CLI backends interactively
     config show    Display current CLI configuration
-    config set     Set a config value (e.g. eni config set plan gemini, eni config set verbose true)
+    config set     Set a config value (e.g. eni config set plan codex, eni config set verbose true)
     products       Manage Polar products interactively
     plan           Run AI planning loop on a spec file
     build          Run AI build loop on a planned spec file
@@ -65,8 +65,10 @@ const cli = meow(
     --iterations   Number of iterations (default: 3 for plan, 10 for build)
     --verbose      Show tool usage during plan/build (overrides config)
     --no-verbose   Disable verbose output (overrides config)
-    --cli          AI CLI backend for plan/build (claude, codex, gemini, opencode)
+    --cli          AI CLI backend for plan/build (claude, codex, opencode)
     --list         List available spec names for plan/build and exit
+    --protocol     Git protocol for clone: ssh or https (default: https)
+    --ssh          Shorthand for --protocol=ssh
     --force        Skip confirmation when updating existing AI workflow
     --help, -h     Show this help message
     --version, -v  Show version number
@@ -78,7 +80,7 @@ const cli = meow(
     $ eni ready
     $ eni config
     $ eni config show
-    $ eni config set plan gemini
+    $ eni config set plan codex
     $ eni config set build codex
     $ eni config set verbose true
     $ eni products
@@ -89,11 +91,13 @@ const cli = meow(
     $ eni plan --cli codex
     $ eni build
     $ eni build --spec=my-feature --iterations=20 --verbose
-    $ eni build --cli gemini
+    $ eni build --cli opencode
     $ eni plan --list
     $ eni build --list
     $ eni ai init
     $ eni ai init --force
+    $ eni my-app --ssh
+    $ eni ai init --protocol ssh
 `,
   {
     importMeta: import.meta,
@@ -111,6 +115,8 @@ const cli = meow(
       cli: { type: "string" },
       list: { type: "boolean", default: false },
       force: { type: "boolean", default: false },
+      protocol: { type: "string" },
+      ssh: { type: "boolean", default: false },
       help: { type: "boolean", shortFlag: "h" },
       version: { type: "boolean", shortFlag: "v" },
     },
@@ -130,6 +136,8 @@ const iterationsFlag = cli.flags.iterations;
 const verboseFlag = cli.flags.verbose;
 const cliFlag = cli.flags.cli;
 const listFlag = cli.flags.list;
+const protocolFlag = cli.flags.protocol;
+const sshFlag = cli.flags.ssh;
 
 // --list: print spec names and exit (before any validation)
 if (listFlag && (command === "plan" || command === "build")) {
@@ -167,6 +175,22 @@ if (cliFlag !== undefined && !isValidCLI(cliFlag)) {
   console.error(`  Available: ${SUPPORTED_CLIS.join(", ")}`);
   process.exit(1);
 }
+
+// Validate --protocol flag
+if (protocolFlag !== undefined && protocolFlag !== "ssh" && protocolFlag !== "https") {
+  console.error(`\x1b[31m✗ Invalid protocol "${protocolFlag}". Use "ssh" or "https".\x1b[0m`);
+  process.exit(1);
+}
+
+// Validate mutual exclusion: --protocol cannot be combined with --ssh
+if (protocolFlag !== undefined && sshFlag) {
+  console.error(`\x1b[31m✗ Cannot use --protocol with --ssh. Pick one.\x1b[0m`);
+  process.exit(1);
+}
+
+// Resolve protocol: --ssh flag or --protocol value (default: https via undefined)
+const resolvedProtocol: "ssh" | "https" | undefined = protocolFlag as "ssh" | "https" | undefined
+  ?? (sshFlag ? "ssh" : undefined);
 
 // Determine environment: --prod takes precedence
 const resolvedEnv = prodFlag ? "production" : envFlag;
@@ -264,7 +288,7 @@ if (command === "ready") {
   render(
     <Box flexDirection="column">
       <Header />
-      <AiCommand forceFlag={forceFlag} targetDir={targetDir} gitHost={gitHost} />
+      <AiCommand forceFlag={forceFlag} targetDir={targetDir} gitHost={gitHost} protocol={resolvedProtocol} />
     </Box>
   );
 } else if (command === "ai") {
@@ -278,7 +302,7 @@ if (command === "ready") {
     <ConfigProvider>
       <Box flexDirection="column">
         <Header />
-        <Wizard initialProjectName={projectName} initialAppName={appNameFlag} gitHost={gitHost}  />
+        <Wizard initialProjectName={projectName} initialAppName={appNameFlag} gitHost={gitHost} protocol={resolvedProtocol} />
       </Box>
     </ConfigProvider>
   );

@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -24,6 +25,7 @@ model User {
   accounts        Account[]
   walletAddresses WalletAddress[]
   subscription    Subscription?
+  files           File[]
 
   @@unique([email])
   @@map("user")
@@ -135,4 +137,15 @@ model Subscription {
   user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("subscription")
+}
+
+model File {
+  id        String   @id @default(cuid())
+  base64Data String  @db.Text
+  mimeType  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("file")
 }

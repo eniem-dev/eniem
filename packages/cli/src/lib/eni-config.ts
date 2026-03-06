@@ -10,6 +10,7 @@ const NARRATION_VALUES: readonly Narration[] = ["concise", "explicit"];
 export interface EniConfig {
   plan?: CLIId;
   build?: CLIId;
+  clis?: CLIId[];
   verbose?: boolean;
   narration?: Narration;
 }
@@ -42,6 +43,26 @@ export function validateConfig(data: unknown): EniConfig {
       }
       config[key] = value as CLIId;
     }
+  }
+
+  if ("clis" in obj) {
+    const value = obj.clis;
+    if (!Array.isArray(value)) {
+      throw new Error(
+        `Invalid config: "clis" must be an array of CLI IDs (got "${String(value)}")`,
+      );
+    }
+    for (const item of value) {
+      if (
+        typeof item !== "string" ||
+        !SUPPORTED_CLIS.includes(item as CLIId)
+      ) {
+        throw new Error(
+          `Invalid config: "clis" contains invalid CLI ID: "${String(item)}" — must be one of: ${SUPPORTED_CLIS.join(", ")}`,
+        );
+      }
+    }
+    config.clis = value as CLIId[];
   }
 
   if ("verbose" in obj) {
