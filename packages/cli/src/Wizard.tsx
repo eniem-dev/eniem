@@ -1,7 +1,7 @@
 import { Box, Text, useApp } from "ink";
 import React, { useState, useEffect } from "react";
 import { useConfig, type AppConfig } from "./config/index.js";
-import { SectionHeader, StatusMessage, CompletedSteps, Spinner } from "./components/index.js";
+import { SectionHeader, StatusMessage, CompletedSteps } from "./components/index.js";
 import {
   ProjectSetup,
   OAuthSetup,
@@ -39,7 +39,6 @@ interface WizardProps {
 export const Wizard = ({ initialProjectName, initialAppName, gitHost, protocol, onComplete }: WizardProps) => {
   const [step, setStep] = useState<WizardStep>("project");
   const [projectDestination, setProjectDestination] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
   const { config, updateConfig } = useConfig();
   const { exit } = useApp();
 

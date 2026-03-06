@@ -1,4 +1,4 @@
-import { Box, Text } from "ink";
+import { Box } from "ink";
 import React, { useState, useEffect, useCallback } from "react";
 import { Spinner, SectionHeader, StatusMessage, ErrorRecovery } from "../components/index.js";
 import { cloneBoilerplate, type Protocol } from "../lib/clone.js";
