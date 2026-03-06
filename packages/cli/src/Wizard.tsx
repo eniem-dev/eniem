@@ -1,5 +1,5 @@
 import { Box, Text, useApp } from "ink";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useConfig, type AppConfig } from "./config/index.js";
 import { SectionHeader, StatusMessage, CompletedSteps, Spinner } from "./components/index.js";
 import {
@@ -14,11 +14,9 @@ import {
   InstallStep,
   BrandStep,
 } from "./steps/index.js";
-import { ensureSshAgent } from "./lib/ssh.js";
 
 type WizardStep =
   | "project"
-  | "check_ssh"
   | "oauth"
   | "payment"
   | "storage"
@@ -41,12 +39,9 @@ interface WizardProps {
 export const Wizard = ({ initialProjectName, initialAppName, gitHost, protocol, onComplete }: WizardProps) => {
   const [step, setStep] = useState<WizardStep>("project");
   const [projectDestination, setProjectDestination] = useState<string>("");
-  const [sshRemediated, setSshRemediated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { config, updateConfig } = useConfig();
   const { exit } = useApp();
-
-  const isCheckingSshRef = useRef(false);
 
   useEffect(() => {
     if (step === "complete") {
@@ -55,38 +50,9 @@ export const Wizard = ({ initialProjectName, initialAppName, gitHost, protocol, 
     }
   }, [step]);
 
-  // SSH agent check before cloning
-  useEffect(() => {
-    if (step === "check_ssh" && !isCheckingSshRef.current) {
-      isCheckingSshRef.current = true;
-      const check = async () => {
-        try {
-          const result = await ensureSshAgent();
-          if (result.status === "ready") {
-            setSshRemediated(result.remediated ?? false);
-            setStep("cloning");
-          } else {
-            setError(result.error ?? "SSH check failed");
-            process.exit(1);
-          }
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "SSH check failed");
-          process.exit(1);
-        }
-        isCheckingSshRef.current = false;
-      };
-      void check();
-    }
-  }, [step]);
-
   const handleProjectComplete = (projectConfig: AppConfig["project"]) => {
     updateConfig("project", projectConfig);
-    // Skip SSH check when using HTTPS protocol
-    if (protocol === "https") {
-      setStep("cloning");
-    } else {
-      setStep("check_ssh");
-    }
+    setStep("cloning");
   };
 
   const handleOAuthComplete = (result: { oauth: AppConfig["oauth"]; web3: AppConfig["web3"]; authSecret: string }) => {
@@ -141,12 +107,6 @@ export const Wizard = ({ initialProjectName, initialAppName, gitHost, protocol, 
       {step === "project" && (
         <ProjectSetup initialName={initialProjectName} initialAppName={initialAppName} onComplete={handleProjectComplete} />
       )}
-
-      {sshRemediated && step !== "project" && step !== "check_ssh" && (
-        <StatusMessage status="success">SSH ready</StatusMessage>
-      )}
-
-      {step === "check_ssh" && <Spinner label="Checking SSH agent..." />}
 
       {step === "cloning" && config.project && (
         <CloneStep

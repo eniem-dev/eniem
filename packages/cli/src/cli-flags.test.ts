@@ -245,16 +245,6 @@ describe("CLI --protocol flag", () => {
     expect(result.stderr).toContain("https");
   }, 15_000);
 
-  it("exits with error when --protocol is combined with --https", async () => {
-    const result = await execaNode(CLI_PATH, ["my-app", "--protocol=https", "--https"], {
-      reject: false,
-      timeout: 10_000,
-    });
-
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain("Cannot use --protocol with --https or --ssh");
-  }, 15_000);
-
   it("exits with error when --protocol is combined with --ssh", async () => {
     const result = await execaNode(CLI_PATH, ["my-app", "--protocol=ssh", "--ssh"], {
       reject: false,
@@ -262,7 +252,7 @@ describe("CLI --protocol flag", () => {
     });
 
     expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain("Cannot use --protocol with --https or --ssh");
+    expect(result.stderr).toContain("Cannot use --protocol with --ssh");
   }, 15_000);
 
   it("accepts --protocol=ssh without error", async () => {
@@ -283,15 +273,6 @@ describe("CLI --protocol flag", () => {
     expect(result.exitCode).toBe(0);
   }, 15_000);
 
-  it("accepts --https shorthand without error", async () => {
-    const result = await execaNode(CLI_PATH, ["--help", "--https"], {
-      reject: false,
-      timeout: 10_000,
-    });
-
-    expect(result.exitCode).toBe(0);
-  }, 15_000);
-
   it("accepts --ssh shorthand without error", async () => {
     const result = await execaNode(CLI_PATH, ["--help", "--ssh"], {
       reject: false,
@@ -301,14 +282,13 @@ describe("CLI --protocol flag", () => {
     expect(result.exitCode).toBe(0);
   }, 15_000);
 
-  it("help text includes --protocol, --https, and --ssh options", async () => {
+  it("help text includes --protocol and --ssh options", async () => {
     const result = await execaNode(CLI_PATH, ["--help"], {
       reject: false,
       timeout: 10_000,
     });
 
     expect(result.stdout).toContain("--protocol");
-    expect(result.stdout).toContain("--https");
     expect(result.stdout).toContain("--ssh");
   }, 15_000);
 });

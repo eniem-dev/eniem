@@ -28,11 +28,6 @@ vi.mock("../../lib/adapters/index.js", () => ({
   checkBinary: vi.fn().mockResolvedValue(true),
 }));
 
-// Mock SSH check
-vi.mock("../../lib/ssh.js", () => ({
-  ensureSshAgent: vi.fn().mockResolvedValue({ status: "ready", remediated: false }),
-}));
-
 // Mock eni-config
 vi.mock("../../lib/eni-config.js", () => ({
   readConfig: vi.fn().mockResolvedValue(null),

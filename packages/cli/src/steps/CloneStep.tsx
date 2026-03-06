@@ -14,14 +14,12 @@ export const CloneStep = ({ projectName, gitHost, protocol, onComplete }: CloneS
   const [status, setStatus] = useState<"cloning" | "complete" | "error">("cloning");
   const [progress, setProgress] = useState("Initializing...");
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [fallbackUsed, setFallbackUsed] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
   const runClone = useCallback(async () => {
     setStatus("cloning");
     setProgress("Initializing...");
     setErrorMessage("");
-    setFallbackUsed(false);
 
     const result = await cloneBoilerplate({
       projectName,
@@ -32,7 +30,6 @@ export const CloneStep = ({ projectName, gitHost, protocol, onComplete }: CloneS
 
     if (result.success) {
       setStatus("complete");
-      setFallbackUsed(result.fallbackUsed ?? false);
       onComplete(result.destination);
     } else {
       setStatus("error");
@@ -49,17 +46,13 @@ export const CloneStep = ({ projectName, gitHost, protocol, onComplete }: CloneS
   }, []);
 
   if (status === "error") {
-    const errorContext = protocol === "ssh"
-      ? "Failed to clone via SSH. Try --protocol https to use HTTPS instead."
-      : "Failed to clone the boilerplate repository";
-
     return (
       <Box flexDirection="column" marginTop={1}>
         <SectionHeader title="Cloning Boilerplate" />
         <ErrorRecovery
           error={errorMessage}
           onRetry={handleRetry}
-          context={errorContext}
+          context="Failed to clone the boilerplate repository"
         />
       </Box>
     );
@@ -70,11 +63,6 @@ export const CloneStep = ({ projectName, gitHost, protocol, onComplete }: CloneS
       <Box flexDirection="column" marginTop={1}>
         <SectionHeader title="Cloning Boilerplate" />
         <StatusMessage status="success">Project cloned to {projectName}/</StatusMessage>
-        {fallbackUsed && (
-          <Box marginTop={1}>
-            <Text dimColor>  Tip: Use --protocol https to skip SSH next time</Text>
-          </Box>
-        )}
       </Box>
     );
   }

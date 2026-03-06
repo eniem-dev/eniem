@@ -43,7 +43,7 @@ const cli = meow(
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
     $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
     $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
-    $ eni ai init [--force] [--protocol=ssh|https] [--https] [--ssh]
+    $ eni ai init [--force] [--protocol=ssh|https] [--ssh]
 
   Commands
     ready          Generate production .env interactively
@@ -67,8 +67,7 @@ const cli = meow(
     --no-verbose   Disable verbose output (overrides config)
     --cli          AI CLI backend for plan/build (claude, codex, opencode)
     --list         List available spec names for plan/build and exit
-    --protocol     Git protocol for clone: ssh or https (default: ssh with HTTPS fallback)
-    --https        Shorthand for --protocol=https
+    --protocol     Git protocol for clone: ssh or https (default: https)
     --ssh          Shorthand for --protocol=ssh
     --force        Skip confirmation when updating existing AI workflow
     --help, -h     Show this help message
@@ -97,8 +96,8 @@ const cli = meow(
     $ eni build --list
     $ eni ai init
     $ eni ai init --force
-    $ eni ai init --https
-    $ eni my-app --protocol https
+    $ eni my-app --ssh
+    $ eni ai init --protocol ssh
 `,
   {
     importMeta: import.meta,
@@ -117,7 +116,6 @@ const cli = meow(
       list: { type: "boolean", default: false },
       force: { type: "boolean", default: false },
       protocol: { type: "string" },
-      https: { type: "boolean", default: false },
       ssh: { type: "boolean", default: false },
       help: { type: "boolean", shortFlag: "h" },
       version: { type: "boolean", shortFlag: "v" },
@@ -139,7 +137,6 @@ const verboseFlag = cli.flags.verbose;
 const cliFlag = cli.flags.cli;
 const listFlag = cli.flags.list;
 const protocolFlag = cli.flags.protocol;
-const httpsFlag = cli.flags.https;
 const sshFlag = cli.flags.ssh;
 
 // --list: print spec names and exit (before any validation)
@@ -185,15 +182,14 @@ if (protocolFlag !== undefined && protocolFlag !== "ssh" && protocolFlag !== "ht
   process.exit(1);
 }
 
-// Validate mutual exclusion: --protocol cannot be combined with --https/--ssh
-if (protocolFlag !== undefined && (httpsFlag || sshFlag)) {
-  console.error(`\x1b[31m✗ Cannot use --protocol with --https or --ssh. Pick one.\x1b[0m`);
+// Validate mutual exclusion: --protocol cannot be combined with --ssh
+if (protocolFlag !== undefined && sshFlag) {
+  console.error(`\x1b[31m✗ Cannot use --protocol with --ssh. Pick one.\x1b[0m`);
   process.exit(1);
 }
 
-// Resolve protocol: shorthand flags → protocol value, undefined = default (auto-fallback)
+// Resolve protocol: --ssh flag or --protocol value (default: https via undefined)
 const resolvedProtocol: "ssh" | "https" | undefined = protocolFlag as "ssh" | "https" | undefined
-  ?? (httpsFlag ? "https" : undefined)
   ?? (sshFlag ? "ssh" : undefined);
 
 // Determine environment: --prod takes precedence

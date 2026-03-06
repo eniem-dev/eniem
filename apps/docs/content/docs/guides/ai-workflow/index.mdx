@@ -49,45 +49,22 @@ Use `--force` to skip confirmation when updating an existing setup:
 eni ai init --force
 ```
 
-### Git Protocol Flags
+### Git Protocol
 
-By default, `eni ai init` clones boilerplate files via SSH and automatically falls back to HTTPS if the SSH connection times out (10 seconds). You can control this behavior:
-
-| Flag | Description |
-| --- | --- |
-| `--protocol=ssh` | Force SSH only — no HTTPS fallback on timeout |
-| `--protocol=https` | Use HTTPS directly — skip SSH entirely |
-| `--https` | Shorthand for `--protocol=https` |
-| `--ssh` | Shorthand for `--protocol=ssh` |
-
-**Examples:**
+By default, `eni ai init` clones boilerplate files via HTTPS. If you prefer SSH, use the `--ssh` flag:
 
 ```bash
-# Use HTTPS directly (corporate networks, CI/CD with tokens)
-eni ai init --https
+# Default: HTTPS (works everywhere, no setup needed)
+eni ai init
 
-# Force SSH only, no fallback
+# Use SSH instead
 eni ai init --ssh
 
-# Equivalent long forms
-eni ai init --protocol=https
+# Equivalent long form
 eni ai init --protocol=ssh
 ```
 
-**When to use `--https`:**
-
-- Your network blocks SSH port 22 (corporate firewalls)
-- CI/CD pipelines using HTTPS tokens for git authentication
-- You prefer HTTPS over SSH key management
-
-**Fallback behavior (default, no flag):**
-
-1. Attempts SSH clone
-2. If SSH times out after 10 seconds, automatically retries via HTTPS
-3. On successful fallback, shows a tip: *"Use --protocol https to skip SSH next time"*
-4. If both fail, shows combined error messages from both attempts
-
-The same protocol flags also work with the main `eni [project-name]` scaffolding command.
+The same flag also works with the main `eni [project-name]` scaffolding command.
 
 ## Commands Reference
 

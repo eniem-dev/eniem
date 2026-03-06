@@ -24,7 +24,6 @@ import {
   type CliRestoreReport,
   type LegacySymlinkResult,
 } from "../lib/ai-init.js";
-import { ensureSshAgent } from "../lib/ssh.js";
 import type { CLIAdapter, CLIId } from "../lib/adapters/index.js";
 import { SUPPORTED_CLIS, getAdapter, checkBinary } from "../lib/adapters/index.js";
 import type { EniConfig, Narration } from "../lib/eni-config.js";
@@ -33,7 +32,6 @@ import { readConfig, writeConfig } from "../lib/eni-config.js";
 type AiInitStep =
   | "checking"
   | "confirm_update"
-  | "check_ssh"
   | "cloning"
   | "copying"
   | "select_clis"
@@ -74,11 +72,9 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol }: AiCommand
   const [removalResults, setRemovalResults] = useState<{ cliName: string; removed: boolean }[]>([]);
   const [restorationReports, setRestorationReports] = useState<CliRestoreReport[]>([]);
   const [legacySymlink, setLegacySymlink] = useState<LegacySymlinkResult>({ handled: false });
-  const [sshRemediated, setSshRemediated] = useState(false);
 
   // Refs to prevent duplicate effect runs
   const isCheckingRef = useRef(false);
-  const isCheckingSshRef = useRef(false);
   const isCloningRef = useRef(false);
   const isCopyingRef = useRef(false);
   const isLoadingAdaptersRef = useRef(false);
@@ -97,39 +93,13 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol }: AiCommand
         if (exists && !forceFlag) {
           setStep("confirm_update");
         } else {
-          setStep("check_ssh");
+          setStep("cloning");
         }
         isCheckingRef.current = false;
       };
       void check();
     }
   }, [step, targetDir, forceFlag]);
-
-  // Step 1b: Check SSH agent
-  useEffect(() => {
-    if (step === "check_ssh" && !isCheckingSshRef.current) {
-      isCheckingSshRef.current = true;
-      const check = async () => {
-        try {
-          const result = await ensureSshAgent();
-          if (result.status === "ready") {
-            setSshRemediated(result.remediated ?? false);
-            setStep("cloning");
-          } else {
-            setError(result.error ?? "SSH check failed");
-            setStep("error");
-            process.exit(1);
-          }
-        } catch (err) {
-          setError(err instanceof Error ? err.message : "SSH check failed");
-          setStep("error");
-          process.exit(1);
-        }
-        isCheckingSshRef.current = false;
-      };
-      void check();
-    }
-  }, [step]);
 
   // Step 2: Sparse clone boilerplate
   useEffect(() => {
@@ -201,7 +171,7 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol }: AiCommand
   // Handle confirmation
   const handleConfirm = (confirmed: boolean) => {
     if (confirmed) {
-      setStep("check_ssh");
+      setStep("cloning");
     } else {
       process.exit(0);
     }
@@ -424,12 +394,6 @@ export const AiCommand = ({ forceFlag, targetDir, gitHost, protocol }: AiCommand
           </Box>
         </Box>
       )}
-
-      {sshRemediated && step !== "checking" && step !== "check_ssh" && (
-        <StatusMessage status="success">SSH ready</StatusMessage>
-      )}
-
-      {step === "check_ssh" && <Spinner label="Checking SSH agent..." />}
 
       {step === "cloning" && (
         <Spinner label="Fetching latest AI workflow files from boilerplate..." />
