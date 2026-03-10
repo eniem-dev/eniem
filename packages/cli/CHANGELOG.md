@@ -1,3 +1,10 @@
+# [eniem-cli-v1.8.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.7.0...eniem-cli-v1.8.0) (2026-03-10)
+
+
+### Features
+
+* **skills:** update functional-spec-interview to topic-decomposed approach ([3b11bb1](https://github.com/eniem-dev/eniem/commit/3b11bb114b06c36e9f7a5f24680d237379df391a))
+
 # [eniem-cli-v1.7.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.6.0...eniem-cli-v1.7.0) (2026-03-06)
 
 
