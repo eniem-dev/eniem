@@ -32,8 +32,8 @@ node dist/cli.js [project-name]
 ### Eni Workflow (AI-driven feature implementation)
 
 ```bash
-# Create a spec for a new feature (interview-based)
-/spec-interview <feature-name>
+# Create specs for a new feature (topic-decomposed interview)
+/functional-spec-interview <feature-name>
 
 # Generate implementation plan from all specs
 pnpm eni:plan

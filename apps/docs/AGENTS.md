@@ -30,7 +30,7 @@ pnpm lint
 ### AI Workflow
 
 ```bash
-# Create a spec for a new feature (interview-based)
+# Create specs for a new feature (topic-decomposed interview)
 /functional-spec-interview <feature-name>
 
 # Generate implementation plan from all specs
