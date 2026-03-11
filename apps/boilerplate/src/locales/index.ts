@@ -95,40 +95,97 @@ export const locales = {
 
   HomePage: {
     metadata: {
-      title: "Your App Name - Your Tagline",
-      description: "Describe what your product does and its main benefits",
+      title: "Your App Name - Ship faster, scale smarter",
+      description:
+        "The production-ready SaaS starter with auth, payments, and email built in. Stop rebuilding the same infrastructure and start shipping what matters.",
     },
     hero: {
-      title: "Your main headline goes here",
-      subtitle: "Describe your product's main value proposition in one or two sentences",
+      badge: "Now in public beta",
+      title: "Stop rebuilding. Start shipping.",
+      subtitle:
+        "The full-stack foundation for your next SaaS. Authentication, payments, emails, and dashboards — all wired up and ready to deploy.",
       getStarted: "Get Started",
       watchDemo: "Watch Demo",
+      socialProof: "Trusted by 2,000+ developers worldwide",
+    },
+    logoCloud: {
+      title: "Built with tools you already trust",
+      items: ["Next.js", "Prisma", "Stripe", "Resend", "Tailwind", "Vercel"],
     },
     features: {
-      title: "Your features section headline",
-      subtitle: "Briefly describe what makes your product special",
+      title: "Everything you need, nothing you don't",
+      subtitle:
+        "Six months of boilerplate work, done in an afternoon. Each feature is production-tested and ready to customize.",
       items: [
         {
-          title: "Feature One",
-          description: "Describe what this feature does for your users",
+          title: "Authentication",
+          description:
+            "Email, OAuth, wallet login, and OTP — all preconfigured with session management and role-based access.",
         },
         {
-          title: "Feature Two",
-          description: "Describe what this feature does for your users",
+          title: "Payments & Billing",
+          description:
+            "Subscription management, usage-based billing, and checkout flows. Connected and ready to accept revenue.",
         },
         {
-          title: "Feature Three",
-          description: "Describe what this feature does for your users",
+          title: "Transactional Email",
+          description:
+            "Beautiful React email templates with delivery tracking. Verification, reset, and notification flows included.",
         },
         {
-          title: "Feature Four",
-          description: "Describe what this feature does for your users",
+          title: "Security First",
+          description:
+            "CSRF protection, rate limiting, input validation, and encrypted sessions. Security best practices by default.",
+        },
+        {
+          title: "Admin Dashboard",
+          description:
+            "A polished dashboard with analytics, user management, billing overview, and account settings.",
+        },
+        {
+          title: "Dark Mode",
+          description:
+            "System-aware theming with light, dark, and auto modes. Consistent across every component.",
+        },
+      ],
+    },
+    testimonials: {
+      title: "Developers ship faster with us",
+      subtitle: "From solo founders to engineering teams at scale",
+      items: [
+        {
+          quote:
+            "Saved me three weeks of setup. I went from idea to paying customers in a weekend.",
+          name: "Sarah Chen",
+          role: "CTO at Stackwise",
+          initials: "SC",
+        },
+        {
+          quote:
+            "The auth and payment integration alone is worth it. Everything just works together.",
+          name: "Marcus Johnson",
+          role: "Indie Hacker",
+          initials: "MJ",
+        },
+        {
+          quote:
+            "We evaluated five boilerplates. This was the only one that felt production-ready out of the box.",
+          name: "Elena Rodriguez",
+          role: "Lead Engineer at Driftly",
+          initials: "ER",
         },
       ],
     },
     pricing: {
-      title: "Your pricing headline",
-      subtitle: "Describe your pricing philosophy",
+      title: "Simple, transparent pricing",
+      subtitle: "Start free, upgrade when you're ready. No surprises.",
+      guarantee: "14-day money-back guarantee. No questions asked.",
+    },
+    cta: {
+      title: "Ready to ship your SaaS?",
+      subtitle:
+        "Join thousands of developers who stopped rebuilding infrastructure and started building products.",
+      button: "Get Started Free",
     },
   },
 
@@ -160,12 +217,31 @@ export const locales = {
   LandingPage: {
     metadata: {
       title: "Coming Soon - Your App Name",
-      description: "Your pre-launch description to build excitement and drive signups",
+      description:
+        "The production-ready SaaS starter kit. Auth, payments, email — all wired up. Join the waitlist.",
     },
     hero: {
-      title: "Your pre-launch headline",
-      subtitle: "Describe what's coming and why people should join the waitlist",
-      badge: "Coming soon",
+      title: "Ship your SaaS in days, not months",
+      subtitle:
+        "The full-stack boilerplate with authentication, payments, and email — so you can focus on what makes your product unique.",
+      badge: "Launching soon",
+      socialProof: "Join 500+ developers on the waitlist",
+    },
+    features: {
+      items: [
+        {
+          title: "Auth & Payments",
+          description: "OAuth, email login, and subscription billing — preconfigured.",
+        },
+        {
+          title: "Email & Notifications",
+          description: "React email templates with transactional delivery built in.",
+        },
+        {
+          title: "Deploy Anywhere",
+          description: "Self-host or deploy to Vercel. Your infrastructure, your rules.",
+        },
+      ],
     },
     newsletter: {
       placeholder: "Enter your email address",

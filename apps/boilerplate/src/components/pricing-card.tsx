@@ -31,37 +31,40 @@ export function PricingCard({
 }: PricingCardProps) {
   return (
     <Card
-      className={cn("relative flex flex-col", highlighted && "border-primary shadow-lg")}
+      className={cn(
+        "relative flex flex-col",
+        highlighted && "border-foreground/20 shadow-md"
+      )}
     >
       {badge && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-          <Badge variant="default" className="px-3 py-1">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <Badge variant="default" className="px-3 py-0.5 text-xs">
             {badge}
           </Badge>
         </div>
       )}
 
-      <CardHeader className="text-center pb-8 pt-8">
-        <h3 className="text-2xl font-bold">{name}</h3>
-        <div className="mt-4 flex items-baseline justify-center gap-1">
-          <span className="text-5xl font-bold tracking-tight">{price}</span>
-          <span className="text-muted-foreground">{period}</span>
+      <CardHeader className="text-center pb-4 pt-6">
+        <h3 className="text-lg font-bold">{name}</h3>
+        <div className="mt-3 flex items-baseline justify-center gap-1">
+          <span className="text-4xl font-bold tracking-tight">{price}</span>
+          <span className="text-sm text-muted-foreground">{period}</span>
         </div>
-        <p className="text-sm text-muted-foreground mt-2">{billing}</p>
+        <p className="text-xs text-muted-foreground mt-1.5">{billing}</p>
       </CardHeader>
 
-      <CardContent className="flex-1">
-        <ul className="space-y-3">
+      <CardContent className="flex-1 pt-0">
+        <ul className="space-y-2.5">
           {features.map((feature, index) => (
-            <li key={index} className="flex items-start gap-3">
-              <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-sm">{feature}</span>
+            <li key={index} className="flex items-start gap-2.5">
+              <Check className="h-4 w-4 text-foreground/50 flex-shrink-0 mt-0.5" />
+              <span className="text-sm leading-snug">{feature}</span>
             </li>
           ))}
         </ul>
       </CardContent>
 
-      <CardFooter className="pt-6">
+      <CardFooter className="pt-4 justify-center">
         <BuyButton slug={slug} label={ctaLabel} />
       </CardFooter>
     </Card>
