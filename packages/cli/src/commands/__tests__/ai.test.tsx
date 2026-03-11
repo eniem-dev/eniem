@@ -484,7 +484,9 @@ describe("AiCommand", () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Toggle codex on (it's not pre-selected since not installed), then submit
-      // Navigate to Codex (second item) and toggle it
+      // Navigate to Codex (third item, after Select all)
+      stdin.write("j"); // skip Select all
+      await new Promise((resolve) => setTimeout(resolve, 20));
       stdin.write("j"); // move down to Codex
       await new Promise((resolve) => setTimeout(resolve, 20));
       stdin.write(" "); // toggle Codex on
@@ -508,12 +510,8 @@ describe("AiCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Deselect all pre-selected CLIs
-      stdin.write(" "); // toggle off first (claude)
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      stdin.write("j"); // move to second
-      await new Promise((resolve) => setTimeout(resolve, 20));
-      stdin.write(" "); // toggle off second (codex)
+      // Deselect all pre-selected CLIs by toggling Select all (deselects all)
+      stdin.write(" "); // toggle Select all off (deselects all items)
       await new Promise((resolve) => setTimeout(resolve, 20));
       stdin.write("\r"); // submit empty
       // Wait for remove_unselected + restore_selected async steps

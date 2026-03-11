@@ -341,12 +341,13 @@ describe("ReadyCommand", () => {
     }
   }
 
-  /** Navigate MultiSelect: move down N times and toggle space (with delays for ink) */
+  /** Navigate MultiSelect: move down N+1 times (skip Select all) and toggle space (with delays for ink) */
   async function selectGroupAtIndex(
     stdin: { write: (data: string) => void },
     index: number,
   ) {
-    for (let i = 0; i < index; i++) {
+    const adjustedIndex = index + 1; // +1 to skip "Select all" at index 0
+    for (let i = 0; i < adjustedIndex; i++) {
       stdin.write("j"); // down (MultiSelect supports j/k navigation)
       await delay(20);
     }
