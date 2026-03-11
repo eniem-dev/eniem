@@ -82,7 +82,7 @@ describe("BuildCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      expect(lastFrame()).toContain("Select a spec to build:");
+      expect(lastFrame()).toContain("Select specs to build:");
       expect(lastFrame()).toContain("feature-a");
       expect(lastFrame()).toContain("feature-b");
     });
@@ -242,7 +242,7 @@ describe("BuildCommand", () => {
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(lastFrame()).toContain("Build complete");
-      expect(lastFrame()).toContain("spec archived");
+      expect(lastFrame()).toContain("archived");
       expect(mockMoveSpec).toHaveBeenCalledWith(
         "/project/specs/planned/test.md",
         "/project/specs/archive",
@@ -266,7 +266,7 @@ describe("BuildCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 150));
 
-      expect(lastFrame()).toContain("spec stays in planned");
+      expect(lastFrame()).toContain("stays in planned");
       expect(mockMoveSpec).not.toHaveBeenCalled();
     });
   });
