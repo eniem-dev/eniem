@@ -100,9 +100,11 @@ export const locales = {
     },
     hero: {
       title: "Your main headline goes here",
+      gradientWords: ["headline"],
       subtitle: "Describe your product's main value proposition in one or two sentences",
       getStarted: "Get Started",
-      watchDemo: "Watch Demo",
+      learnMore: "Learn More",
+      screenshotAlt: "Application screenshot",
     },
     features: {
       title: "Your features section headline",

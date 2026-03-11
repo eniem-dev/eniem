@@ -29,7 +29,7 @@ export function HomePageContent({ products }: HomePageContentProps) {
             <Button size="lg">{locales.HomePage.hero.getStarted}</Button>
           </Link>
           <Button size="lg" variant="outline">
-            {locales.HomePage.hero.watchDemo}
+            {locales.HomePage.hero.learnMore}
           </Button>
         </div>
       </section>
