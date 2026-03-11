@@ -39,7 +39,7 @@ function toolInputSummary(name: string, input: Record<string, unknown>): string 
 type BuildStep = "selecting" | "resolving" | "first-run" | "fallback" | "running" | "summary" | "error";
 
 export interface BuildCommandProps {
-  spec?: string;
+  specs?: string[];
   iterations: number;
   verbose: boolean;
   specsDir: string;
@@ -49,7 +49,7 @@ export interface BuildCommandProps {
 }
 
 export const BuildCommand = ({
-  spec,
+  specs: preSelectedSpecs,
   iterations,
   verbose,
   specsDir,
@@ -58,8 +58,8 @@ export const BuildCommand = ({
   narration,
 }: BuildCommandProps) => {
   const { exit } = useApp();
-  const [step, setStep] = useState<BuildStep>(spec ? "resolving" : "selecting");
-  const [specName, setSpecName] = useState(spec ?? "");
+  const [step, setStep] = useState<BuildStep>(preSelectedSpecs?.length ? "resolving" : "selecting");
+  const [specName, setSpecName] = useState(preSelectedSpecs?.[0] ?? "");
   const [specPath, setSpecPath] = useState("");
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>([]);
   const [currentIteration, setCurrentIteration] = useState(1);

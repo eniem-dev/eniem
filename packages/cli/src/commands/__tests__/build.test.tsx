@@ -112,7 +112,7 @@ describe("BuildCommand", () => {
       });
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="my-feature" />
+        <BuildCommand {...defaultProps} specs={["my-feature"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -127,7 +127,7 @@ describe("BuildCommand", () => {
       mockResolveCLI.mockResolvedValue({ needsFirstRun: true, available: [claudeAdapter, codexAdapter] });
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="test" />
+        <BuildCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -139,7 +139,7 @@ describe("BuildCommand", () => {
       mockResolveCLI.mockResolvedValue({ needsFallback: true, configured: "codex", available: [claudeAdapter] });
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="test" />
+        <BuildCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -151,7 +151,7 @@ describe("BuildCommand", () => {
       mockResolveCLI.mockResolvedValue({ noClisAvailable: true });
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="test" />
+        <BuildCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -171,7 +171,7 @@ describe("BuildCommand", () => {
       });
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="my-feature" />
+        <BuildCommand {...defaultProps} specs={["my-feature"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -192,7 +192,7 @@ describe("BuildCommand", () => {
       });
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="my-feature" cli="claude" />
+        <BuildCommand {...defaultProps} specs={["my-feature"]} cli="claude" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -212,7 +212,7 @@ describe("BuildCommand", () => {
       });
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="test" />
+        <BuildCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -236,7 +236,7 @@ describe("BuildCommand", () => {
       });
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="test" />
+        <BuildCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -261,7 +261,7 @@ describe("BuildCommand", () => {
       });
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="test" iterations={2} />
+        <BuildCommand {...defaultProps} specs={["test"]} iterations={2} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -284,7 +284,7 @@ describe("BuildCommand", () => {
       });
 
       render(
-        <BuildCommand {...defaultProps} spec="test" narration="explicit" />
+        <BuildCommand {...defaultProps} specs={["test"]} narration="explicit" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -304,7 +304,7 @@ describe("BuildCommand", () => {
       });
 
       render(
-        <BuildCommand {...defaultProps} spec="test" />
+        <BuildCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -321,7 +321,7 @@ describe("BuildCommand", () => {
       mockLoadTemplate.mockRejectedValue(new Error("ENOENT"));
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="test" />
+        <BuildCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -333,7 +333,7 @@ describe("BuildCommand", () => {
       mockListSpecs.mockResolvedValue([]);
 
       const { lastFrame } = render(
-        <BuildCommand {...defaultProps} spec="nonexistent" />
+        <BuildCommand {...defaultProps} specs={["nonexistent"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 50));

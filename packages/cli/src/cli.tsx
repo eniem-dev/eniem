@@ -61,7 +61,7 @@ const cli = meow(
     --env          Environment for products command (default: sandbox)
     --prod         Shorthand for --env=production
     --token        Polar access token (bypasses .env lookup)
-    --spec         Spec name for plan/build command (interactive if omitted)
+    --spec         Spec name(s) for plan/build command, comma-separated (interactive if omitted)
     --iterations   Number of iterations (default: 3 for plan, 10 for build)
     --verbose      Show tool usage during plan/build (overrides config)
     --no-verbose   Disable verbose output (overrides config)
@@ -87,10 +87,10 @@ const cli = meow(
     $ eni products --prod
     $ eni products --prod --token=polar_xxx
     $ eni plan
-    $ eni plan --spec=my-feature --iterations=5 --verbose
+    $ eni plan --spec=my-feature,other-feature --iterations=5 --verbose
     $ eni plan --cli codex
     $ eni build
-    $ eni build --spec=my-feature --iterations=20 --verbose
+    $ eni build --spec=my-feature,other-feature --iterations=20 --verbose
     $ eni build --cli opencode
     $ eni plan --list
     $ eni build --list
@@ -287,15 +287,34 @@ if (command === "ready") {
   );
 } else if (command === "build") {
   const projectDir = process.cwd();
+  const specsDir = join(projectDir, "specs", "planned");
   const config = await readConfig(projectDir);
   const resolvedVerbose = resolveVerbose(verboseFlag, config);
+
+  // Parse and validate comma-separated --spec flag
+  let parsedSpecs: string[] | undefined;
+  if (specFlag !== undefined) {
+    const parsed = parseSpecFlag(specFlag);
+    if (!parsed) {
+      console.error(`\x1b[31m✗ No spec names provided\x1b[0m`);
+      process.exit(1);
+    }
+    const available = await listSpecs(specsDir);
+    const unrecognized = validateSpecNames(parsed, available);
+    if (unrecognized.length > 0) {
+      console.error(`\x1b[31m✗ Unrecognized spec names: ${unrecognized.join(", ")}\x1b[0m`);
+      process.exit(1);
+    }
+    parsedSpecs = parsed;
+  }
+
   render(
     <Box flexDirection="column">
       <BuildCommand
-        spec={specFlag}
+        specs={parsedSpecs}
         iterations={iterationsFlag ?? 10}
         verbose={resolvedVerbose}
-        specsDir={join(projectDir, "specs", "planned")}
+        specsDir={specsDir}
         promptFile={join(projectDir, ".eni", "PROMPT_build.md")}
         cli={cliFlag}
         narration={config?.narration}
