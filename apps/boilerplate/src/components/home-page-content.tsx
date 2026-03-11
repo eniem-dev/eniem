@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { locales } from "@/locales";
 import { routes } from "@/config/routes";
 import { Button } from "@/components/ui/button";
+import { BrowserFrame } from "@/components/ui/browser-frame";
 import { Card, CardContent } from "@/components/ui/card";
 import { PricingCard } from "@/components/pricing-card";
 import { KeyRound, CreditCard, Mail, Shield, LayoutDashboard, Moon } from "lucide-react";
@@ -45,17 +47,24 @@ export function HomePageContent({ products }: HomePageContentProps) {
               {locales.HomePage.hero.subtitle}
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4">
-              <Link href={routes.auth.signup}>
-                <Button size="lg">{locales.HomePage.hero.getStarted}</Button>
+              <Link href={routes.auth.signup} className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto">{locales.HomePage.hero.getStarted}</Button>
               </Link>
-              <Button size="lg" variant="outline" asChild>
+              <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
                 <a href="#features">{locales.HomePage.hero.learnMore}</a>
               </Button>
             </div>
           </div>
-          <div className="rounded-xl border bg-muted/50 aspect-video flex items-center justify-center">
-            <span className="text-muted-foreground text-sm">Screenshot</span>
-          </div>
+          <BrowserFrame className="w-full">
+            <Image
+              src="/static/hero-screenshot.png"
+              alt={locales.HomePage.hero.title}
+              width={1200}
+              height={675}
+              className="w-full h-auto"
+              priority
+            />
+          </BrowserFrame>
         </div>
         </div>
       </section>
