@@ -48,8 +48,8 @@ export function HomePageContent({ products }: HomePageContentProps) {
               <Link href={routes.auth.signup}>
                 <Button size="lg">{locales.HomePage.hero.getStarted}</Button>
               </Link>
-              <Button size="lg" variant="outline">
-                {locales.HomePage.hero.learnMore}
+              <Button size="lg" variant="outline" asChild>
+                <a href="#features">{locales.HomePage.hero.learnMore}</a>
               </Button>
             </div>
           </div>
@@ -61,7 +61,7 @@ export function HomePageContent({ products }: HomePageContentProps) {
       </section>
 
       {/* Features Section */}
-      <section className="container mx-auto px-4 py-24">
+      <section id="features" className="container mx-auto px-4 py-24">
         <div className="text-center mb-16 animate-fade-in">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
             {locales.HomePage.features.title}
