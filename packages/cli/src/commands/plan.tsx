@@ -2,7 +2,7 @@ import { Box, Text, Static, useApp } from "ink";
 import React, { useState, useEffect, useRef } from "react";
 import { join } from "path";
 import {
-  Select,
+  MultiSelect,
   Spinner,
   SectionHeader,
   StatusMessage,
@@ -40,7 +40,7 @@ function toolInputSummary(name: string, input: Record<string, unknown>): string 
 type PlanStep = "selecting" | "resolving" | "first-run" | "fallback" | "running" | "summary" | "error";
 
 export interface PlanCommandProps {
-  spec?: string;
+  specs?: string[];
   iterations: number;
   verbose: boolean;
   specsDir: string;
@@ -49,8 +49,15 @@ export interface PlanCommandProps {
   narration?: Narration;
 }
 
+interface SpecResult {
+  name: string;
+  iterations: number;
+  totalIterations: number;
+  sentinelDetected: boolean;
+}
+
 export const PlanCommand = ({
-  spec,
+  specs: preSelectedSpecs,
   iterations,
   verbose,
   specsDir,
@@ -59,13 +66,12 @@ export const PlanCommand = ({
   narration,
 }: PlanCommandProps) => {
   const { exit } = useApp();
-  const [step, setStep] = useState<PlanStep>(spec ? "resolving" : "selecting");
-  const [specName, setSpecName] = useState(spec ?? "");
-  const [specPath, setSpecPath] = useState("");
-  const [specs, setSpecs] = useState<{ label: string; value: string }[]>([]);
+  const [step, setStep] = useState<PlanStep>(preSelectedSpecs ? "resolving" : "selecting");
+  const [specQueue, setSpecQueue] = useState<string[]>(preSelectedSpecs ?? []);
+  const [currentSpecIndex, setCurrentSpecIndex] = useState(0);
+  const [availableSpecs, setAvailableSpecs] = useState<{ label: string; value: string }[]>([]);
   const [currentIteration, setCurrentIteration] = useState(1);
   const [elapsed, setElapsed] = useState(0);
-  const [sentinelDetected, setSentinelDetected] = useState(false);
   const [pastLines, setPastLines] = useState<string[]>([]);
   const [currentLines, setCurrentLines] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -74,11 +80,14 @@ export const PlanCommand = ({
   const [firstRunAvailable, setFirstRunAvailable] = useState<CLIAdapter[]>([]);
   const [fallbackMissing, setFallbackMissing] = useState("");
   const [fallbackAvailable, setFallbackAvailable] = useState<CLIAdapter[]>([]);
+  const [completedSpecs, setCompletedSpecs] = useState<SpecResult[]>([]);
 
   const isLoadingSpecsRef = useRef(false);
   const isResolvingRef = useRef(false);
   const isRunningRef = useRef(false);
   const runnerRef = useRef<CLIRunner | null>(null);
+
+  const currentSpecName = specQueue[currentSpecIndex] ?? "";
 
   // Load specs for selection
   useEffect(() => {
@@ -93,13 +102,13 @@ export const PlanCommand = ({
         isLoadingSpecsRef.current = false;
         return;
       }
-      setSpecs(found.map((s) => ({ label: s.name, value: s.name })));
+      setAvailableSpecs(found.map((s) => ({ label: s.name, value: s.name })));
       isLoadingSpecsRef.current = false;
     };
     void load();
   }, [step, specsDir]);
 
-  // Resolve CLI adapter first, then validate spec
+  // Resolve CLI adapter
   useEffect(() => {
     if (step !== "resolving" || isResolvingRef.current) return;
     isResolvingRef.current = true;
@@ -137,16 +146,17 @@ export const PlanCommand = ({
         setResolvedAdapter(result.adapter);
         setResolutionSource(result.source);
 
-        if (specName) {
+        // Validate all spec names if pre-selected
+        if (specQueue.length > 0) {
           const found = await listSpecs(specsDir);
-          const match = found.find((s) => s.name === specName);
-          if (!match) {
-            setError(`Spec not found: ${join(specsDir, specName + ".md")}`);
+          const validNames = new Set(found.map((s) => s.name));
+          const invalid = specQueue.filter((n) => !validNames.has(n));
+          if (invalid.length > 0) {
+            setError(`Spec not found: ${invalid.map((n) => join(specsDir, n + ".md")).join(", ")}`);
             setStep("error");
             isResolvingRef.current = false;
             return;
           }
-          setSpecPath(match.path);
         }
 
         setStep("running");
@@ -157,28 +167,12 @@ export const PlanCommand = ({
       isResolvingRef.current = false;
     };
     void resolve();
-  }, [step, cli, specName, specsDir]);
+  }, [step, cli, specQueue, specsDir]);
 
-  // Resolve spec path when specName is set and we move to running
+  // Run iteration loop for current spec
   useEffect(() => {
-    if (step !== "running" || !specName || specPath) return;
-
-    const resolve = async () => {
-      const found = await listSpecs(specsDir);
-      const match = found.find((s) => s.name === specName);
-      if (!match) {
-        setError(`Spec not found: ${join(specsDir, specName + ".md")}`);
-        setStep("error");
-        return;
-      }
-      setSpecPath(match.path);
-    };
-    void resolve();
-  }, [step, specName, specPath, specsDir]);
-
-  // Run iteration loop
-  useEffect(() => {
-    if (step !== "running" || !specPath || !resolvedAdapter || isRunningRef.current) return;
+    if (step !== "running" || !resolvedAdapter || isRunningRef.current) return;
+    if (currentSpecIndex >= specQueue.length) return;
     isRunningRef.current = true;
 
     const runLoop = async () => {
@@ -200,9 +194,26 @@ export const PlanCommand = ({
         return;
       }
 
+      const specName = specQueue[currentSpecIndex]!;
+
+      // Resolve spec path
+      const found = await listSpecs(specsDir);
+      const match = found.find((s) => s.name === specName);
+      if (!match) {
+        setError(`Spec not found: ${join(specsDir, specName + ".md")}`);
+        setStep("error");
+        isRunningRef.current = false;
+        return;
+      }
+
       let detectedSentinel = false;
 
-      for (let i = currentIteration; i <= iterations; i++) {
+      // Add spec separator to past lines if processing 2nd+ spec
+      if (currentSpecIndex > 0) {
+        setPastLines((past) => [...past, "", `━━ Spec: ${specName} ━━`]);
+      }
+
+      for (let i = 1; i <= iterations; i++) {
         setCurrentIteration(i);
         if (i > 1) {
           setCurrentLines((prev) => {
@@ -260,15 +271,37 @@ export const PlanCommand = ({
       }
 
       // Move spec to planned
-      setSentinelDetected(detectedSentinel);
       const plannedDir = join(specsDir, "planned");
-      await moveSpec(specPath, plannedDir);
+      await moveSpec(match.path, plannedDir);
 
-      setStep("summary");
-      isRunningRef.current = false;
+      const specResult: SpecResult = {
+        name: specName,
+        iterations: detectedSentinel ? currentIteration : iterations,
+        totalIterations: iterations,
+        sentinelDetected: detectedSentinel,
+      };
+      setCompletedSpecs((prev) => [...prev, specResult]);
+
+      // Flush current lines to past
+      setCurrentLines((prev) => {
+        setPastLines((past) => [...past, ...prev]);
+        return [];
+      });
+
+      // Advance to next spec or finish
+      const nextIndex = currentSpecIndex + 1;
+      if (nextIndex < specQueue.length) {
+        setCurrentSpecIndex(nextIndex);
+        setCurrentIteration(1);
+        setElapsed(0);
+        isRunningRef.current = false;
+      } else {
+        setStep("summary");
+        isRunningRef.current = false;
+      }
     };
     void runLoop();
-  }, [step, specPath, specName, iterations, currentIteration, promptFile, verbose, resolvedAdapter]);
+  }, [step, resolvedAdapter, currentSpecIndex, specQueue, iterations, promptFile, verbose, specsDir, narration]);
 
   // Exit on terminal states
   useEffect(() => {
@@ -297,8 +330,8 @@ export const PlanCommand = ({
     };
   }, []);
 
-  const handleSpecSelect = (value: string) => {
-    setSpecName(value);
+  const handleSpecsSelected = (values: string[]) => {
+    setSpecQueue(values);
     setStep("resolving");
   };
 
@@ -317,20 +350,29 @@ export const PlanCommand = ({
     ? `Using ${resolvedAdapter.id} for plan${resolutionSource === "flag" ? " (--cli override)" : ""}`
     : null;
 
+  const formatElapsed = (s: number) =>
+    s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, "0")}s`;
+
+  const specProgress = specQueue.length > 1
+    ? ` [${currentSpecIndex + 1}/${specQueue.length}]`
+    : "";
+
   return (
     <Box flexDirection="column">
       {step === "selecting" && <Header />}
-      <SectionHeader title="Plan" subtitle={specName || undefined} />
+      <SectionHeader title="Plan" subtitle={currentSpecName || undefined} />
 
-      {step === "selecting" && specs.length > 0 && (
-        <Select
-          label="Select a spec to plan:"
-          options={specs}
-          onSelect={handleSpecSelect}
+      {step === "selecting" && availableSpecs.length > 0 && (
+        <MultiSelect
+          label="Select specs to plan:"
+          items={availableSpecs}
+          onSubmit={handleSpecsSelected}
+          required
+          emptyHintText="Select at least one spec"
         />
       )}
 
-      {step === "selecting" && specs.length === 0 && !error && (
+      {step === "selecting" && availableSpecs.length === 0 && !error && (
         <Spinner label="Loading specs..." />
       )}
 
@@ -363,7 +405,7 @@ export const PlanCommand = ({
           )}
           <Static items={pastLines}>
             {(line, i) => (
-              <Text key={i} dimColor={line.startsWith("[tool]") || line.startsWith("──")}>
+              <Text key={i} dimColor={line.startsWith("[tool]") || line.startsWith("──") || line.startsWith("━━")}>
                 {line}
               </Text>
             )}
@@ -375,22 +417,24 @@ export const PlanCommand = ({
               ))}
             </Box>
           )}
-          <Spinner label={`Iteration ${currentIteration}/${iterations} (${elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed / 60)}m${String(elapsed % 60).padStart(2, "0")}s`})`} />
+          <Spinner label={`${currentSpecName}${specProgress} · Iteration ${currentIteration}/${iterations} (${formatElapsed(elapsed)})`} />
         </Box>
       )}
 
       {step === "summary" && (
         <Box flexDirection="column">
           <StatusMessage status="success">
-            Plan complete — spec moved to planned.
+            Plan complete — {completedSpecs.length} spec{completedSpecs.length !== 1 ? "s" : ""} moved to planned.
           </StatusMessage>
-          <Box marginTop={1} marginLeft={2}>
-            <Text dimColor>
-              {sentinelDetected
-                ? `Completed in ${currentIteration}/${iterations} iterations (early exit).`
-                : `Completed ${iterations}/${iterations} iterations.`}
-            </Text>
-          </Box>
+          {completedSpecs.map((sr) => (
+            <Box key={sr.name} marginLeft={2}>
+              <Text dimColor>
+                {sr.name}: {sr.sentinelDetected
+                  ? `${sr.iterations}/${sr.totalIterations} iterations (early exit)`
+                  : `${sr.totalIterations}/${sr.totalIterations} iterations`}
+              </Text>
+            </Box>
+          ))}
         </Box>
       )}
 

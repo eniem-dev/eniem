@@ -82,7 +82,7 @@ describe("PlanCommand", () => {
 
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      expect(lastFrame()).toContain("Select a spec to plan:");
+      expect(lastFrame()).toContain("Select specs to plan:");
       expect(lastFrame()).toContain("feature-a");
       expect(lastFrame()).toContain("feature-b");
     });
@@ -103,7 +103,7 @@ describe("PlanCommand", () => {
       mockListSpecs.mockResolvedValue([]);
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="nonexistent" />
+        <PlanCommand {...defaultProps} specs={["nonexistent"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -123,7 +123,7 @@ describe("PlanCommand", () => {
       });
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="my-feature" />
+        <PlanCommand {...defaultProps} specs={["my-feature"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -138,7 +138,7 @@ describe("PlanCommand", () => {
       mockResolveCLI.mockResolvedValue({ needsFirstRun: true, available: [claudeAdapter, codexAdapter] });
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="test" />
+        <PlanCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -150,7 +150,7 @@ describe("PlanCommand", () => {
       mockResolveCLI.mockResolvedValue({ needsFallback: true, configured: "codex", available: [claudeAdapter] });
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="test" />
+        <PlanCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -162,7 +162,7 @@ describe("PlanCommand", () => {
       mockResolveCLI.mockResolvedValue({ noClisAvailable: true });
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="test" />
+        <PlanCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -182,7 +182,7 @@ describe("PlanCommand", () => {
       });
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="my-feature" />
+        <PlanCommand {...defaultProps} specs={["my-feature"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -203,7 +203,7 @@ describe("PlanCommand", () => {
       });
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="my-feature" cli="claude" />
+        <PlanCommand {...defaultProps} specs={["my-feature"]} cli="claude" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -223,7 +223,7 @@ describe("PlanCommand", () => {
       });
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="test" />
+        <PlanCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -247,7 +247,7 @@ describe("PlanCommand", () => {
       });
 
       render(
-        <PlanCommand {...defaultProps} spec="test" narration="explicit" />
+        <PlanCommand {...defaultProps} specs={["test"]} narration="explicit" />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -267,7 +267,7 @@ describe("PlanCommand", () => {
       });
 
       render(
-        <PlanCommand {...defaultProps} spec="test" />
+        <PlanCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 150));
@@ -284,7 +284,7 @@ describe("PlanCommand", () => {
       mockLoadTemplate.mockRejectedValue(new Error("ENOENT"));
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="test" />
+        <PlanCommand {...defaultProps} specs={["test"]} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -306,13 +306,13 @@ describe("PlanCommand", () => {
       });
 
       const { lastFrame } = render(
-        <PlanCommand {...defaultProps} spec="test" iterations={3} />
+        <PlanCommand {...defaultProps} specs={["test"]} iterations={3} />
       );
 
       await new Promise((resolve) => setTimeout(resolve, 150));
 
       expect(lastFrame()).toContain("Plan complete");
-      expect(lastFrame()).toContain("spec moved to planned");
+      expect(lastFrame()).toContain("moved to planned");
       expect(mockMoveSpec).toHaveBeenCalled();
     });
   });

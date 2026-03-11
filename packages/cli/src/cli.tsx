@@ -2,7 +2,7 @@ import { render, Box } from "ink";
 import React from "react";
 import meow from "meow";
 import { join } from "path";
-import { listSpecs } from "./lib/specs.js";
+import { listSpecs, parseSpecFlag, validateSpecNames } from "./lib/specs.js";
 import { ConfigProvider } from "./config/index.js";
 
 import { Wizard } from "./Wizard.js";
@@ -251,15 +251,34 @@ if (command === "ready") {
   );
 } else if (command === "plan") {
   const projectDir = process.cwd();
+  const specsDir = join(projectDir, "specs");
   const config = await readConfig(projectDir);
   const resolvedVerbose = resolveVerbose(verboseFlag, config);
+
+  // Parse and validate comma-separated --spec flag
+  let parsedSpecs: string[] | undefined;
+  if (specFlag !== undefined) {
+    const parsed = parseSpecFlag(specFlag);
+    if (!parsed) {
+      console.error(`\x1b[31m✗ No spec names provided\x1b[0m`);
+      process.exit(1);
+    }
+    const available = await listSpecs(specsDir);
+    const unrecognized = validateSpecNames(parsed, available);
+    if (unrecognized.length > 0) {
+      console.error(`\x1b[31m✗ Unrecognized spec names: ${unrecognized.join(", ")}\x1b[0m`);
+      process.exit(1);
+    }
+    parsedSpecs = parsed;
+  }
+
   render(
     <Box flexDirection="column">
       <PlanCommand
-        spec={specFlag}
+        specs={parsedSpecs}
         iterations={iterationsFlag ?? 3}
         verbose={resolvedVerbose}
-        specsDir={join(projectDir, "specs")}
+        specsDir={specsDir}
         promptFile={join(projectDir, ".eni", "PROMPT_plan.md")}
         cli={cliFlag}
         narration={config?.narration}

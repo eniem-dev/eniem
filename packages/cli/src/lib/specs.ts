@@ -27,6 +27,39 @@ export async function listSpecs(dir: string): Promise<SpecFile[]> {
 }
 
 /**
+ * Parses a comma-separated --spec flag into deduplicated names,
+ * preserving first-occurrence order.
+ * Returns null if the input is empty or whitespace-only.
+ */
+export function parseSpecFlag(raw: string): string[] | null {
+  const trimmed = raw.trim();
+  if (trimmed === "") return null;
+
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const part of trimmed.split(",")) {
+    const name = part.trim();
+    if (name !== "" && !seen.has(name)) {
+      seen.add(name);
+      result.push(name);
+    }
+  }
+  return result.length > 0 ? result : null;
+}
+
+/**
+ * Validates that every name in `specNames` matches an available spec.
+ * Returns the list of unrecognized names (empty if all valid).
+ */
+export function validateSpecNames(
+  specNames: string[],
+  available: SpecFile[],
+): string[] {
+  const validNames = new Set(available.map((s) => s.name));
+  return specNames.filter((n) => !validNames.has(n));
+}
+
+/**
  * Moves a spec file to the target directory, creating it if needed.
  */
 export async function moveSpec(
