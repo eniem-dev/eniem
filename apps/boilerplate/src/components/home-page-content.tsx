@@ -17,7 +17,9 @@ export function HomePageContent({ products }: HomePageContentProps) {
   return (
     <div>
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-24 animate-fade-in">
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 animate-fade-in">
+        <div className="absolute inset-0 bg-grid-pattern" />
+        <div className="relative container mx-auto px-4 py-24">
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 items-center">
           <div>
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
@@ -54,6 +56,7 @@ export function HomePageContent({ products }: HomePageContentProps) {
           <div className="rounded-xl border bg-muted/50 aspect-video flex items-center justify-center">
             <span className="text-muted-foreground text-sm">Screenshot</span>
           </div>
+        </div>
         </div>
       </section>
 
