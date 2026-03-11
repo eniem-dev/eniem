@@ -17,20 +17,27 @@ export function HomePageContent({ products }: HomePageContentProps) {
   return (
     <div>
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-24 text-center animate-fade-in">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-          {locales.HomePage.hero.title}
-        </h1>
-        <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto sm:text-xl">
-          {locales.HomePage.hero.subtitle}
-        </p>
-        <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-          <Link href={routes.auth.signup}>
-            <Button size="lg">{locales.HomePage.hero.getStarted}</Button>
-          </Link>
-          <Button size="lg" variant="outline">
-            {locales.HomePage.hero.learnMore}
-          </Button>
+      <section className="container mx-auto px-4 py-24 animate-fade-in">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 items-center">
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
+              {locales.HomePage.hero.title}
+            </h1>
+            <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
+              {locales.HomePage.hero.subtitle}
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row gap-4">
+              <Link href={routes.auth.signup}>
+                <Button size="lg">{locales.HomePage.hero.getStarted}</Button>
+              </Link>
+              <Button size="lg" variant="outline">
+                {locales.HomePage.hero.learnMore}
+              </Button>
+            </div>
+          </div>
+          <div className="rounded-xl border bg-muted/50 aspect-video flex items-center justify-center">
+            <span className="text-muted-foreground text-sm">Screenshot</span>
+          </div>
         </div>
       </section>
 
