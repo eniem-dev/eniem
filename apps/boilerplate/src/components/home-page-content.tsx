@@ -20,8 +20,24 @@ export function HomePageContent({ products }: HomePageContentProps) {
       <section className="container mx-auto px-4 py-24 animate-fade-in">
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-12 items-center">
           <div>
-            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl bg-gradient-to-r from-foreground to-foreground/60 bg-clip-text text-transparent">
-              {locales.HomePage.hero.title}
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+              {locales.HomePage.hero.title.split(" ").map((word, i) => {
+                const isGradient = locales.HomePage.hero.gradientWords.some(
+                  (gw) => word.toLowerCase().includes(gw.toLowerCase()),
+                );
+                return (
+                  <span key={i}>
+                    {i > 0 && " "}
+                    {isGradient ? (
+                      <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                        {word}
+                      </span>
+                    ) : (
+                      word
+                    )}
+                  </span>
+                );
+              })}
             </h1>
             <p className="mt-6 text-lg text-muted-foreground sm:text-xl">
               {locales.HomePage.hero.subtitle}
