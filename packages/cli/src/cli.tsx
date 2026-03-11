@@ -41,8 +41,8 @@ const cli = meow(
     $ eni config show
     $ eni config set <plan|build|verbose> <value>
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
-    $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
-    $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
+    $ eni plan [--spec=<name1,name2,...>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
+    $ eni build [--spec=<name1,name2,...>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
     $ eni ai init [--force] [--protocol=ssh|https] [--ssh]
 
   Commands

@@ -232,6 +232,35 @@ describe("CLI --list flag (output format)", () => {
   }, 15_000);
 });
 
+describe("CLI --spec multi-select help text", () => {
+  it("usage line shows comma-separated spec syntax", async () => {
+    const result = await execaNode(CLI_PATH, ["--help"], {
+      reject: false,
+      timeout: 10_000,
+    });
+
+    expect(result.stdout).toContain("--spec=<name1,name2,...>");
+  }, 15_000);
+
+  it("examples include multi-spec usage", async () => {
+    const result = await execaNode(CLI_PATH, ["--help"], {
+      reject: false,
+      timeout: 10_000,
+    });
+
+    expect(result.stdout).toContain("--spec=my-feature,other-feature");
+  }, 15_000);
+
+  it("spec option description mentions comma-separated", async () => {
+    const result = await execaNode(CLI_PATH, ["--help"], {
+      reject: false,
+      timeout: 10_000,
+    });
+
+    expect(result.stdout).toContain("comma-separated");
+  }, 15_000);
+});
+
 describe("CLI --protocol flag", () => {
   it("exits with error when --protocol has invalid value", async () => {
     const result = await execaNode(CLI_PATH, ["my-app", "--protocol=ftp"], {
