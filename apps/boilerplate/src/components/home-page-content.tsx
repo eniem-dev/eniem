@@ -58,7 +58,7 @@ export function HomePageContent({ products }: HomePageContentProps) {
           <BrowserFrame className="w-full">
             <Image
               src="/static/hero-screenshot.png"
-              alt={locales.HomePage.hero.title}
+              alt={locales.HomePage.hero.screenshotAlt}
               width={1200}
               height={675}
               className="w-full h-auto"
