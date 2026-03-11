@@ -5,24 +5,63 @@ import { NavBorder } from "@/components/navbar/nav-border";
 import { ThemeSelector } from "@/components/theme-selector";
 import { NewsletterForm } from "@/features/newsletter";
 import { locales } from "@/locales";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { Sparkles } from "lucide-react";
-import { AnimatedBackground } from "@/components/ui/animated-background";
-import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import { Play, Sparkles, Users } from "lucide-react";
+import { useRef, useEffect, useState } from "react";
 
-export function LandingPageClient() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
+function useWindowSize() {
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    function update() {
+      setSize({ width: window.innerWidth, height: window.innerHeight });
+    }
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return size;
+}
 
-  const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
-  const opacity = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.5, 0]);
+function Particles() {
+  const { width, height } = useWindowSize();
+
+  if (width === 0) return null;
 
   return (
-    <div ref={containerRef}>
-      <AnimatedBackground />
+    <div className="absolute inset-0 overflow-hidden">
+      {Array.from({ length: 15 }, (_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1.5 h-1.5 bg-foreground/10 rounded-full"
+          initial={{
+            x: Math.random() * width,
+            y: Math.random() * height,
+            opacity: 0,
+          }}
+          animate={{
+            y: -100,
+            opacity: [0, 0.6, 0],
+            scale: [0.5, 1, 0.5],
+          }}
+          transition={{
+            duration: Math.random() * 10 + 12,
+            repeat: Infinity,
+            delay: Math.random() * 8,
+            ease: "linear",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function LandingPageClient() {
+  const videoRef = useRef<HTMLDivElement>(null);
+  const videoInView = useInView(videoRef, { once: true, margin: "-40px" });
+  const [videoPlaying, setVideoPlaying] = useState(false);
+
+  return (
+    <div>
       {/* Header */}
       <motion.header
         initial={{ y: -100, opacity: 0 }}
@@ -52,42 +91,12 @@ export function LandingPageClient() {
 
       <main className="relative">
         {/* Hero Section */}
-        <motion.section
-          style={{ y, opacity }}
-          className="relative min-h-screen flex items-center justify-center overflow-hidden"
-        >
-          {/* Animated Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-accent/5" />
+        <section className="relative pt-32 pb-20 md:pt-44 md:pb-28 overflow-hidden">
+          {/* Background */}
+          <div className="absolute inset-0 bg-grid-pattern opacity-30" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background" />
 
-          {/* Floating Particles */}
-          <div className="absolute inset-0 overflow-hidden">
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-2 h-2 bg-primary/20 rounded-full"
-                initial={{
-                  x:
-                    Math.random() *
-                    (typeof window !== "undefined" ? window.innerWidth : 1000),
-                  y:
-                    Math.random() *
-                    (typeof window !== "undefined" ? window.innerHeight : 1000),
-                  opacity: 0,
-                }}
-                animate={{
-                  y: -100,
-                  opacity: [0, 1, 0],
-                  scale: [0.5, 1, 0.5],
-                }}
-                transition={{
-                  duration: Math.random() * 10 + 10,
-                  repeat: Infinity,
-                  delay: Math.random() * 10,
-                  ease: "linear",
-                }}
-              />
-            ))}
-          </div>
+          <Particles />
 
           <div className="container mx-auto px-6 relative z-10">
             <div className="max-w-4xl mx-auto text-center space-y-8">
@@ -96,43 +105,26 @@ export function LandingPageClient() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 border border-gradient-to-r border-blue-500/30 text-sm font-medium"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border/60 bg-muted/40 text-sm font-medium"
               >
-                <Sparkles className="w-4 h-4 text-purple-500" />
-                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">
+                <Sparkles className="w-3.5 h-3.5 text-foreground/50" />
+                <span className="text-foreground/70 font-semibold tracking-wide text-xs uppercase">
                   {locales.LandingPage.hero.badge}
                 </span>
               </motion.div>
 
               {/* Main Title */}
               <motion.h1
-                className="text-4xl md:text-6xl lg:text-8xl font-black tracking-tight"
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
+                className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.9]"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{
-                  duration: 1.2,
+                  duration: 0.8,
                   delay: 0.3,
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 10,
+                  ease: [0.21, 0.47, 0.32, 0.98],
                 }}
               >
-                <motion.span
-                  className="inline-block bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent"
-                  animate={{
-                    backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                  style={{
-                    backgroundSize: "200% 200%",
-                  }}
-                >
-                  {locales.LandingPage.hero.title}
-                </motion.span>
+                {locales.LandingPage.hero.title}
               </motion.h1>
 
               {/* Subtitle */}
@@ -140,7 +132,7 @@ export function LandingPageClient() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
-                className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
+                className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
               >
                 {locales.LandingPage.hero.subtitle}
               </motion.p>
@@ -150,15 +142,65 @@ export function LandingPageClient() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.7 }}
-                className="pt-8"
+                className="pt-6"
               >
                 <div className="max-w-md mx-auto">
                   <NewsletterForm />
                 </div>
               </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.9 }}
+                className="flex items-center justify-center gap-2 text-sm text-muted-foreground/50"
+              >
+                <Users className="h-3.5 w-3.5" />
+                <span>{locales.LandingPage.hero.socialProof}</span>
+              </motion.div>
             </div>
+
+            <motion.div
+              ref={videoRef}
+              initial={{ opacity: 0, y: 40 }}
+              animate={videoInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+              transition={{ duration: 0.8, delay: 1.1, ease: [0.21, 0.47, 0.32, 0.98] }}
+              className="mt-16 max-w-4xl mx-auto"
+            >
+              <div className="relative">
+                <div
+                  className="absolute -inset-3 rounded-2xl opacity-60 blur-2xl"
+                  style={{
+                    background:
+                      "conic-gradient(from 180deg, oklch(0.7 0.15 260), oklch(0.65 0.18 300), oklch(0.7 0.12 220), oklch(0.7 0.15 260))",
+                  }}
+                />
+                <div className="relative rounded-xl overflow-hidden border border-border/40 bg-black shadow-2xl">
+                  <div className="aspect-video">
+                    {videoPlaying ? (
+                      <iframe
+                        src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1"
+                        title="Demo video"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setVideoPlaying(true)}
+                        className="w-full h-full flex items-center justify-center bg-black cursor-pointer group"
+                      >
+                        <div className="relative flex items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
+                          <Play className="h-6 w-6 md:h-8 md:w-8 text-white fill-white ml-1" />
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </motion.section>
+        </section>
       </main>
     </div>
   );

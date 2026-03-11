@@ -97,7 +97,7 @@ export function ChoosePlanContent({ products }: ChoosePlanContentProps) {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mt-12">
+      <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mt-12">
         {products.map((product) => (
           <PricingCard
             key={product.slug}
