@@ -261,6 +261,93 @@ describe("CLI --spec multi-select help text", () => {
   }, 15_000);
 });
 
+describe("CLI --spec flag validation (plan)", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), "eni-spec-plan-"));
+    await mkdir(join(tmpDir, "specs"), { recursive: true });
+    await writeFile(join(tmpDir, "specs", "auth.md"), "# Auth");
+    await writeFile(join(tmpDir, "specs", "payments.md"), "# Payments");
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("exits with error when --spec is empty", async () => {
+    const result = await execaNode(CLI_PATH, ["plan", "--spec="], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("No spec names provided");
+  }, 15_000);
+
+  it("exits with error for unrecognized spec names", async () => {
+    const result = await execaNode(CLI_PATH, ["plan", "--spec=auth,unknown"], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Unrecognized spec names");
+    expect(result.stderr).toContain("unknown");
+  }, 15_000);
+
+  it("accepts valid comma-separated spec names", async () => {
+    const result = await execaNode(CLI_PATH, ["plan", "--spec=auth,payments"], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    // Should not fail on validation (will fail later on missing prompt file, not on spec validation)
+    expect(result.stderr).not.toContain("Unrecognized spec names");
+    expect(result.stderr).not.toContain("No spec names provided");
+  }, 15_000);
+});
+
+describe("CLI --spec flag validation (build)", () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), "eni-spec-build-"));
+    await mkdir(join(tmpDir, "specs", "planned"), { recursive: true });
+    await writeFile(join(tmpDir, "specs", "planned", "auth.md"), "# Auth");
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it("exits with error when --spec is empty", async () => {
+    const result = await execaNode(CLI_PATH, ["build", "--spec="], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("No spec names provided");
+  }, 15_000);
+
+  it("exits with error for unrecognized spec names", async () => {
+    const result = await execaNode(CLI_PATH, ["build", "--spec=missing"], {
+      reject: false,
+      timeout: 10_000,
+      cwd: tmpDir,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Unrecognized spec names");
+    expect(result.stderr).toContain("missing");
+  }, 15_000);
+});
+
 describe("CLI --protocol flag", () => {
   it("exits with error when --protocol has invalid value", async () => {
     const result = await execaNode(CLI_PATH, ["my-app", "--protocol=ftp"], {

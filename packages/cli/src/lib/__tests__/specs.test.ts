@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { listSpecs, moveSpec } from "../specs.js";
+import { listSpecs, moveSpec, parseSpecFlag, validateSpecNames } from "../specs.js";
 import * as fs from "fs/promises";
 
 vi.mock("fs/promises");
@@ -61,6 +61,64 @@ describe("specs", () => {
       const result = await listSpecs("/project/specs/missing");
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("parseSpecFlag", () => {
+    it("parses comma-separated names into an array", () => {
+      expect(parseSpecFlag("auth,payments")).toEqual(["auth", "payments"]);
+    });
+
+    it("trims whitespace around names", () => {
+      expect(parseSpecFlag(" auth , payments ")).toEqual(["auth", "payments"]);
+    });
+
+    it("deduplicates names preserving first occurrence", () => {
+      expect(parseSpecFlag("auth,payments,auth")).toEqual(["auth", "payments"]);
+    });
+
+    it("returns single-element array for single name", () => {
+      expect(parseSpecFlag("auth")).toEqual(["auth"]);
+    });
+
+    it("returns null for empty string", () => {
+      expect(parseSpecFlag("")).toBeNull();
+    });
+
+    it("returns null for whitespace-only string", () => {
+      expect(parseSpecFlag("   ")).toBeNull();
+    });
+
+    it("returns null for comma-only string", () => {
+      expect(parseSpecFlag(",,,")).toBeNull();
+    });
+
+    it("skips empty segments from trailing commas", () => {
+      expect(parseSpecFlag("auth,payments,")).toEqual(["auth", "payments"]);
+    });
+  });
+
+  describe("validateSpecNames", () => {
+    const available = [
+      { name: "auth", path: "/specs/auth.md" },
+      { name: "payments", path: "/specs/payments.md" },
+      { name: "storage", path: "/specs/storage.md" },
+    ];
+
+    it("returns empty array when all names are valid", () => {
+      expect(validateSpecNames(["auth", "payments"], available)).toEqual([]);
+    });
+
+    it("returns unrecognized names", () => {
+      expect(validateSpecNames(["auth", "unknown"], available)).toEqual(["unknown"]);
+    });
+
+    it("returns all unrecognized names when multiple are invalid", () => {
+      expect(validateSpecNames(["foo", "bar"], available)).toEqual(["foo", "bar"]);
+    });
+
+    it("returns empty array for empty input", () => {
+      expect(validateSpecNames([], available)).toEqual([]);
     });
   });
 
