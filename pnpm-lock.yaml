@@ -311,7 +311,7 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
-  apps/starters/buikdest:
+  apps/starters/eniem-feeback-collect-saas:
     dependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.901.0
