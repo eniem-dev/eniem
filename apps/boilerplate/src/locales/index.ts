@@ -69,6 +69,12 @@ export const locales = {
       "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen.",
     boardDescriptionTooLong: "Description must be 500 characters or less.",
     boardIdRequired: "Board ID is required.",
+
+    // Idea errors
+    ideaTitleRequired: "Idea title is required.",
+    ideaTitleTooLong: "Idea title must be 200 characters or less.",
+    ideaDescriptionTooLong: "Description must be 2000 characters or less.",
+    ideaIdRequired: "Idea ID is required.",
   },
 
   success: {
