@@ -75,6 +75,7 @@ export const locales = {
     ideaTitleTooLong: "Idea title must be 200 characters or less.",
     ideaDescriptionTooLong: "Description must be 2000 characters or less.",
     ideaIdRequired: "Idea ID is required.",
+    ideaNotFound: "Idea not found.",
   },
 
   success: {
