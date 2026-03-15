@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { listSpecs, moveSpec } from "../specs.js";
+import { listSpecs, moveSpec, sortByNumericPrefix } from "../specs.js";
+import type { SpecFile } from "../specs.js";
 import * as fs from "fs/promises";
 
 vi.mock("fs/promises");
@@ -61,6 +62,78 @@ describe("specs", () => {
       const result = await listSpecs("/project/specs/missing");
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("sortByNumericPrefix", () => {
+    it("sorts numbered specs by numeric prefix ascending", () => {
+      const specs: SpecFile[] = [
+        { name: "03-billing", path: "/specs/03-billing.md" },
+        { name: "01-infra", path: "/specs/01-infra.md" },
+        { name: "02-board", path: "/specs/02-board.md" },
+      ];
+
+      const sorted = sortByNumericPrefix(specs);
+
+      expect(sorted.map((s) => s.name)).toEqual([
+        "01-infra",
+        "02-board",
+        "03-billing",
+      ]);
+    });
+
+    it("places unnumbered specs after numbered ones", () => {
+      const specs: SpecFile[] = [
+        { name: "bar", path: "/specs/bar.md" },
+        { name: "01-foo", path: "/specs/01-foo.md" },
+        { name: "02-baz", path: "/specs/02-baz.md" },
+      ];
+
+      const sorted = sortByNumericPrefix(specs);
+
+      expect(sorted.map((s) => s.name)).toEqual([
+        "01-foo",
+        "02-baz",
+        "bar",
+      ]);
+    });
+
+    it("sorts unnumbered specs alphabetically", () => {
+      const specs: SpecFile[] = [
+        { name: "zebra", path: "/specs/zebra.md" },
+        { name: "alpha", path: "/specs/alpha.md" },
+        { name: "middle", path: "/specs/middle.md" },
+      ];
+
+      const sorted = sortByNumericPrefix(specs);
+
+      expect(sorted.map((s) => s.name)).toEqual([
+        "alpha",
+        "middle",
+        "zebra",
+      ]);
+    });
+
+    it("does not mutate original array", () => {
+      const specs: SpecFile[] = [
+        { name: "02-b", path: "/specs/02-b.md" },
+        { name: "01-a", path: "/specs/01-a.md" },
+      ];
+
+      const sorted = sortByNumericPrefix(specs);
+
+      expect(specs[0].name).toBe("02-b");
+      expect(sorted[0].name).toBe("01-a");
+    });
+
+    it("handles empty array", () => {
+      expect(sortByNumericPrefix([])).toEqual([]);
+    });
+
+    it("handles single spec", () => {
+      const specs: SpecFile[] = [{ name: "only", path: "/specs/only.md" }];
+
+      expect(sortByNumericPrefix(specs)).toEqual(specs);
     });
   });
 
