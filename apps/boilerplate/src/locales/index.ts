@@ -801,6 +801,8 @@ export const locales = {
       "Restores the board so it is publicly accessible again.",
     restoreButton: "Restore Board",
     publicLink: "Public link",
+    statsIdeas: "Ideas",
+    statsVotes: "Votes",
   },
 
   IdeaForm: {

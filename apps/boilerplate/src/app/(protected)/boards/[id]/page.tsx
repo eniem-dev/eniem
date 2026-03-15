@@ -53,6 +53,17 @@ export default async function ManageBoardPage({ params }: ManageBoardPageProps) 
         )}
       </div>
 
+      <div className="flex gap-6 rounded-lg border bg-muted/50 p-4">
+        <div className="text-center">
+          <p className="text-2xl font-bold">{board._count?.ideas ?? 0}</p>
+          <p className="text-sm text-muted-foreground">{locales.BoardSettings.statsIdeas}</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-bold">{board._count?.votes ?? 0}</p>
+          <p className="text-sm text-muted-foreground">{locales.BoardSettings.statsVotes}</p>
+        </div>
+      </div>
+
       <BoardSettings board={board} />
     </div>
   );

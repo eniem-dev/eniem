@@ -85,7 +85,9 @@ describe("getBoardByIdQuery", () => {
 
     const result = await getBoardByIdQuery("board_1");
 
-    expect(result.data).toEqual({ board });
+    expect(result.data).toEqual({
+      board: { ...board, _count: { ideas: 0, votes: 0 } },
+    });
     expect(result.error).toBeNull();
     expect(mockFindUnique).toHaveBeenCalledWith({ where: { id: "board_1" } });
   });

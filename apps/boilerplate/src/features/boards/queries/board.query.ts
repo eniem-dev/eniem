@@ -22,6 +22,6 @@ export function getBoardByIdQuery(boardId: string) {
       return { board: null };
     }
 
-    return { board };
+    return { board: { ...board, _count: { ideas: 0, votes: 0 } } };
   });
 }
