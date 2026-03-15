@@ -39,4 +39,10 @@ export const routes = {
     billing: "/account/billing",
     usage: "/account/usage",
   },
+  boards: {
+    list: "/boards",
+    new: "/boards/new",
+    manage: (id: string) => `/boards/${id}` as const,
+  },
+  publicBoard: (slug: string) => `/b/${slug}` as const,
 };
