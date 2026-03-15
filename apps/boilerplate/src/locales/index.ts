@@ -60,6 +60,15 @@ export const locales = {
     slugTaken: "This slug is already taken.",
     subscriptionRequired: "Active subscription required.",
     boardNotFound: "Board not found.",
+    boardNameRequired: "Board name is required.",
+    boardNameTooLong: "Board name must be 100 characters or less.",
+    boardSlugRequired: "Slug is required.",
+    boardSlugTooShort: "Slug must be at least 3 characters.",
+    boardSlugTooLong: "Slug must be 50 characters or less.",
+    boardSlugInvalid:
+      "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen.",
+    boardDescriptionTooLong: "Description must be 500 characters or less.",
+    boardIdRequired: "Board ID is required.",
   },
 
   success: {
