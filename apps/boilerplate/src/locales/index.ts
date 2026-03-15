@@ -859,6 +859,33 @@ export const locales = {
       "Active subscription required to manage ideas.",
   },
 
+  IdeaStatusBadge: {
+    open: "Open",
+    planned: "Planned",
+    done: "Done",
+  },
+
+  AdminResponseForm: {
+    respondButton: "Respond",
+    textareaPlaceholder: "Write an admin response…",
+    saveButton: "Save Response",
+    cancelButton: "Cancel",
+    removeButton: "Remove Response",
+  },
+
+  DeleteIdeaDialog: {
+    title: "Delete Idea",
+    description:
+      "Delete this idea? This will also remove all votes. This cannot be undone.",
+    confirmButton: "Delete",
+    cancelButton: "Cancel",
+  },
+
+  IdeaAdminControls: {
+    statusLabel: "Status",
+    subscriptionRequired: "Active subscription required to manage ideas.",
+  },
+
   toasts: {
     ideaSubmitted: "Idea submitted",
     ideaUpdated: "Idea updated",
