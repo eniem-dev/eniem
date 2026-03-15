@@ -10,7 +10,8 @@ import {
   MissingBinaryFallback,
 } from "../components/index.js";
 import { Header } from "../components/Header.js";
-import { listSpecs, moveSpec } from "../lib/specs.js";
+import { listSpecs, moveSpec, sortByNumericPrefix } from "../lib/specs.js";
+import type { SpecFile } from "../lib/specs.js";
 import { loadTemplate, resolveTemplate, buildTemplateVars } from "../lib/template.js";
 import { checkBinary } from "../lib/adapters/index.js";
 import type { CLIAdapter, CLIRunner } from "../lib/adapters/index.js";
@@ -37,10 +38,19 @@ function toolInputSummary(name: string, input: Record<string, unknown>): string 
   return "";
 }
 
+interface SpecResult {
+  name: string;
+  success: boolean;
+  iterationsUsed: number;
+  totalIterations: number;
+  earlyExit: boolean;
+}
+
 type PlanStep = "selecting" | "resolving" | "first-run" | "fallback" | "running" | "summary" | "error";
 
 export interface PlanCommandProps {
   spec?: string;
+  all?: boolean;
   iterations: number;
   verbose: boolean;
   specsDir: string;
@@ -51,6 +61,7 @@ export interface PlanCommandProps {
 
 export const PlanCommand = ({
   spec,
+  all,
   iterations,
   verbose,
   specsDir,
@@ -59,8 +70,8 @@ export const PlanCommand = ({
   narration,
 }: PlanCommandProps) => {
   const { exit } = useApp();
-  const [step, setStep] = useState<PlanStep>(spec ? "resolving" : "selecting");
-  const [specName, setSpecName] = useState(spec ?? "");
+  const [step, setStep] = useState<PlanStep>(spec ? "resolving" : all ? "resolving" : "selecting");
+  const [specName, setSpecName] = useState(spec ?? (all ? "__all__" : ""));
   const [specPath, setSpecPath] = useState("");
   const [specs, setSpecs] = useState<{ label: string; value: string }[]>([]);
   const [currentIteration, setCurrentIteration] = useState(1);
@@ -74,6 +85,13 @@ export const PlanCommand = ({
   const [firstRunAvailable, setFirstRunAvailable] = useState<CLIAdapter[]>([]);
   const [fallbackMissing, setFallbackMissing] = useState("");
   const [fallbackAvailable, setFallbackAvailable] = useState<CLIAdapter[]>([]);
+
+  // All-mode state
+  const [allSpecs, setAllSpecs] = useState<SpecFile[]>([]);
+  const [currentSpecIndex, setCurrentSpecIndex] = useState(0);
+  const [specResults, setSpecResults] = useState<SpecResult[]>([]);
+
+  const isAllMode = specName === "__all__";
 
   const isLoadingSpecsRef = useRef(false);
   const isResolvingRef = useRef(false);
@@ -93,7 +111,9 @@ export const PlanCommand = ({
         isLoadingSpecsRef.current = false;
         return;
       }
-      setSpecs(found.map((s) => ({ label: s.name, value: s.name })));
+      const options = found.map((s) => ({ label: s.name, value: s.name }));
+      options.push({ label: "Run all", value: "__all__" });
+      setSpecs(options);
       isLoadingSpecsRef.current = false;
     };
     void load();
@@ -137,7 +157,7 @@ export const PlanCommand = ({
         setResolvedAdapter(result.adapter);
         setResolutionSource(result.source);
 
-        if (specName) {
+        if (specName && specName !== "__all__") {
           const found = await listSpecs(specsDir);
           const match = found.find((s) => s.name === specName);
           if (!match) {
@@ -159,9 +179,9 @@ export const PlanCommand = ({
     void resolve();
   }, [step, cli, specName, specsDir]);
 
-  // Resolve spec path when specName is set and we move to running
+  // Resolve spec path when specName is set and we move to running (single-spec only)
   useEffect(() => {
-    if (step !== "running" || !specName || specPath) return;
+    if (step !== "running" || !specName || specName === "__all__" || specPath) return;
 
     const resolve = async () => {
       const found = await listSpecs(specsDir);
@@ -176,13 +196,12 @@ export const PlanCommand = ({
     void resolve();
   }, [step, specName, specPath, specsDir]);
 
-  // Run iteration loop
+  // Run iteration loop — single-spec mode
   useEffect(() => {
-    if (step !== "running" || !specPath || !resolvedAdapter || isRunningRef.current) return;
+    if (step !== "running" || isAllMode || !specPath || !resolvedAdapter || isRunningRef.current) return;
     isRunningRef.current = true;
 
     const runLoop = async () => {
-      // Lazy prerequisite checks
       if (!(await checkBinary("bd"))) {
         setError("Beads CLI not found. Install it with: npm install -g @beads-cli/bd");
         setStep("error");
@@ -268,7 +287,143 @@ export const PlanCommand = ({
       isRunningRef.current = false;
     };
     void runLoop();
-  }, [step, specPath, specName, iterations, currentIteration, promptFile, verbose, resolvedAdapter]);
+  }, [step, specPath, specName, iterations, currentIteration, promptFile, verbose, resolvedAdapter, isAllMode]);
+
+  // Run iteration loop — all-specs mode
+  useEffect(() => {
+    if (step !== "running" || !isAllMode || !resolvedAdapter || isRunningRef.current) return;
+    isRunningRef.current = true;
+
+    const runAllLoop = async () => {
+      if (!(await checkBinary("bd"))) {
+        setError("Beads CLI not found. Install it with: npm install -g @beads-cli/bd");
+        setStep("error");
+        isRunningRef.current = false;
+        return;
+      }
+
+      let template: string;
+      try {
+        template = await loadTemplate(promptFile);
+      } catch {
+        setError(`Prompt file not found: ${promptFile}`);
+        setStep("error");
+        isRunningRef.current = false;
+        return;
+      }
+
+      // Load and sort all specs
+      const found = await listSpecs(specsDir);
+      if (found.length === 0) {
+        setError(`No unplanned specs found in ${specsDir}. Create a spec file first.`);
+        setStep("error");
+        isRunningRef.current = false;
+        return;
+      }
+      const sorted = sortByNumericPrefix(found);
+      setAllSpecs(sorted);
+
+      const results: SpecResult[] = [];
+
+      for (let si = 0; si < sorted.length; si++) {
+        const currentSpec = sorted[si];
+        setCurrentSpecIndex(si);
+        setSpecName(currentSpec.name);
+        setCurrentIteration(1);
+        setCurrentLines([]);
+        setPastLines((past) => {
+          if (si > 0) return [...past, `── Spec ${si}/${sorted.length}: ${sorted[si - 1].name} complete ──`];
+          return past;
+        });
+
+        let detectedSentinel = false;
+        let iterationsUsed = 0;
+
+        for (let i = 1; i <= iterations; i++) {
+          setCurrentIteration(i);
+          iterationsUsed = i;
+          if (i > 1) {
+            setCurrentLines((prev) => {
+              setPastLines((past) => [...past, `── Iteration ${i - 1} ──`, ...prev]);
+              return [];
+            });
+          }
+
+          const vars = buildTemplateVars(currentSpec.name, i, "plan");
+          const resolved = resolveTemplate(template, vars);
+          const prompt = injectNarration(resolved, narration);
+
+          const runner = resolvedAdapter.run(prompt, {
+            onText: (text) => {
+              setCurrentLines((prev) => [...prev, text]);
+            },
+            onToolUse: verbose
+              ? (toolName, toolInput) => {
+                  const detail = toolInputSummary(toolName, toolInput);
+                  setCurrentLines((prev) => [
+                    ...prev,
+                    detail ? `[tool] ${toolName}: ${detail}` : `[tool] ${toolName}`,
+                  ]);
+                }
+              : undefined,
+          });
+          runnerRef.current = runner;
+
+          try {
+            const result = await runner.result;
+
+            if (result.sentinelDetected) {
+              detectedSentinel = true;
+              break;
+            }
+
+            if (result.exitCode !== 0) {
+              const detail = result.stderr.trim();
+              results.push({ name: currentSpec.name, success: false, iterationsUsed: i, totalIterations: iterations, earlyExit: false });
+              setSpecResults(results);
+              setError(
+                `Plan failed on spec ${si + 1}/${sorted.length}: ${currentSpec.name}\n\n` +
+                (detail
+                  ? `CLI exited with code ${result.exitCode}:\n${detail}`
+                  : `CLI exited with code ${result.exitCode} (no stderr output)`) +
+                `\n\n${si}/${sorted.length} specs completed before failure.`,
+              );
+              setStep("error");
+              isRunningRef.current = false;
+              return;
+            }
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            results.push({ name: currentSpec.name, success: false, iterationsUsed: i, totalIterations: iterations, earlyExit: false });
+            setSpecResults(results);
+            setError(
+              `Plan failed on spec ${si + 1}/${sorted.length}: ${currentSpec.name}\n\n${message}\n\n${si}/${sorted.length} specs completed before failure.`,
+            );
+            setStep("error");
+            isRunningRef.current = false;
+            return;
+          }
+        }
+
+        // Move spec to planned
+        const plannedDir = join(specsDir, "planned");
+        await moveSpec(currentSpec.path, plannedDir);
+
+        results.push({
+          name: currentSpec.name,
+          success: true,
+          iterationsUsed,
+          totalIterations: iterations,
+          earlyExit: detectedSentinel,
+        });
+        setSpecResults([...results]);
+      }
+
+      setStep("summary");
+      isRunningRef.current = false;
+    };
+    void runAllLoop();
+  }, [step, isAllMode, resolvedAdapter, specsDir, iterations, promptFile, verbose, narration]);
 
   // Exit on terminal states
   useEffect(() => {
@@ -317,10 +472,16 @@ export const PlanCommand = ({
     ? `Using ${resolvedAdapter.id} for plan${resolutionSource === "flag" ? " (--cli override)" : ""}`
     : null;
 
+  const subtitle = isAllMode && allSpecs.length > 0
+    ? `Run all (Spec ${currentSpecIndex + 1}/${allSpecs.length}: ${allSpecs[currentSpecIndex]?.name ?? specName})`
+    : specName === "__all__"
+      ? "Run all"
+      : specName || undefined;
+
   return (
     <Box flexDirection="column">
       {step === "selecting" && <Header />}
-      <SectionHeader title="Plan" subtitle={specName || undefined} />
+      <SectionHeader title="Plan" subtitle={subtitle} />
 
       {step === "selecting" && specs.length > 0 && (
         <Select
@@ -379,7 +540,7 @@ export const PlanCommand = ({
         </Box>
       )}
 
-      {step === "summary" && (
+      {step === "summary" && !isAllMode && (
         <Box flexDirection="column">
           <StatusMessage status="success">
             Plan complete — spec moved to planned.
@@ -390,6 +551,21 @@ export const PlanCommand = ({
                 ? `Completed in ${currentIteration}/${iterations} iterations (early exit).`
                 : `Completed ${iterations}/${iterations} iterations.`}
             </Text>
+          </Box>
+        </Box>
+      )}
+
+      {step === "summary" && isAllMode && (
+        <Box flexDirection="column">
+          <StatusMessage status="success">
+            Plan complete — {specResults.length}/{specResults.length} specs planned.
+          </StatusMessage>
+          <Box marginTop={1} marginLeft={2} flexDirection="column">
+            {specResults.map((r, i) => (
+              <Text key={i} dimColor>
+                {"  "}{r.name} ✓ ({r.iterationsUsed}/{r.totalIterations} iterations{r.earlyExit ? ", early exit" : ""})
+              </Text>
+            ))}
           </Box>
         </Box>
       )}

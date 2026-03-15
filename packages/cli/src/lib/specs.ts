@@ -29,6 +29,25 @@ export async function listSpecs(dir: string): Promise<SpecFile[]> {
 /**
  * Moves a spec file to the target directory, creating it if needed.
  */
+/**
+ * Sorts specs by leading numeric prefix (ascending), unnumbered specs after.
+ */
+export function sortByNumericPrefix(specs: SpecFile[]): SpecFile[] {
+  return [...specs].sort((a, b) => {
+    const numA = parseInt(a.name.match(/^(\d+)/)?.[1] ?? "", 10);
+    const numB = parseInt(b.name.match(/^(\d+)/)?.[1] ?? "", 10);
+    const hasA = !isNaN(numA);
+    const hasB = !isNaN(numB);
+    if (hasA && hasB) return numA - numB;
+    if (hasA) return -1;
+    if (hasB) return 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+/**
+ * Moves a spec file to the target directory, creating it if needed.
+ */
 export async function moveSpec(
   specPath: string,
   targetDir: string,

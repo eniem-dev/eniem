@@ -232,6 +232,38 @@ describe("CLI --list flag (output format)", () => {
   }, 15_000);
 });
 
+describe("CLI --all flag", () => {
+  it("exits with error when --all and --spec are both passed", async () => {
+    const result = await execaNode(CLI_PATH, ["plan", "--all", "--spec=foo"], {
+      reject: false,
+      timeout: 10_000,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Cannot use --all with --spec. Pick one.");
+  }, 15_000);
+
+  it("exits with error when --all and --spec are both passed for build", async () => {
+    const result = await execaNode(CLI_PATH, ["build", "--all", "--spec=foo"], {
+      reject: false,
+      timeout: 10_000,
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain("Cannot use --all with --spec. Pick one.");
+  }, 15_000);
+
+  it("help text includes --all option", async () => {
+    const result = await execaNode(CLI_PATH, ["--help"], {
+      reject: false,
+      timeout: 10_000,
+    });
+
+    expect(result.stdout).toContain("--all");
+    expect(result.stdout).toContain("Process all specs serially");
+  }, 15_000);
+});
+
 describe("CLI --protocol flag", () => {
   it("exits with error when --protocol has invalid value", async () => {
     const result = await execaNode(CLI_PATH, ["my-app", "--protocol=ftp"], {
