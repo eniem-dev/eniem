@@ -1,3 +1,10 @@
+# [eniem-cli-v1.9.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.8.0...eniem-cli-v1.9.0) (2026-03-15)
+
+
+### Features
+
+* **cli:** add --all flag and Run all option for plan and build commands ([807e693](https://github.com/eniem-dev/eniem/commit/807e69311d1e5743ab31ddfbb7597e503222f38a))
+
 # [eniem-cli-v1.8.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.7.0...eniem-cli-v1.8.0) (2026-03-10)
 
 
