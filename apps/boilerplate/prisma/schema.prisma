@@ -28,6 +28,7 @@ model User {
   files           File[]
   boards          Board[]
   ideas           Idea[]
+  votes           Vote[]
 
   @@unique([email])
   @@map("user")
@@ -185,6 +186,19 @@ model Idea {
   board         Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
   authorId      String
   author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes         Vote[]
 
   @@map("idea")
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  ideaId    String
+  idea      Idea     @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ideaId, userId])
+  @@map("vote")
 }

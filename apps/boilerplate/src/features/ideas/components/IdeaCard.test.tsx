@@ -18,6 +18,8 @@ const makeIdea = (overrides: Partial<IdeaWithAuthor> = {}): IdeaWithAuthor => ({
   adminResponse: null,
   createdAt: new Date("2026-03-01"),
   author: { id: "user_1", name: "Alice", image: null },
+  voteCount: 0,
+  hasVoted: false,
   ...overrides,
 });
 
@@ -28,6 +30,7 @@ describe("IdeaCard", () => {
         idea={makeIdea()}
         currentUserId={null}
         isBoardOwner={false}
+        loginUrl="/auth/login"
       />
     );
 
@@ -41,6 +44,7 @@ describe("IdeaCard", () => {
         idea={makeIdea()}
         currentUserId={null}
         isBoardOwner={false}
+        loginUrl="/auth/login"
       />
     );
 
@@ -53,6 +57,7 @@ describe("IdeaCard", () => {
         idea={makeIdea()}
         currentUserId={null}
         isBoardOwner={false}
+        loginUrl="/auth/login"
       />
     );
 
@@ -69,6 +74,7 @@ describe("IdeaCard", () => {
         idea={makeIdea()}
         currentUserId="user_1"
         isBoardOwner={false}
+        loginUrl="/auth/login"
       />
     );
 
@@ -88,6 +94,7 @@ describe("IdeaCard", () => {
         idea={makeIdea()}
         currentUserId="user_2"
         isBoardOwner={false}
+        loginUrl="/auth/login"
       />
     );
 
@@ -109,6 +116,7 @@ describe("IdeaCard", () => {
         idea={makeIdea()}
         currentUserId="user_2"
         isBoardOwner={true}
+        loginUrl="/auth/login"
       />
     );
 

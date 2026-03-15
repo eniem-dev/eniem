@@ -44,7 +44,7 @@ describe("getIdeasByBoardQuery", () => {
     mockGetSession.mockResolvedValue(mockSession);
   });
 
-  it("returns ideas for an existing board", async () => {
+  it("returns ideas with vote data for an existing board", async () => {
     const board = { id: "board_1", ownerId: "user_1" };
     const ideas = [
       {
@@ -53,6 +53,8 @@ describe("getIdeasByBoardQuery", () => {
         boardId: "board_1",
         authorId: "user_1",
         author: { id: "user_1", name: "Test", image: null },
+        _count: { votes: 3 },
+        votes: [{ id: "vote_1" }],
       },
     ];
     mockBoardFindUnique.mockResolvedValue(board);
@@ -60,15 +62,16 @@ describe("getIdeasByBoardQuery", () => {
 
     const result = await getIdeasByBoardQuery("board_1");
 
-    expect(result.data).toEqual({ ideas, isOwner: true });
+    expect(result.data?.ideas).toEqual([
+      expect.objectContaining({
+        id: "idea_1",
+        title: "Feature A",
+        voteCount: 3,
+        hasVoted: true,
+      }),
+    ]);
+    expect(result.data?.isOwner).toBe(true);
     expect(result.error).toBeNull();
-    expect(mockIdeaFindMany).toHaveBeenCalledWith({
-      where: { boardId: "board_1" },
-      orderBy: { createdAt: "desc" },
-      include: {
-        author: { select: { id: true, name: true, image: true } },
-      },
-    });
   });
 
   it("returns isOwner false when user does not own the board", async () => {
@@ -86,18 +89,36 @@ describe("getIdeasByBoardQuery", () => {
 
     const result = await getIdeasByBoardQuery("nonexistent");
 
-    expect(result.data).toEqual({ ideas: [] });
+    expect(result.data).toEqual({ ideas: [], isOwner: false });
     expect(mockIdeaFindMany).not.toHaveBeenCalled();
   });
 
-  it("returns error when user is not authenticated", async () => {
+  it("works for unauthenticated users", async () => {
     mockGetSession.mockResolvedValue(null);
+    const board = { id: "board_1", ownerId: "owner_1" };
+    const ideas = [
+      {
+        id: "idea_1",
+        title: "Feature A",
+        boardId: "board_1",
+        authorId: "user_1",
+        author: { id: "user_1", name: "Test", image: null },
+        _count: { votes: 2 },
+      },
+    ];
+    mockBoardFindUnique.mockResolvedValue(board);
+    mockIdeaFindMany.mockResolvedValue(ideas);
 
     const result = await getIdeasByBoardQuery("board_1");
 
-    expect(result.data).toBeNull();
-    expect(result.error).toBeTruthy();
-    expect(mockBoardFindUnique).not.toHaveBeenCalled();
+    expect(result.data?.ideas).toEqual([
+      expect.objectContaining({
+        id: "idea_1",
+        voteCount: 2,
+        hasVoted: false,
+      }),
+    ]);
+    expect(result.data?.isOwner).toBe(false);
   });
 });
 

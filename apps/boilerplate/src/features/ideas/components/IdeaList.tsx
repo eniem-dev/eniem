@@ -5,9 +5,10 @@ type IdeaListProps = {
   ideas: IdeaWithAuthor[];
   currentUserId: string | null;
   isBoardOwner: boolean;
+  loginUrl: string;
 };
 
-export function IdeaList({ ideas, currentUserId, isBoardOwner }: IdeaListProps) {
+export function IdeaList({ ideas, currentUserId, isBoardOwner, loginUrl }: IdeaListProps) {
   if (ideas.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-12 text-center">
@@ -26,6 +27,7 @@ export function IdeaList({ ideas, currentUserId, isBoardOwner }: IdeaListProps) 
           idea={idea}
           currentUserId={currentUserId}
           isBoardOwner={isBoardOwner}
+          loginUrl={loginUrl}
         />
       ))}
     </div>

@@ -18,12 +18,14 @@ const makeIdea = (id: string, title: string): IdeaWithAuthor => ({
   adminResponse: null,
   createdAt: new Date("2026-03-01"),
   author: { id: "user_1", name: "Alice", image: null },
+  voteCount: 0,
+  hasVoted: false,
 });
 
 describe("IdeaList", () => {
   it("renders empty state when no ideas", () => {
     render(
-      <IdeaList ideas={[]} currentUserId={null} isBoardOwner={false} />
+      <IdeaList ideas={[]} currentUserId={null} isBoardOwner={false} loginUrl="/auth/login" />
     );
 
     expect(
@@ -38,7 +40,7 @@ describe("IdeaList", () => {
     ];
 
     render(
-      <IdeaList ideas={ideas} currentUserId={null} isBoardOwner={false} />
+      <IdeaList ideas={ideas} currentUserId={null} isBoardOwner={false} loginUrl="/auth/login" />
     );
 
     expect(screen.getByText("First Idea")).toBeInTheDocument();

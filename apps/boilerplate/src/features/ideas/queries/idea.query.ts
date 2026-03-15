@@ -1,25 +1,39 @@
 import { prisma } from "@/lib/db";
-import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { createAuthenticatedQuery, createQuery } from "@/lib/server-handler";
 
 export function getIdeasByBoardQuery(boardId: string) {
-  return createAuthenticatedQuery(async ({ user }) => {
+  return createQuery(async ({ session }) => {
     const board = await prisma.board.findUnique({
       where: { id: boardId },
     });
 
     if (!board) {
-      return { ideas: [] };
+      return { ideas: [], isOwner: false };
     }
+
+    const userId = session?.user?.id;
 
     const ideas = await prisma.idea.findMany({
       where: { boardId },
       orderBy: { createdAt: "desc" },
       include: {
         author: { select: { id: true, name: true, image: true } },
+        _count: { select: { votes: true } },
+        ...(userId
+          ? { votes: { where: { userId }, select: { id: true } } }
+          : {}),
       },
     });
 
-    return { ideas, isOwner: board.ownerId === user.id };
+    const ideasWithVotes = ideas.map((idea) => ({
+      ...idea,
+      voteCount: idea._count.votes,
+      hasVoted: "votes" in idea ? idea.votes.length > 0 : false,
+      _count: undefined,
+      votes: undefined,
+    }));
+
+    return { ideas: ideasWithVotes, isOwner: board.ownerId === userId };
   });
 }
 
