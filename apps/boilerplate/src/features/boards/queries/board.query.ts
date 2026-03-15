@@ -11,3 +11,17 @@ export function getUserBoardsQuery() {
     return { boards };
   });
 }
+
+export function getBoardByIdQuery(boardId: string) {
+  return createAuthenticatedQuery(async ({ user }) => {
+    const board = await prisma.board.findUnique({
+      where: { id: boardId },
+    });
+
+    if (!board || board.ownerId !== user.id) {
+      return { board: null };
+    }
+
+    return { board };
+  });
+}

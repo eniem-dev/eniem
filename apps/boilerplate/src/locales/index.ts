@@ -785,6 +785,23 @@ export const locales = {
     viewBoard: "View board",
     restore: "Restore",
   },
+  BoardSettings: {
+    title: "Settings",
+    nameLabel: "Board name",
+    descriptionLabel: "Description",
+    descriptionPlaceholder: "What kind of feedback are you collecting?",
+    save: "Save Changes",
+    dangerZone: "Danger Zone",
+    deleteTitle: "Delete this board",
+    deleteDescription:
+      "Soft-deletes the board. It will no longer be publicly accessible but can be restored.",
+    deleteButton: "Delete Board",
+    restoreTitle: "Restore this board",
+    restoreDescription:
+      "Restores the board so it is publicly accessible again.",
+    restoreButton: "Restore Board",
+    publicLink: "Public link",
+  },
 
   IdeaForm: {
     titleLabel: "Title",
