@@ -15,6 +15,13 @@ export class UnauthorizedError extends ServerError {
   }
 }
 
+export class NotFoundError extends ServerError {
+  constructor(message: string = 'Not found') {
+    super(message, 404);
+    this.name = 'NotFoundError';
+  }
+}
+
 export class ValidationError extends ServerError {
   constructor(message: string = 'Validation failed') {
     super(message, 400);

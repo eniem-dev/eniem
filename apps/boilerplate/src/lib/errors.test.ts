@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { ServerError, UnauthorizedError, ValidationError } from "./errors";
+import { NotFoundError, ServerError, UnauthorizedError, ValidationError } from "./errors";
 
 describe("ServerError", () => {
   it("creates error with message and default status", () => {
@@ -41,6 +41,27 @@ describe("UnauthorizedError", () => {
     const error = new UnauthorizedError();
     expect(error).toBeInstanceOf(ServerError);
     expect(error).toBeInstanceOf(UnauthorizedError);
+  });
+});
+
+describe("NotFoundError", () => {
+  it("creates error with default message", () => {
+    const error = new NotFoundError();
+    expect(error.message).toBe("Not found");
+    expect(error.statusCode).toBe(404);
+    expect(error.name).toBe("NotFoundError");
+  });
+
+  it("creates error with custom message", () => {
+    const error = new NotFoundError("Board not found");
+    expect(error.message).toBe("Board not found");
+    expect(error.statusCode).toBe(404);
+  });
+
+  it("is instance of ServerError", () => {
+    const error = new NotFoundError();
+    expect(error).toBeInstanceOf(ServerError);
+    expect(error).toBeInstanceOf(NotFoundError);
   });
 });
 

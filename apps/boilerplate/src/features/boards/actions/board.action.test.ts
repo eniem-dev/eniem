@@ -3,14 +3,20 @@ import { locales } from "@/locales";
 
 const mockCreate = vi.fn();
 const mockFindUnique = vi.fn();
+const mockUpdate = vi.fn();
 
 vi.mock("@/lib/db", () => ({
   prisma: {
     board: {
       create: (...args: unknown[]) => mockCreate(...args),
       findUnique: (...args: unknown[]) => mockFindUnique(...args),
+      update: (...args: unknown[]) => mockUpdate(...args),
     },
   },
+}));
+
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
 }));
 
 const mockGetSession = vi.fn();
@@ -97,5 +103,152 @@ describe("createBoardAction", () => {
 
     expect(result?.serverError).toBe(locales.errors.slugTaken);
     expect(mockCreate).not.toHaveBeenCalled();
+  });
+});
+
+const mockBoard = {
+  id: "clxxxxxxxxxxxxxxxxxxxxxxxxx",
+  name: "My Board",
+  slug: "my-board",
+  description: "A test board",
+  ownerId: "user_1",
+  deletedAt: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+describe("updateBoardAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSession.mockResolvedValue(mockSession);
+    mockFindUnique.mockResolvedValue(mockBoard);
+    mockUpdate.mockImplementation(({ data }) => ({
+      ...mockBoard,
+      ...data,
+    }));
+  });
+
+  it("updates name and description", async () => {
+    const { updateBoardAction } = await import("./board.action");
+    const result = await updateBoardAction({
+      boardId: mockBoard.id,
+      name: "Updated Name",
+      description: "Updated description",
+    });
+
+    expect(result?.data?.board.name).toBe("Updated Name");
+    expect(result?.data?.board.description).toBe("Updated description");
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: mockBoard.id },
+      data: { name: "Updated Name", description: "Updated description" },
+    });
+  });
+
+  it("rejects when board not found", async () => {
+    mockFindUnique.mockResolvedValue(null);
+
+    const { updateBoardAction } = await import("./board.action");
+    const result = await updateBoardAction({
+      boardId: mockBoard.id,
+      name: "Updated",
+    });
+
+    expect(result?.serverError).toBe(locales.errors.boardNotFound);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("rejects when user is not the owner", async () => {
+    mockFindUnique.mockResolvedValue({ ...mockBoard, ownerId: "other_user" });
+
+    const { updateBoardAction } = await import("./board.action");
+    const result = await updateBoardAction({
+      boardId: mockBoard.id,
+      name: "Updated",
+    });
+
+    expect(result?.serverError).toBe(locales.errors.unauthorized);
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteBoardAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSession.mockResolvedValue(mockSession);
+    mockFindUnique.mockResolvedValue(mockBoard);
+    mockUpdate.mockImplementation(({ data }) => ({
+      ...mockBoard,
+      ...data,
+    }));
+  });
+
+  it("soft-deletes by setting deletedAt", async () => {
+    const { deleteBoardAction } = await import("./board.action");
+    const result = await deleteBoardAction({ boardId: mockBoard.id });
+
+    expect(result?.data?.board.deletedAt).toBeInstanceOf(Date);
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: mockBoard.id },
+      data: { deletedAt: expect.any(Date) },
+    });
+  });
+
+  it("rejects when board not found", async () => {
+    mockFindUnique.mockResolvedValue(null);
+
+    const { deleteBoardAction } = await import("./board.action");
+    const result = await deleteBoardAction({ boardId: mockBoard.id });
+
+    expect(result?.serverError).toBe(locales.errors.boardNotFound);
+  });
+
+  it("rejects when user is not the owner", async () => {
+    mockFindUnique.mockResolvedValue({ ...mockBoard, ownerId: "other_user" });
+
+    const { deleteBoardAction } = await import("./board.action");
+    const result = await deleteBoardAction({ boardId: mockBoard.id });
+
+    expect(result?.serverError).toBe(locales.errors.unauthorized);
+  });
+});
+
+describe("restoreBoardAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSession.mockResolvedValue(mockSession);
+    mockFindUnique.mockResolvedValue({ ...mockBoard, deletedAt: new Date() });
+    mockUpdate.mockImplementation(({ data }) => ({
+      ...mockBoard,
+      ...data,
+    }));
+  });
+
+  it("restores by clearing deletedAt", async () => {
+    const { restoreBoardAction } = await import("./board.action");
+    const result = await restoreBoardAction({ boardId: mockBoard.id });
+
+    expect(result?.data?.board.deletedAt).toBeNull();
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: mockBoard.id },
+      data: { deletedAt: null },
+    });
+  });
+
+  it("rejects when board not found", async () => {
+    mockFindUnique.mockResolvedValue(null);
+
+    const { restoreBoardAction } = await import("./board.action");
+    const result = await restoreBoardAction({ boardId: mockBoard.id });
+
+    expect(result?.serverError).toBe(locales.errors.boardNotFound);
+  });
+
+  it("rejects when user is not the owner", async () => {
+    mockFindUnique.mockResolvedValue({ ...mockBoard, ownerId: "other_user" });
+
+    const { restoreBoardAction } = await import("./board.action");
+    const result = await restoreBoardAction({ boardId: mockBoard.id });
+
+    expect(result?.serverError).toBe(locales.errors.unauthorized);
   });
 });
