@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { loadTemplate, resolveTemplate, buildTemplateVars } from "../template.js";
+import { loadTemplate, resolveTemplate, buildTemplateVars, generateSessionId, buildSessionTemplateVars } from "../template.js";
 import * as fs from "fs/promises";
 
 vi.mock("fs/promises");
@@ -105,6 +105,76 @@ describe("template", () => {
 
       expect(vars.BRANCH).toBe("feat/auth-flow");
       expect(vars.WORKTREE).toBe(".worktrees/feat/auth-flow");
+    });
+  });
+
+  describe("generateSessionId", () => {
+    it("returns YYYYMMDD-HHmm format", () => {
+      const id = generateSessionId();
+
+      expect(id).toMatch(/^\d{8}-\d{4}$/);
+    });
+
+    it("uses current date/time values", () => {
+      const now = new Date();
+      const id = generateSessionId();
+      const year = String(now.getFullYear());
+
+      expect(id.startsWith(year)).toBe(true);
+    });
+  });
+
+  describe("buildSessionTemplateVars", () => {
+    it("sets IS_LAST_SPEC to true for last spec", () => {
+      const vars = buildSessionTemplateVars(
+        "07-public-view",
+        1,
+        "feat/build-session-20260314-1430",
+        ".worktrees/feat/build-session-20260314-1430",
+        true,
+      );
+
+      expect(vars.IS_LAST_SPEC).toBe("true");
+    });
+
+    it("sets IS_LAST_SPEC to false for non-last spec", () => {
+      const vars = buildSessionTemplateVars(
+        "01-infra",
+        1,
+        "feat/build-session-20260314-1430",
+        ".worktrees/feat/build-session-20260314-1430",
+        false,
+      );
+
+      expect(vars.IS_LAST_SPEC).toBe("false");
+    });
+
+    it("sets IS_EPIC to true", () => {
+      const vars = buildSessionTemplateVars(
+        "test",
+        1,
+        "feat/build-session-20260314-1430",
+        ".worktrees/feat/build-session-20260314-1430",
+        false,
+      );
+
+      expect(vars.IS_EPIC).toBe("true");
+    });
+
+    it("uses session-level BRANCH and WORKTREE, not per-spec", () => {
+      const vars = buildSessionTemplateVars(
+        "02-board",
+        3,
+        "feat/build-session-20260314-1430",
+        ".worktrees/feat/build-session-20260314-1430",
+        false,
+      );
+
+      expect(vars.BRANCH).toBe("feat/build-session-20260314-1430");
+      expect(vars.WORKTREE).toBe(".worktrees/feat/build-session-20260314-1430");
+      expect(vars.SPEC_NAME).toBe("02-board");
+      expect(vars.EPIC_NAME).toBe("02-board");
+      expect(vars.ITERATION).toBe("3");
     });
   });
 });

@@ -41,8 +41,8 @@ const cli = meow(
     $ eni config show
     $ eni config set <plan|build|verbose> <value>
     $ eni products [--env=sandbox|production] [--prod] [--token=<polar-token>]
-    $ eni plan [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
-    $ eni build [--spec=<name>] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
+    $ eni plan [--spec=<name>] [--all] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
+    $ eni build [--spec=<name>] [--all] [--iterations=<n>] [--verbose] [--cli=<name>] [--list]
     $ eni ai init [--force] [--protocol=ssh|https] [--ssh]
 
   Commands
@@ -61,6 +61,7 @@ const cli = meow(
     --env          Environment for products command (default: sandbox)
     --prod         Shorthand for --env=production
     --token        Polar access token (bypasses .env lookup)
+    --all          Process all specs serially (plan or build)
     --spec         Spec name for plan/build command (interactive if omitted)
     --iterations   Number of iterations (default: 3 for plan, 10 for build)
     --verbose      Show tool usage during plan/build (overrides config)
@@ -87,9 +88,11 @@ const cli = meow(
     $ eni products --prod
     $ eni products --prod --token=polar_xxx
     $ eni plan
+    $ eni plan --all
     $ eni plan --spec=my-feature --iterations=5 --verbose
     $ eni plan --cli codex
     $ eni build
+    $ eni build --all
     $ eni build --spec=my-feature --iterations=20 --verbose
     $ eni build --cli opencode
     $ eni plan --list
@@ -104,6 +107,7 @@ const cli = meow(
     autoHelp: true,
     autoVersion: true,
     flags: {
+      all: { type: "boolean", default: false },
       appName: { type: "string" },
       gitHost: { type: "string", default: "github.com" },
       env: { type: "string", default: "sandbox" },
@@ -125,6 +129,7 @@ const cli = meow(
 
 const command = cli.input[0];
 const subcommand = cli.input[1];
+const allFlag = cli.flags.all;
 const gitHost = cli.flags.gitHost;
 const appNameFlag = cli.flags.appName;
 const prodFlag = cli.flags.prod;
@@ -185,6 +190,12 @@ if (protocolFlag !== undefined && protocolFlag !== "ssh" && protocolFlag !== "ht
 // Validate mutual exclusion: --protocol cannot be combined with --ssh
 if (protocolFlag !== undefined && sshFlag) {
   console.error(`\x1b[31m✗ Cannot use --protocol with --ssh. Pick one.\x1b[0m`);
+  process.exit(1);
+}
+
+// Validate mutual exclusion: --all cannot be combined with --spec
+if (allFlag && specFlag) {
+  console.error(`\x1b[31m✗ Cannot use --all with --spec. Pick one.\x1b[0m`);
   process.exit(1);
 }
 
@@ -257,6 +268,7 @@ if (command === "ready") {
     <Box flexDirection="column">
       <PlanCommand
         spec={specFlag}
+        all={allFlag}
         iterations={iterationsFlag ?? 3}
         verbose={resolvedVerbose}
         specsDir={join(projectDir, "specs")}
@@ -274,10 +286,11 @@ if (command === "ready") {
     <Box flexDirection="column">
       <BuildCommand
         spec={specFlag}
+        all={allFlag}
         iterations={iterationsFlag ?? 10}
         verbose={resolvedVerbose}
         specsDir={join(projectDir, "specs", "planned")}
-        promptFile={join(projectDir, ".eni", "PROMPT_build.md")}
+        promptFile={join(projectDir, ".eni", allFlag ? "PROMPT_build_full.md" : "PROMPT_build.md")}
         cli={cliFlag}
         narration={config?.narration}
       />
