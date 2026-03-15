@@ -25,7 +25,7 @@ const PUBLIC_ROUTES = [
 ];
 
 // Public route prefixes (matches route and all sub-paths)
-const PUBLIC_ROUTE_PREFIXES = [routes.blog];
+const PUBLIC_ROUTE_PREFIXES = [routes.blog, "/b"];
 
 const AUTH_API_PREFIX = "/api/auth";
 
