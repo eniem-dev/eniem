@@ -76,6 +76,10 @@ export const locales = {
     ideaDescriptionTooLong: "Description must be 2000 characters or less.",
     ideaIdRequired: "Idea ID is required.",
     ideaNotFound: "Idea not found.",
+
+    // Vote errors
+    voteFailed: "Failed to register vote. Please try again.",
+    voteIdeaNotFound: "Idea not found or has been removed.",
   },
 
   success: {
@@ -810,6 +814,12 @@ export const locales = {
     publicLink: "Public link",
     statsIdeas: "Ideas",
     statsVotes: "Votes",
+  },
+
+  VoteButton: {
+    upvoteLabel: "Upvote, {count} votes",
+    removeUpvoteLabel: "Remove upvote, {count} votes",
+    loginToVote: "Sign in to vote",
   },
 
   IdeaForm: {
