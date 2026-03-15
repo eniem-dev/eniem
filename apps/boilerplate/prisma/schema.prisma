@@ -27,6 +27,7 @@ model User {
   subscription    Subscription?
   files           File[]
   boards          Board[]
+  ideas           Idea[]
 
   @@unique([email])
   @@map("user")
@@ -161,6 +162,29 @@ model Board {
   updatedAt   DateTime  @updatedAt
   ownerId     String
   owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ideas       Idea[]
 
   @@map("board")
+}
+
+enum IdeaStatus {
+  OPEN
+  PLANNED
+  DONE
+}
+
+model Idea {
+  id            String     @id @default(cuid())
+  title         String     @db.VarChar(200)
+  description   String?    @db.Text
+  status        IdeaStatus @default(OPEN)
+  adminResponse String?    @db.Text
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  boardId       String
+  board         Board      @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("idea")
 }
