@@ -26,6 +26,7 @@ model User {
   walletAddresses WalletAddress[]
   subscription    Subscription?
   files           File[]
+  boards          Board[]
 
   @@unique([email])
   @@map("user")
@@ -148,4 +149,18 @@ model File {
   createdAt DateTime @default(now())
 
   @@map("file")
+}
+
+model Board {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  ownerId     String
+  owner       User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@map("board")
 }
