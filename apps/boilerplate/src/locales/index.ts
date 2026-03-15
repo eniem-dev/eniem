@@ -76,6 +76,8 @@ export const locales = {
     ideaDescriptionTooLong: "Description must be 2000 characters or less.",
     ideaIdRequired: "Idea ID is required.",
     ideaNotFound: "Idea not found.",
+    ideaStatusInvalid: "Status must be OPEN, PLANNED, or DONE.",
+    adminResponseTooLong: "Admin response must be 2000 characters or less.",
 
     // Vote errors
     voteFailed: "Failed to register vote. Please try again.",
