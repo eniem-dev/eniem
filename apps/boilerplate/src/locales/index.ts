@@ -718,4 +718,21 @@ export const locales = {
     next: "Next",
     pageOf: "Page {current} of {total}",
   },
+
+  // Board Billing - Subscription gates for board creation and management
+  BoardBilling: {
+    subscriptionRequired:
+      "Active subscription required",
+    renewalBanner: {
+      text: "Your subscription has expired. Renew to create new boards and manage ideas.",
+      cta: "Renew Subscription",
+    },
+    pricingInline: {
+      heading: "Subscribe to create boards",
+    },
+    disabledCreateBoard:
+      "Active subscription required to create a board",
+    disabledManageControls:
+      "Active subscription required to manage ideas",
+  },
 } as const;
