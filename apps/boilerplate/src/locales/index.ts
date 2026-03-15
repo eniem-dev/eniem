@@ -55,6 +55,11 @@ export const locales = {
     newPasswordRequired: "New password is required.",
     unableToretrieveUser: "Unable to retrieve user information.",
     accountDeletionFailed: "Failed to initiate account deletion. Please try again.",
+
+    // Board errors
+    slugTaken: "This slug is already taken.",
+    subscriptionRequired: "Active subscription required.",
+    boardNotFound: "Board not found.",
   },
 
   success: {
@@ -718,7 +723,6 @@ export const locales = {
     next: "Next",
     pageOf: "Page {current} of {total}",
   },
-
   // Board Billing - Subscription gates for board creation and management
   BoardBilling: {
     subscriptionRequired:
@@ -734,5 +738,91 @@ export const locales = {
       "Active subscription required to create a board",
     disabledManageControls:
       "Active subscription required to manage ideas",
+  },
+
+  // Board Feature - Pages, components, and toasts for feedback boards
+  BoardsPage: {
+    metadata: { title: "My Boards", description: "Manage your feedback boards" },
+    emptyState: "You haven't created any boards yet.",
+    emptyStateCta: "Create your first board",
+    emptyStateNoSub: "Subscribe to create feedback boards.",
+    deletedBadge: "Deleted",
+  },
+  CreateBoardPage: {
+    metadata: {
+      title: "Create Board",
+      description: "Create a new feedback board",
+    },
+  },
+  ManageBoardPage: {
+    metadata: {
+      title: "Manage Board",
+      description: "Manage your feedback board",
+    },
+  },
+  BoardForm: {
+    nameLabel: "Board name",
+    namePlaceholder: "My Product",
+    slugLabel: "URL slug",
+    slugPreviewPrefix: "yourdomain.com/b/",
+    descriptionLabel: "Description",
+    descriptionPlaceholder: "What kind of feedback are you collecting?",
+    submitCreate: "Create Board",
+    submitUpdate: "Save Changes",
+  },
+  BoardCard: {
+    ideas: "ideas",
+    votes: "votes",
+    viewBoard: "View board",
+    restore: "Restore",
+  },
+
+  IdeaForm: {
+    titleLabel: "Title",
+    titlePlaceholder: "What's your idea?",
+    descriptionLabel: "Description",
+    descriptionPlaceholder: "Add more details (optional)",
+    submit: "Submit Idea",
+  },
+  IdeaCard: {
+    edit: "Edit",
+    delete: "Delete",
+    adminResponse: "Admin",
+  },
+
+  PublicBoardView: {
+    submitIdea: "Submit Idea",
+    signInToSubmit: "Sign in to submit an idea",
+    signInToVote: "Sign in to vote",
+    emptyBoard: "No ideas yet. Be the first to share your feedback!",
+    emptyFilter: "No {status} ideas yet.",
+    boardNotFound: "This board doesn't exist.",
+    networkError: "Failed to load ideas. Try again.",
+    statusAll: "All",
+    statusOpen: "Open",
+    statusPlanned: "Planned",
+    statusDone: "Done",
+  },
+
+  IdeaAdmin: {
+    respond: "Respond",
+    saveResponse: "Save Response",
+    removeResponse: "Remove Response",
+    deleteConfirm:
+      "Delete this idea? This will also remove all votes. This cannot be undone.",
+    subscriptionRequired:
+      "Active subscription required to manage ideas.",
+  },
+
+  toasts: {
+    ideaSubmitted: "Idea submitted",
+    ideaUpdated: "Idea updated",
+    ideaDeleted: "Idea deleted",
+    boardCreated: "Board created",
+    boardUpdated: "Board updated",
+    boardDeleted: "Board deleted",
+    boardRestored: "Board restored",
+    responseAdded: "Response saved",
+    responseRemoved: "Response removed",
   },
 } as const;
