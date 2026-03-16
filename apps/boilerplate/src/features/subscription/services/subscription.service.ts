@@ -13,7 +13,8 @@ export async function getUserSubscription(userId: string) {
 
 export async function hasActiveSubscription(userId: string): Promise<boolean> {
   const sub = await getUserSubscription(userId);
-  return sub?.status === "active";
+  if (!sub || sub.status !== "active") return false;
+  return sub.currentPeriodEnd > new Date();
 }
 
 // === Sync functions (called from webhooks) ===
