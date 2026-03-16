@@ -108,6 +108,90 @@ describe("IdeaCard", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("has role=button and aria-expanded on header", () => {
+    render(
+      <IdeaCard
+        idea={makeIdea()}
+        currentUserId={null}
+        isBoardOwner={false}
+        loginUrl="/auth/login"
+      />
+    );
+
+    const header = screen.getByRole("button", { name: /My Great Idea/ });
+    expect(header).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("sets aria-expanded=true when expanded", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <IdeaCard
+        idea={makeIdea()}
+        currentUserId={null}
+        isBoardOwner={false}
+        loginUrl="/auth/login"
+      />
+    );
+
+    const header = screen.getByRole("button", { name: /My Great Idea/ });
+    await user.click(header);
+    expect(header).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("expands on Enter key press", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <IdeaCard
+        idea={makeIdea()}
+        currentUserId="user_1"
+        isBoardOwner={false}
+        loginUrl="/auth/login"
+      />
+    );
+
+    const header = screen.getByRole("button", { name: /My Great Idea/ });
+    header.focus();
+    await user.keyboard("{Enter}");
+    expect(header).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("shows admin response with badge when expanded", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <IdeaCard
+        idea={makeIdea({ adminResponse: "Thanks for the feedback!" })}
+        currentUserId={null}
+        isBoardOwner={false}
+        loginUrl="/auth/login"
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /My Great Idea/ }));
+
+    expect(screen.getByText("Admin")).toBeInTheDocument();
+    expect(screen.getByText("Thanks for the feedback!")).toBeInTheDocument();
+  });
+
+  it("does not show admin response section when null", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <IdeaCard
+        idea={makeIdea({ adminResponse: null })}
+        currentUserId={null}
+        isBoardOwner={false}
+        loginUrl="/auth/login"
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /My Great Idea/ }));
+
+    expect(screen.queryByText("Admin")).not.toBeInTheDocument();
+  });
+
   it("shows delete for board owner who is not author", async () => {
     const user = userEvent.setup();
 

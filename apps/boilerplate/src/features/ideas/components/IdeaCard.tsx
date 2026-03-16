@@ -50,8 +50,17 @@ export function IdeaCard({ idea, currentUserId, isBoardOwner, loginUrl }: IdeaCa
         </div>
         <div className="min-w-0 flex-1">
           <CardHeader
+            role="button"
+            aria-expanded={expanded}
+            tabIndex={0}
             className="cursor-pointer"
             onClick={() => setExpanded(!expanded)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setExpanded(!expanded);
+              }
+            }}
           >
             <div className="flex items-center justify-between gap-2">
               <CardTitle className="text-base">{idea.title}</CardTitle>
