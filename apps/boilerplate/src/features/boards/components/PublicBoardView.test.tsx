@@ -137,6 +137,21 @@ describe("PublicBoardView", () => {
     expect(screen.getByRole("tab", { name: "Done" })).toBeInTheDocument();
   });
 
+  it("shows filter-specific empty state when status filter active", () => {
+    render(
+      <PublicBoardView
+        board={makeBoard()}
+        ideas={[]}
+        isAuthenticated={false}
+        currentUserId={null}
+        loginUrl="/login"
+        activeStatus="PLANNED"
+      />
+    );
+
+    expect(screen.getByText("No planned ideas yet.")).toBeInTheDocument();
+  });
+
   it("marks active tab as selected", () => {
     render(
       <PublicBoardView
