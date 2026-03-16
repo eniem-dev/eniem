@@ -2,6 +2,7 @@ export { IdeaForm } from "./components/IdeaForm";
 export { IdeaCard, type IdeaWithAuthor } from "./components/IdeaCard";
 export { IdeaDetail } from "./components/IdeaDetail";
 export { IdeaList } from "./components/IdeaList";
+export { IdeaAdminList, type AdminIdea } from "./components/IdeaAdminList";
 export { VoteButton } from "./components/VoteButton";
 export {
   createIdeaSchema,

@@ -6,6 +6,7 @@ import { locales } from "@/locales";
 import { routes } from "@/config/routes";
 import { getBoardByIdQuery } from "@/features/boards/queries/board.query";
 import { BoardSettings } from "@/features/boards/components/BoardSettings";
+import { IdeaAdminList } from "@/features/ideas/components/IdeaAdminList";
 
 export const metadata = createMetadata({
   ...getDefaultMetadata(),
@@ -25,7 +26,7 @@ export default async function ManageBoardPage({ params }: ManageBoardPageProps) 
     notFound();
   }
 
-  const { board } = data;
+  const { board, ideas } = data;
   const isDeleted = board.deletedAt !== null;
 
   return (
@@ -62,6 +63,11 @@ export default async function ManageBoardPage({ params }: ManageBoardPageProps) 
           <p className="text-2xl font-bold">{board._count?.votes ?? 0}</p>
           <p className="text-sm text-muted-foreground">{locales.BoardSettings.statsVotes}</p>
         </div>
+      </div>
+
+      <div className="space-y-3">
+        <h2 className="text-xl font-semibold">{locales.BoardSettings.statsIdeas}</h2>
+        <IdeaAdminList ideas={ideas} />
       </div>
 
       <BoardSettings board={board} />

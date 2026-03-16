@@ -74,22 +74,35 @@ describe("getBoardByIdQuery", () => {
     mockGetSession.mockResolvedValue(mockSession);
   });
 
-  it("returns board when owned by authenticated user", async () => {
+  it("returns board with ideas when owned by authenticated user", async () => {
     const board = {
       id: "board_1",
       name: "Board 1",
       slug: "board-1",
       ownerId: "user_1",
+      ideas: [
+        {
+          id: "idea_1",
+          title: "Idea 1",
+          description: "Desc",
+          status: "OPEN",
+          adminResponse: null,
+          createdAt: new Date("2026-01-01"),
+          author: { id: "u1", name: "Alice" },
+          _count: { votes: 3 },
+        },
+      ],
+      _count: { ideas: 1 },
     };
     mockFindUnique.mockResolvedValue(board);
 
     const result = await getBoardByIdQuery("board_1");
 
-    expect(result.data).toEqual({
-      board: { ...board, _count: { ideas: 0, votes: 0 } },
-    });
+    expect(result.data?.board?._count).toEqual({ ideas: 1, votes: 3 });
+    expect(result.data?.ideas).toHaveLength(1);
+    expect(result.data?.ideas?.[0].title).toBe("Idea 1");
+    expect(result.data?.ideas?.[0].voteCount).toBe(3);
     expect(result.error).toBeNull();
-    expect(mockFindUnique).toHaveBeenCalledWith({ where: { id: "board_1" } });
   });
 
   it("returns null board when not owned by user", async () => {
@@ -98,6 +111,8 @@ describe("getBoardByIdQuery", () => {
       name: "Board 1",
       slug: "board-1",
       ownerId: "other_user",
+      ideas: [],
+      _count: { ideas: 0 },
     };
     mockFindUnique.mockResolvedValue(board);
 

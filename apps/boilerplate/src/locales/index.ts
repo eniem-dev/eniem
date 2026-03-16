@@ -859,6 +859,7 @@ export const locales = {
       "Delete this idea? This will also remove all votes. This cannot be undone.",
     subscriptionRequired:
       "Active subscription required to manage ideas.",
+    emptyList: "No ideas submitted yet.",
   },
 
   IdeaStatusBadge: {
@@ -898,5 +899,6 @@ export const locales = {
     boardRestored: "Board restored",
     responseAdded: "Response saved",
     responseRemoved: "Response removed",
+    statusUpdated: "Status updated",
   },
 } as const;
