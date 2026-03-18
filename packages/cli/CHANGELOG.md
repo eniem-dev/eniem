@@ -1,3 +1,10 @@
+# [eniem-cli-v1.10.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.9.0...eniem-cli-v1.10.0) (2026-03-18)
+
+
+### Features
+
+* **ignore-readme-in-spec-discovery:** exclude README.md from spec discovery ([d25c9fa](https://github.com/eniem-dev/eniem/commit/d25c9fa15c7923cae8226399bca99e33b5b246c0))
+
 # [eniem-cli-v1.9.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.8.0...eniem-cli-v1.9.0) (2026-03-15)
 
 
