@@ -19,7 +19,11 @@ export async function listSpecs(dir: string): Promise<SpecFile[]> {
   }
 
   return entries
-    .filter((entry) => extname(entry) === ".md")
+    .filter(
+      (entry) =>
+        extname(entry) === ".md" &&
+        basename(entry, ".md").toLowerCase() !== "readme",
+    )
     .map((entry) => ({
       name: basename(entry, ".md"),
       path: join(dir, entry),
