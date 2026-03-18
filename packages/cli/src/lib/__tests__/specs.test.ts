@@ -54,6 +54,56 @@ describe("specs", () => {
       expect(result).toEqual([]);
     });
 
+    it("excludes README.md from results", async () => {
+      vi.mocked(fs.readdir).mockResolvedValue([
+        "feature.md",
+        "README.md",
+      ] as unknown as Awaited<ReturnType<typeof fs.readdir>>);
+
+      const result = await listSpecs("/project/specs");
+
+      expect(result).toEqual([
+        { name: "feature", path: "/project/specs/feature.md" },
+      ]);
+    });
+
+    it("excludes readme.md case-insensitively", async () => {
+      vi.mocked(fs.readdir).mockResolvedValue([
+        "feature.md",
+        "readme.md",
+      ] as unknown as Awaited<ReturnType<typeof fs.readdir>>);
+
+      const result = await listSpecs("/project/specs");
+
+      expect(result).toEqual([
+        { name: "feature", path: "/project/specs/feature.md" },
+      ]);
+    });
+
+    it("does not exclude files containing README in name", async () => {
+      vi.mocked(fs.readdir).mockResolvedValue([
+        "feature.md",
+        "MY-README.md",
+      ] as unknown as Awaited<ReturnType<typeof fs.readdir>>);
+
+      const result = await listSpecs("/project/specs");
+
+      expect(result).toEqual([
+        { name: "feature", path: "/project/specs/feature.md" },
+        { name: "MY-README", path: "/project/specs/MY-README.md" },
+      ]);
+    });
+
+    it("returns empty array when directory contains only README.md", async () => {
+      vi.mocked(fs.readdir).mockResolvedValue([
+        "README.md",
+      ] as unknown as Awaited<ReturnType<typeof fs.readdir>>);
+
+      const result = await listSpecs("/project/specs");
+
+      expect(result).toEqual([]);
+    });
+
     it("returns empty array for non-existent directory", async () => {
       vi.mocked(fs.readdir).mockRejectedValue(
         new Error("ENOENT: no such file or directory"),
