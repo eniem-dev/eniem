@@ -5,3 +5,7 @@ node_modules
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# Dolt database files (added by bd init)
+.dolt/
+*.db

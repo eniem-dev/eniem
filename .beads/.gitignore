@@ -39,6 +39,8 @@ beads.right.meta.json
 sync_base.jsonl
 export-state/
 
-# JSONL files are synced via the beads-sync branch (see config.yaml sync-branch)
-issues.jsonl
-interactions.jsonl
+# NOTE: Do NOT add negation patterns (e.g., !issues.jsonl) here.
+# They would override fork protection in .git/info/exclude, allowing
+# contributors to accidentally commit upstream issue databases.
+# The JSONL files (issues.jsonl, interactions.jsonl) and config files
+# are tracked by git by default since no pattern above ignores them.
