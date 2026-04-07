@@ -1,4 +1,4 @@
-import type { SubscriptionResult } from "@/features/subscription/models/subscription.model";
+import type { SubscriptionResult } from "@/features/subscription";
 
 export interface BillingOrder {
   id: string;
