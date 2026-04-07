@@ -27,25 +27,6 @@ pnpm types:check
 pnpm lint
 ```
 
-### AI Workflow
-
-```bash
-# Create specs for a new feature (topic-decomposed interview)
-/functional-spec-interview <feature-name>
-
-# Generate implementation plan from all specs
-eni plan
-
-# Generate scoped implementation plan
-eni plan --spec=<name>
-
-# Build one task from the plan
-eni build
-
-# Build scoped to a specific spec
-eni build --spec=<name>
-```
-
 ## Architecture
 
 ### Directory Structure
