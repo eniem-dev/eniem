@@ -19,7 +19,7 @@
     "db:reset": "prisma migrate reset",
     "ngrok": "ngrok http 3000",
     "email:dev": "email dev --port 3001 --dir ./src/components/emails",
-    "test": "vitest run",
+    "test": "vitest run --bail 1",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "eni:plan": "./.eni/loop.sh plan",
