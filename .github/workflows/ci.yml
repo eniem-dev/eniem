@@ -32,4 +32,4 @@ jobs:
             fi
           done
 
-      - run: pnpm turbo build lint typecheck test --filter=...[origin/quality]
+      - run: pnpm turbo lint typecheck test --filter=...[origin/quality]
