@@ -1,6 +1,6 @@
 ---
 name: fix-code-review
-description: Fix code review comments from a GitHub PR
+description: Fix code review comments from a GitHub PR. Use when the user says '/fix-code-review <PR_URL>', 'fix review comments', 'fix PR feedback', 'address review comments', or wants to resolve PR review feedback.
 ---
 
 # Fix Code Review
@@ -9,21 +9,40 @@ Fetch review comments from a GitHub PR and fix them with approval before applyin
 
 ## Usage
 
-Invoke this skill with a PR URL: `fix-code-review <pr-url>`
+`/fix-code-review <pr-url>`
 
-Example: `fix-code-review https://github.com/eniem-dev/eniem-boilerplate/pull/10`
+Example: `/fix-code-review https://github.com/owner/repo/pull/42`
 
 ## Process
 
-1. **Fetch PR comments**: Use `gh` CLI to get all review comments
-2. **Parse comments**: Extract file paths, line numbers, and feedback
-3. **Show plan**: Display each comment and proposed fix
-4. **Get approval**: Ask user to confirm before making changes
-5. **Apply fixes**: Make the code changes
-6. **Validate**: Run build/lint to ensure fixes don't break anything
-7. **Summarize**: Show what was fixed
+1. **Discover branch**: Find the PR's head branch and switch to the correct worktree
+2. **Fetch PR comments**: Use `gh` CLI to get all review comments
+3. **Parse comments**: Extract file paths, line numbers, and feedback
+4. **Show plan**: Display each comment and proposed fix
+5. **Get approval**: Ask user to confirm before making changes
+6. **Apply fixes**: Make the code changes
+7. **Validate**: Run the project's validation commands to ensure fixes don't break anything
+8. **Summarize**: Show what was fixed
 
-## Step 1: Fetch All Comments
+## Step 1: Discover PR Branch and Worktree
+
+Before doing anything, find and switch to the correct working directory:
+
+1. Get the PR's head branch:
+   ```bash
+   gh pr view <pr-number> --json headRefName --repo <owner/repo>
+   ```
+2. Check if a worktree already exists at `.worktrees/<head-branch-name>`
+3. If it exists, work in that directory
+4. If not, create it:
+   ```bash
+   git fetch origin <head-branch-name>
+   git worktree add .worktrees/<head-branch-name> origin/<head-branch-name>
+   ```
+
+All subsequent steps run from this worktree directory.
+
+## Step 2: Fetch All Comments
 
 GitHub PRs have 3 types of comments - fetch ALL of them:
 
@@ -58,7 +77,7 @@ Parse the response to extract:
 - `body` - General feedback
 - `author.login` - Commenter
 
-## Step 2: Build Fix Plan
+## Step 3: Build Fix Plan
 
 For each comment, analyze:
 - What change is being requested?
@@ -80,35 +99,30 @@ Present as a numbered list:
    → Add missing export statement
 ```
 
-## Step 3: Get Approval
+## Step 4: Get Approval
 
-Ask the user directly:
+Ask the user before proceeding:
 - "Apply all fixes?" → Yes / No / Let me select specific ones
 
-If user wants to select specific ones, list each fix for individual approval.
+If user selects specific ones, show checkboxes for each fix.
 
-## Step 4: Apply Fixes
+## Step 5: Apply Fixes
 
 For each approved fix:
 1. Read the file
 2. Apply the change
 3. Verify syntax is valid
 
-## Step 5: Validate
+## Step 6: Validate
 
-Run validation:
-```bash
-pnpm build
-pnpm lint
-pnpm test
-```
+Run the project's validation commands (build, lint, tests).
 
 If validation fails:
 - Show the error
 - Attempt to fix
 - Re-validate
 
-## Step 6: Summarize
+## Step 7: Summarize
 
 ```
 ## Summary
@@ -123,24 +137,6 @@ Validation: ✅ Build passed, ✅ Lint passed, ✅ Tests passed
 Ready to commit? (Don't commit automatically - let user decide)
 ```
 
-## Step 7: Pattern Gap Detection
-
-After fixing comments, analyze whether any fix reveals a gap between implementation and documented patterns:
-
-1. **Compare with AGENTS.md** - Does the fix follow a pattern not documented?
-2. **Check consistency** - Is this a recurring issue that could be prevented?
-3. **Identify root cause** - Why did this gap happen?
-
-If a gap is detected, ask the user:
-- "I noticed [describe gap]. Should I update AGENTS.md to document this pattern?"
-- Options: "Yes, update docs" / "No, one-time fix" / "Let me explain"
-
-Examples of detectable gaps:
-- Using `console.log` instead of `logger` (already in AGENTS.md)
-- Missing error handling pattern
-- Inconsistent file naming
-- Not using established abstractions
-
 ## Guardrails
 
 - Always show plan before making changes
@@ -149,4 +145,3 @@ Examples of detectable gaps:
 - Don't commit automatically - user decides
 - If a comment is unclear, ask for clarification
 - Handle PR URLs from any GitHub repo (parse owner/repo from URL)
-- When detecting pattern gaps, propose documentation updates to prevent recurrence
