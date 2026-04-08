@@ -12,7 +12,7 @@ vi.mock("@/lib/polar", () => ({
   },
 }));
 
-vi.mock("@/features/billing/services/billing.service", () => ({
+vi.mock("@/features/billing", () => ({
   getCustomerId: (...args: unknown[]) => mockGetCustomerId(...args),
 }));
 

@@ -15,6 +15,7 @@ import { logger } from "./logger";
 import { env } from "@/config";
 import { prisma } from "./db";
 import { polarClient } from "./polar";
+// eslint-disable-next-line no-restricted-imports -- auth.ts is the integration point between BetterAuth and Polar subscription features
 import { syncSubscription, getCheckoutProducts } from "@/features/subscription";
 import { AUTH_CONSTANTS } from "./auth.constants";
 

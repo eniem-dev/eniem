@@ -1,5 +1,5 @@
 import { createAuthenticatedQuery } from "@/lib/server-handler";
-import { getUserSubscription } from "@/features/subscription/services/subscription.service";
+import { getUserSubscription } from "@/features/subscription";
 import { getCustomerId, getCustomerOrders } from "../services/billing.service";
 import type { BillingData } from "../models/billing.model";
 

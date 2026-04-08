@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Pre-commit hook: lint, typecheck, test (fail-fast)
+
+set -e
+
+./scripts/run_silent 'lint' pnpm lint
+./scripts/run_silent 'typecheck' pnpm typecheck
+./scripts/run_silent 'tests' pnpm test
