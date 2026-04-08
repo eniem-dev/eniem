@@ -12,9 +12,10 @@ export const getData = () =>
   });
 
 // Authenticated query (session & user guaranteed)
+// Always call a service function — no direct prisma in queries
 export const getProfile = () =>
   createAuthenticatedQuery(async ({ user }) => {
-    return prisma.user.findUnique({ where: { id: user.id } });
+    return getUserProfile(user.id);
   });
 ```
 
@@ -25,14 +26,12 @@ export const getProfile = () =>
 import { actionClient, authenticatedActionClient } from "@/lib/safe-action.server";
 import { updateProfileSchema } from "./schemas";
 
+// Always call a service function — no direct prisma in actions
 export const updateProfile = authenticatedActionClient
   .inputSchema(updateProfileSchema)
   .action(async ({ parsedInput, ctx }) => {
     const { user } = ctx;
-    await prisma.user.update({
-      where: { id: user.id },
-      data: parsedInput,
-    });
+    await updateUserProfile(user.id, parsedInput);
     revalidatePath("/dashboard/profile");
     return { success: true };
   });

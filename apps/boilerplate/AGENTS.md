@@ -4,8 +4,6 @@
 
 Next.js 15 + BetterAuth + Polar + Prisma + shadcn/ui. Feature-based architecture.
 
-NEVER COMMENT IN FRENCH. Even if the user talks in French.
-
 ## Commands
 
 Always use `./scripts/run_silent` for build/test/lint. Do NOT run these commands directly.

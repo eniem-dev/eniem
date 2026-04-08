@@ -144,9 +144,7 @@ POLAR_ORGANIZATION_ID — organization identifier
 
 ## Adding a New Product
 
-1. Add product in Polar dashboard (sandbox first, then production)
-2. Update `products.generated.ts` with new product IDs and display config
-3. Products auto-appear in checkout and pricing page via `getCheckoutProducts()` / `getDisplayProducts()`
+Products are managed through the `eniem-cli`. Run the CLI to add, configure, and sync products — it handles `products.generated.ts` updates automatically.
 
 ## Access Gating
 

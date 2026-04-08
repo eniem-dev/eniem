@@ -63,7 +63,7 @@ For each behavior or requirement:
 
 ## 6. Modules & Imports
 
-- No barrel files (`index.ts` re-exports). Import from the actual source.
+- No barrel files (`index.ts` re-exports) for general utilities or components. Exception: feature `index.ts` files serve as the public API boundary — only import other features through their index.
 - Colocate code next to where it's used.
 - No `import *`. No deep cross-feature imports.
 - Respect dependency direction — never import upward (e.g., DB layer importing from routes).

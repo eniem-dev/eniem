@@ -94,6 +94,44 @@ const eslintConfig = [
     },
   },
 
+  // Queries must use services — no direct DB access
+  {
+    files: ["src/features/**/queries/**/*.{ts,tsx}", "src/features/**/*.query.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/db", "@prisma/*", "prisma", "prisma/*"],
+              message:
+                "Queries must not import the database directly. Call a service function instead. See docs/server-patterns.md.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Actions must use services — no direct DB access
+  {
+    files: ["src/features/**/actions/**/*.{ts,tsx}", "src/features/**/*.action.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/db", "@prisma/*", "prisma", "prisma/*"],
+              message:
+                "Actions must not import the database directly. Call a service function instead. See docs/server-patterns.md.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // Pages and API routes must not use services directly — go through queries or actions
   {
     files: ["src/app/**/*.{ts,tsx}"],

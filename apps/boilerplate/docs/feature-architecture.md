@@ -36,8 +36,9 @@ export { loginSchema, signUpSchema } from "./schemas";
 
 ## Components
 
-**Smart Components** (`features/`): Handle business logic, API calls, auth, error states
-**Dumb Components** (`components/ui/`): Pure UI, props-driven, no business logic
+**Smart Components** (`features/{feature}/components/`): Handle business logic, API calls, auth, error states
+**Dumb Components** (`components/`): Reusable UI, props-driven, no business logic
+**Shadcn Components** (`components/ui/`): Generated shadcn/ui primitives — do not edit directly
 
 ## Locales & Metadata
 
