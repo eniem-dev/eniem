@@ -1,3 +1,8 @@
+---
+name: payments-polar
+description: "Polar payments integration reference. Use when user says '/payments-polar', or when implementing checkout, subscriptions, billing, pricing, products, credits, metering, webhooks, or customer lifecycle."
+---
+
 # Payments & Polar Integration
 
 ## Overview

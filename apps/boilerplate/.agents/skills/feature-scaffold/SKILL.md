@@ -1,3 +1,8 @@
+---
+name: feature-scaffold
+description: "Guide for building new features following project conventions. Use when user says '/feature-scaffold', 'build a feature', 'add a feature', 'scaffold feature', 'new feature', 'create feature', or wants to implement a new feature module with models, schemas, services, queries, actions, hooks, or components."
+---
+
 # Feature Scaffold Guide
 
 ## Overview
