@@ -1,3 +1,8 @@
+---
+name: auth-guide
+description: "Authentication reference for BetterAuth integration. Use when user says '/auth-guide', or when implementing login, signup, auth providers, OAuth, OTP, SIWE, middleware, route protection, email verification, password reset, or user deletion."
+---
+
 # Authentication Guide
 
 ## Overview

@@ -41,6 +41,14 @@ Always use `./scripts/run_silent` for build/test/lint. Do NOT run these commands
 - Read `docs/auth-guide.md` for route protection and middleware
 - Read `docs/quick-reference.md` for import table, config, and database access
 
+## Skill Routing
+
+Before doing work in these domains, lazy-load the relevant skill guide (read the file, don't load into every conversation):
+
+- Implementing/modifying a feature → read `.agents/skills/feature-scaffold/SKILL.md`
+- Touching auth, login, signup, middleware, providers → read `.agents/skills/auth-guide/SKILL.md`
+- Touching payments, checkout, subscriptions, credits, billing → read `.agents/skills/payments-polar/SKILL.md`
+
 ## Plan Mode
 
 - Make the plan extremely concise. Sacrifice grammar for the sake of concision.
