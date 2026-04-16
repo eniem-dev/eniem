@@ -15,6 +15,27 @@ For each behavior or requirement:
 - One logical assertion per test.
 - If a refactor breaks a test, fix the code — not the test.
 - Run `typecheck + test + lint` before every commit.
+- You can't test everything. Focus on critical paths and complex logic, not every edge case.
+
+**Anti-pattern — horizontal slicing:**
+- NEVER write all tests first, then all implementation. This produces tests that verify imagined behavior, not actual behavior.
+- Correct: one test, one implementation, repeat. Each test responds to what you learned from the previous cycle.
+
+**First test = tracer bullet:**
+- The first test should prove the end-to-end path works before you expand. One test confirming one thing about the system.
+
+**Per-cycle checklist:**
+- [ ] Test describes behavior, not implementation
+- [ ] Test uses public interface only
+- [ ] Test would survive internal refactor
+- [ ] Code is minimal for this test
+- [ ] No speculative features added
+
+**Refactor candidates** (only when GREEN):
+- Extract duplication
+- Deepen modules (move complexity behind simple interfaces)
+- Consider what new code reveals about existing code
+- Run tests after each refactor step. Never refactor while RED.
 
 **Mocking:**
 - Mock only at system boundaries: external APIs, time/randomness, databases when impractical.
