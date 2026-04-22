@@ -58,10 +58,17 @@ rateLimit: {
 
 Client-side handling in `auth-client.ts` reads `X-Retry-After` header and shows locale message.
 
-## Route Protection (inline)
+## Route Protection & Secure Handlers
+
+Three patterns, pick by surface area. All three are authoritative — don't roll your own session check.
+
+### 1. Protected RSC page (inline check)
+
+Use when an entire page should redirect unauthenticated users to login.
 
 ```typescript
 import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default async function ProtectedPage() {
@@ -71,7 +78,42 @@ export default async function ProtectedPage() {
 }
 ```
 
-For data fetching and API routes, prefer `createAuthenticatedQuery` / `createAuthenticatedApiHandler` (see `docs/server-patterns.md`) — both guarantee a session without inline checks.
+### 2. Authenticated data fetching (`createAuthenticatedQuery`)
+
+Use for server-side queries that require a user. The handler gets `{ user, session }` guaranteed non-null; no inline redirect needed — the wrapper throws `UnauthorizedError` which your error boundary handles.
+
+```typescript
+import { createAuthenticatedQuery } from "@/lib/server-handler";
+
+export const getProfile = () =>
+  createAuthenticatedQuery(async ({ user }) => {
+    return getUserProfile(user.id);
+  });
+```
+
+Always call a service function from inside the query — no direct `prisma` in queries. For public queries (session may be null), use `createQuery`.
+
+### 3. Secure API route (`createAuthenticatedApiHandler`)
+
+Use for API routes that require a user. Signature includes optional `validate` for Zod input validation.
+
+```typescript
+import { createAuthenticatedApiHandler } from "@/lib/server-handler";
+import { postSchema } from "./schemas";
+
+export const POST = createAuthenticatedApiHandler(
+  async ({ user, input }) => ({ created: true, userId: user.id }),
+  { validate: postSchema }
+);
+```
+
+For public API routes, use `createApiHandler`. See `docs/server-patterns.md` for error-handling conventions (`UnauthorizedError`, `ValidationError`, `ServerError`).
+
+### Rule of thumb
+
+- Page that should redirect on failure → inline `auth.api.getSession` + `redirect`.
+- Data for a page/component → `createAuthenticatedQuery`.
+- Route handler (`app/api/.../route.ts`) → `createAuthenticatedApiHandler`.
 
 ## Middleware Pattern
 
