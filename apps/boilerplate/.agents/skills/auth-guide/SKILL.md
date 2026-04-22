@@ -58,6 +58,21 @@ rateLimit: {
 
 Client-side handling in `auth-client.ts` reads `X-Retry-After` header and shows locale message.
 
+## Route Protection (inline)
+
+```typescript
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
+export default async function ProtectedPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect("/auth/login");
+  return <Dashboard user={session.user} />;
+}
+```
+
+For data fetching and API routes, prefer `createAuthenticatedQuery` / `createAuthenticatedApiHandler` (see `docs/server-patterns.md`) — both guarantee a session without inline checks.
+
 ## Middleware Pattern
 
 Private-by-default. Three route categories:

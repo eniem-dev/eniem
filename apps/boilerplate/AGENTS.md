@@ -6,26 +6,32 @@ Next.js 15 + BetterAuth + Polar + Prisma + shadcn/ui. Feature-based architecture
 
 ## Commands
 
-Always use `./scripts/run_silent` for build/test/lint. Do NOT run these commands directly.
-
-- `./scripts/run_silent "build" pnpm build` — Production build
-- `./scripts/run_silent "test" pnpm test` — Run tests (bail on first failure)
-- `./scripts/run_silent "lint" pnpm lint` — Lint
-- `./scripts/run_silent "typecheck" pnpm typecheck` — Typecheck
+- `pnpm build` — Production build
+- `pnpm test` — Run tests (bail on first failure)
+- `pnpm lint` — Lint
+- `pnpm typecheck` — Typecheck
 - `pnpm dev` — Start dev server (Turbopack)
 - `pnpm db:start` / `pnpm db:stop` — Start/stop PostgreSQL (Docker)
 - `pnpm db:push` — Push schema changes (dev)
 - `pnpm db:migrate` — Run migrations (deploy)
 - `pnpm db:generate` — Generate Prisma client
 
+Build/test/lint/typecheck scripts are wrapped in `./scripts/run_silent` internally — run them directly, you get concise output on success and full output on failure.
+
+## Hard Rules
+
+- Read `docs/coding-standard.md` before writing any code.
+- NEVER use `console.log` — use `logger` from `@/lib/logger`.
+- NEVER use PostHog directly — use `captureEvent` from `@/lib/tracking`.
+- No `any`. No `as Type` assertions. Use type guards and narrowing.
+- Never `throw new Error(string)`. Use typed errors / Result pattern (`{ success, data } | { success, error }`).
+- No barrel files (`index.ts` re-exports) outside a feature's public API.
+- Never mock your own code. Tests use public interfaces only.
+
 ## Conventions
 
-- Read `docs/coding-standard.md` before writing any code
-- Do NOT pipe command output to `head`, `tail`, or `/dev/null` — output management is handled by project tooling
-- NEVER use `console.log` — use `logger` from `@/lib/logger`
-- NEVER use PostHog directly — use `captureEvent` from `@/lib/tracking`
-- Files: kebab-case. Components: PascalCase. Functions: camelCase. Constants: SCREAMING_SNAKE_CASE
-- Typed file suffixes: `.action.ts`, `.query.ts`, `.schema.ts`, `.service.ts`
+- Files: kebab-case. Components: PascalCase. Functions: camelCase. Constants: SCREAMING_SNAKE_CASE.
+- Typed file suffixes: `.action.ts`, `.query.ts`, `.schema.ts`, `.service.ts`.
 
 ## Principles
 
@@ -38,16 +44,7 @@ Always use `./scripts/run_silent` for build/test/lint. Do NOT run these commands
 
 - Read `docs/feature-architecture.md` for feature structure, components, locales, metadata
 - Read `docs/server-patterns.md` for queries, actions, API routes, error handling, email
-- Read `docs/auth-guide.md` for route protection and middleware
 - Read `docs/quick-reference.md` for import table, config, and database access
-
-## Skill Routing
-
-Before doing work in these domains, lazy-load the relevant skill guide (read the file, don't load into every conversation):
-
-- Implementing/modifying a feature → read `.agents/skills/feature-scaffold/SKILL.md`
-- Touching auth, login, signup, middleware, providers → read `.agents/skills/auth-guide/SKILL.md`
-- Touching payments, checkout, subscriptions, credits, billing → read `.agents/skills/payments-polar/SKILL.md`
 
 ## Plan Mode
 
