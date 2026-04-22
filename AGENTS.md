@@ -26,7 +26,7 @@ Run with: `pnpm --filter @eniem/boilerplate <script>`
 Filter: `pnpm turbo build --filter=@eniem/boilerplate`
 
 ## Conventions
-- Read `docs/coding-standard.md` before writing any code
+- Per-app coding standards live under each app (e.g. `apps/boilerplate/AGENTS.md` + `apps/boilerplate/.agents/skills/`). Read the target app's AGENTS.md before writing code there.
 - Do NOT pipe command output to `head`, `tail`, or `/dev/null` — output management is handled by project tooling
 
 ## Dependencies
