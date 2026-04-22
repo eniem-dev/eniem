@@ -5,3 +5,13 @@ node_modules
 
 # bv (beads viewer) local config and caches
 .bv/
+
+# CLI-specific config — keep .claude/ and .agents/ skill dirs portable;
+# per-CLI settings stay local and are not committed.
+.claude/settings*.json
+opencode.json
+.codex/
+.cursor/
+.cursorrules
+aider.conf.yml
+.aider*
