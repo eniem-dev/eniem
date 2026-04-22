@@ -87,17 +87,17 @@ describe("CloneStep", () => {
     });
   });
 
-  it("passes protocol to cloneBoilerplate", async () => {
+  it("passes ssh and gitHost to cloneBoilerplate", async () => {
     mockCloneBoilerplate.mockResolvedValue({
       success: true,
       destination: "/path/to/test-project",
     });
     render(
-      <CloneStep projectName="test-project" gitHost="github" protocol="ssh" onComplete={() => {}} />
+      <CloneStep projectName="test-project" gitHost="my-alias" ssh onComplete={() => {}} />
     );
     await vi.waitFor(() => {
       expect(mockCloneBoilerplate).toHaveBeenCalledWith(
-        expect.objectContaining({ protocol: "ssh" })
+        expect.objectContaining({ ssh: true, gitHost: "my-alias" })
       );
     });
   });

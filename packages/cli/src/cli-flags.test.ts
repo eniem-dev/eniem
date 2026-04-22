@@ -20,48 +20,8 @@ describe("CLI --app-name flag", () => {
   }, 15_000);
 });
 
-describe("CLI --protocol flag", () => {
-  it("exits with error when --protocol has invalid value", async () => {
-    const result = await execaNode(CLI_PATH, ["my-app", "--protocol=ftp"], {
-      reject: false,
-      timeout: 10_000,
-    });
-
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain('Invalid protocol "ftp"');
-    expect(result.stderr).toContain("ssh");
-    expect(result.stderr).toContain("https");
-  }, 15_000);
-
-  it("exits with error when --protocol is combined with --ssh", async () => {
-    const result = await execaNode(CLI_PATH, ["my-app", "--protocol=ssh", "--ssh"], {
-      reject: false,
-      timeout: 10_000,
-    });
-
-    expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain("Cannot use --protocol with --ssh");
-  }, 15_000);
-
-  it("accepts --protocol=ssh without error", async () => {
-    const result = await execaNode(CLI_PATH, ["--help", "--protocol=ssh"], {
-      reject: false,
-      timeout: 10_000,
-    });
-
-    expect(result.exitCode).toBe(0);
-  }, 15_000);
-
-  it("accepts --protocol=https without error", async () => {
-    const result = await execaNode(CLI_PATH, ["--help", "--protocol=https"], {
-      reject: false,
-      timeout: 10_000,
-    });
-
-    expect(result.exitCode).toBe(0);
-  }, 15_000);
-
-  it("accepts --ssh shorthand without error", async () => {
+describe("CLI --ssh / --git-host flags", () => {
+  it("accepts --ssh without error", async () => {
     const result = await execaNode(CLI_PATH, ["--help", "--ssh"], {
       reject: false,
       timeout: 10_000,
@@ -70,14 +30,25 @@ describe("CLI --protocol flag", () => {
     expect(result.exitCode).toBe(0);
   }, 15_000);
 
-  it("help text includes --protocol and --ssh options", async () => {
+  it("accepts --git-host=my-alias without error", async () => {
+    const result = await execaNode(CLI_PATH, ["--help", "--git-host=my-alias"], {
+      reject: false,
+      timeout: 10_000,
+    });
+
+    expect(result.exitCode).toBe(0);
+  }, 15_000);
+
+  it("help text advertises --ssh and --git-host and drops --protocol", async () => {
     const result = await execaNode(CLI_PATH, ["--help"], {
       reject: false,
       timeout: 10_000,
     });
 
-    expect(result.stdout).toContain("--protocol");
+    expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("--ssh");
+    expect(result.stdout).toContain("--git-host");
+    expect(result.stdout).not.toContain("--protocol");
   }, 15_000);
 });
 
