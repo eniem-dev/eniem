@@ -29,29 +29,6 @@ pnpm start
 node dist/cli.js [project-name]
 ```
 
-### Eni Workflow (AI-driven feature implementation)
-
-```bash
-# Create specs for a new feature (topic-decomposed interview)
-/functional-spec-interview <feature-name>
-
-# Generate implementation plan from all specs
-pnpm eni:plan
-
-# Generate scoped implementation plan
-pnpm eni:plan-work "description of work"
-
-# Build one task from the plan
-pnpm eni:build
-
-# Build autonomously (10 iterations)
-pnpm eni:build:auto
-
-# Interactive mode (add -i flag)
-./.eni/loop.sh plan -i
-./.eni/loop.sh build 5 -i
-```
-
 ## Architecture
 
 ### Entry Point & CLI Flow
