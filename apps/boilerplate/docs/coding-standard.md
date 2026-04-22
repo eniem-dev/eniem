@@ -1,47 +1,17 @@
 # Coding Standard
 
-## 1. Testing (RED-GREEN-REFACTOR)
+For the test-driven development workflow (cadence, per-cycle checklist, anti-patterns), see `.agents/skills/tdd/SKILL.md` or invoke `/tdd`.
 
-For each behavior or requirement:
+## 1. Testing rules
 
-1. **RED** — Write a failing test from the spec. Run it — confirm it fails.
-2. **GREEN** — Write minimum code to pass. Run it — confirm it passes.
-3. **REFACTOR** — Clean up. Run full suite — confirm nothing broke.
-4. **REPEAT** — Next behavior. One cycle at a time.
-
-**Rules:**
-- Never write implementation before its failing test exists.
 - Tests verify behavior through public interfaces, not implementation details.
 - One logical assertion per test.
-- If a refactor breaks a test, fix the code — not the test.
-- Run `typecheck + test + lint` before every commit.
-- You can't test everything. Focus on critical paths and complex logic, not every edge case.
-
-**Anti-pattern — horizontal slicing:**
-- NEVER write all tests first, then all implementation. This produces tests that verify imagined behavior, not actual behavior.
-- Correct: one test, one implementation, repeat. Each test responds to what you learned from the previous cycle.
-
-**First test = tracer bullet:**
-- The first test should prove the end-to-end path works before you expand. One test confirming one thing about the system.
-
-**Per-cycle checklist:**
-- [ ] Test describes behavior, not implementation
-- [ ] Test uses public interface only
-- [ ] Test would survive internal refactor
-- [ ] Code is minimal for this test
-- [ ] No speculative features added
-
-**Refactor candidates** (only when GREEN):
-- Extract duplication
-- Deepen modules (move complexity behind simple interfaces)
-- Consider what new code reveals about existing code
-- Run tests after each refactor step. Never refactor while RED.
-
-**Mocking:**
+- If a refactor breaks a test but behavior hasn't changed, fix the code — not the test.
 - Mock only at system boundaries: external APIs, time/randomness, databases when impractical.
 - Never mock your own code.
-
-**Skip TDD for:** pure boilerplate, config files, static markup, one-liners with no branching.
+- Test names describe WHAT (`confirms order after valid payment`), not HOW (`calls paymentService.process`).
+- Don't assert on call counts, call order, or internal method invocations.
+- Don't verify outcomes by reading the DB/filesystem directly — read them back through the interface that writes them.
 
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: auth-guide
-description: "Authentication reference for BetterAuth integration. Use when user says '/auth-guide', or when implementing login, signup, auth providers, OAuth, OTP, SIWE, middleware, route protection, email verification, password reset, or user deletion."
+description: "BetterAuth integration reference. Use when user says '/auth-guide', or when implementing login, signup, auth providers, OAuth (GitHub/Twitter), Email OTP, SIWE, rate limits, email verification, password reset, account deletion, or auth schemas/hooks. For protecting pages/APIs/middleware, use route-guard instead."
 ---
 
 # Authentication Guide
@@ -58,20 +58,9 @@ rateLimit: {
 
 Client-side handling in `auth-client.ts` reads `X-Retry-After` header and shows locale message.
 
-## Middleware Pattern
+## Protecting Routes
 
-Private-by-default. Three route categories:
-
-1. **Landing mode** — when `LANDING_MODE=true`, only landing + legal pages accessible
-2. **Public routes** — exact match list (`/`, `/auth/login`, `/pricing`, etc.) + prefix match (`/blog`)
-3. **Access-gated routes** — require active subscription (configurable: subscription, one-time purchase, or hybrid)
-
-```typescript
-// In middleware.ts — choose ONE access model:
-const hasUserAccess = await hasActiveSubscription(userId);     // Subscription
-// const hasUserAccess = await hasActiveOrder(userId);          // One-time
-// const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId); // Hybrid
-```
+For route protection (RSC pages, secure handlers, middleware), see `.agents/skills/route-guard/SKILL.md` or invoke `/route-guard`.
 
 ## Email Callbacks
 
