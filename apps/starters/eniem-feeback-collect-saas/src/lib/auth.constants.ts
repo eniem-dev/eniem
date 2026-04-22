@@ -1,6 +1,0 @@
-export const AUTH_CONSTANTS = {
-  OTP_EXPIRES_IN_SECONDS: 300, // 5 minutes
-  OTP_LENGTH: 6,
-  OTP_MAX_ATTEMPTS: 3,
-  PASSWORD_RESET_EXPIRES_IN_SECONDS: 3600, // 1 hour
-} as const;
