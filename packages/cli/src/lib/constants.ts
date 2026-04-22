@@ -1,1 +1,2 @@
-export const BOILERPLATE_REPO_PATH = "eniem-dev/eniem-boilerplate.git";
+export const BOILERPLATE_REPO_SLUG = "eniem-dev/eniem-boilerplate";
+export const BOILERPLATE_REPO_PATH = `${BOILERPLATE_REPO_SLUG}.git`;
