@@ -15,10 +15,19 @@ For each behavior or requirement:
 - One logical assertion per test.
 - If a refactor breaks a test, fix the code — not the test.
 - Run `typecheck + test + lint` before every commit.
+- Vertical slices only: one test → one implementation → repeat. Never batch tests first then implementation — that tests imagined shape, not real behavior.
+- Never refactor while RED. Reach GREEN first.
+
+**Test smells (reject in review):**
+- Mocking internal collaborators.
+- Asserting on call counts, call order, or that a specific internal method was invoked.
+- Verifying outcomes by querying the DB / filesystem directly instead of through the interface that reads them back.
+- Test names that describe HOW (`calls paymentService.process`) instead of WHAT (`confirms order after valid payment`).
 
 **Mocking:**
 - Mock only at system boundaries: external APIs, time/randomness, databases when impractical.
 - Never mock your own code.
+- Prefer SDK-style interfaces (`api.getUser(id)`, `api.createOrder(data)`) over generic fetchers (`api.fetch(endpoint, opts)`). Each operation is a named function — no conditional logic inside mocks, one shape per mock return.
 
 **Skip TDD for:** pure boilerplate, config files, static markup, one-liners with no branching.
 
