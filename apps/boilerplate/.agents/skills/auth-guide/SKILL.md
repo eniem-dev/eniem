@@ -1,6 +1,6 @@
 ---
 name: auth-guide
-description: "Authentication reference for BetterAuth integration. Use when user says '/auth-guide', or when implementing login, signup, auth providers, OAuth, OTP, SIWE, middleware, route protection, email verification, password reset, or user deletion."
+description: "BetterAuth integration reference. Use when user says '/auth-guide', or when implementing login, signup, auth providers, OAuth (GitHub/Twitter), Email OTP, SIWE, rate limits, email verification, password reset, account deletion, or auth schemas/hooks. For protecting pages/APIs/middleware, use route-guard instead."
 ---
 
 # Authentication Guide
@@ -58,77 +58,9 @@ rateLimit: {
 
 Client-side handling in `auth-client.ts` reads `X-Retry-After` header and shows locale message.
 
-## Route Protection & Secure Handlers
+## Protecting Routes
 
-Three patterns, pick by surface area. All three are authoritative — don't roll your own session check.
-
-### 1. Protected RSC page (inline check)
-
-Use when an entire page should redirect unauthenticated users to login.
-
-```typescript
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
-
-export default async function ProtectedPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session?.user) redirect("/auth/login");
-  return <Dashboard user={session.user} />;
-}
-```
-
-### 2. Authenticated data fetching (`createAuthenticatedQuery`)
-
-Use for server-side queries that require a user. The handler gets `{ user, session }` guaranteed non-null; no inline redirect needed — the wrapper throws `UnauthorizedError` which your error boundary handles.
-
-```typescript
-import { createAuthenticatedQuery } from "@/lib/server-handler";
-
-export const getProfile = () =>
-  createAuthenticatedQuery(async ({ user }) => {
-    return getUserProfile(user.id);
-  });
-```
-
-Always call a service function from inside the query — no direct `prisma` in queries. For public queries (session may be null), use `createQuery`.
-
-### 3. Secure API route (`createAuthenticatedApiHandler`)
-
-Use for API routes that require a user. Signature includes optional `validate` for Zod input validation.
-
-```typescript
-import { createAuthenticatedApiHandler } from "@/lib/server-handler";
-import { postSchema } from "./schemas";
-
-export const POST = createAuthenticatedApiHandler(
-  async ({ user, input }) => ({ created: true, userId: user.id }),
-  { validate: postSchema }
-);
-```
-
-For public API routes, use `createApiHandler`. See `docs/server-patterns.md` for error-handling conventions (`UnauthorizedError`, `ValidationError`, `ServerError`).
-
-### Rule of thumb
-
-- Page that should redirect on failure → inline `auth.api.getSession` + `redirect`.
-- Data for a page/component → `createAuthenticatedQuery`.
-- Route handler (`app/api/.../route.ts`) → `createAuthenticatedApiHandler`.
-
-## Middleware Pattern
-
-Private-by-default. Three route categories:
-
-1. **Landing mode** — when `LANDING_MODE=true`, only landing + legal pages accessible
-2. **Public routes** — exact match list (`/`, `/auth/login`, `/pricing`, etc.) + prefix match (`/blog`)
-3. **Access-gated routes** — require active subscription (configurable: subscription, one-time purchase, or hybrid)
-
-```typescript
-// In middleware.ts — choose ONE access model:
-const hasUserAccess = await hasActiveSubscription(userId);     // Subscription
-// const hasUserAccess = await hasActiveOrder(userId);          // One-time
-// const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId); // Hybrid
-```
+For route protection (RSC pages, secure handlers, middleware), see `.agents/skills/route-guard/SKILL.md` or invoke `/route-guard`.
 
 ## Email Callbacks
 
