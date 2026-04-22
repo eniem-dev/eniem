@@ -83,22 +83,6 @@ eni products --prod --token=polar_xxx
 
 Products are stored in `products.sandbox.json` and `products.production.json`, with TypeScript exports generated in `src/features/subscription/products.generated.ts`.
 
-## AI Workflow Command
-
-Initialize or update the AI workflow files (`.eni/`, `.claude/`, `specs/`) in the current project.
-
-```bash
-# Initialize AI workflow (prompts for confirmation if .eni/ already exists)
-eni ai init
-
-# Overwrite existing files without confirmation
-eni ai init --force
-```
-
-This sparse-clones the latest `.eni` and `.claude` directories from the boilerplate repo and copies them into your project. A `specs/` folder is created if it doesn't exist.
-
-Once initialized, run `./loop.sh plan` to start planning with AI.
-
 ## What it sets up
 
 The wizard will guide you through configuring:
