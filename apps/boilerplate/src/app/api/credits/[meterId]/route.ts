@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { createAuthenticatedApiHandler } from "@/lib/server-handler";
-import { getCreditsBalance, getCustomerId } from "@/features/credits/services/credits.service";
-import type { CreditBalance } from "@/features/credits/models/credits.model";
+import { getCreditsBalance, getCustomerId } from "@/features/credits";
+import type { CreditBalance } from "@/features/credits";
 
 export interface CreditsData {
   balance: CreditBalance | null;

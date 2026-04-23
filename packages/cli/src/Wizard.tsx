@@ -31,12 +31,12 @@ type WizardStep =
 interface WizardProps {
   initialProjectName?: string;
   initialAppName?: string;
-  gitHost: string;
-  protocol?: "ssh" | "https";
+  gitHost?: string;
+  ssh?: boolean;
   onComplete?: (config: AppConfig, destination: string) => void;
 }
 
-export const Wizard = ({ initialProjectName, initialAppName, gitHost, protocol, onComplete }: WizardProps) => {
+export const Wizard = ({ initialProjectName, initialAppName, gitHost, ssh, onComplete }: WizardProps) => {
   const [step, setStep] = useState<WizardStep>("project");
   const [projectDestination, setProjectDestination] = useState<string>("");
   const { config, updateConfig } = useConfig();
@@ -111,7 +111,7 @@ export const Wizard = ({ initialProjectName, initialAppName, gitHost, protocol, 
         <CloneStep
           projectName={config.project.name}
           gitHost={gitHost}
-          protocol={protocol}
+          ssh={ssh}
           onComplete={handleCloneComplete}
         />
       )}

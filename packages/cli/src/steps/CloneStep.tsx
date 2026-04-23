@@ -1,16 +1,16 @@
 import { Box } from "ink";
 import React, { useState, useEffect, useCallback } from "react";
 import { Spinner, SectionHeader, StatusMessage, ErrorRecovery } from "../components/index.js";
-import { cloneBoilerplate, type Protocol } from "../lib/clone.js";
+import { cloneBoilerplate } from "../lib/clone.js";
 
 interface CloneStepProps {
   projectName: string;
-  gitHost: string;
-  protocol?: Protocol;
+  ssh?: boolean;
+  gitHost?: string;
   onComplete: (destination: string) => void;
 }
 
-export const CloneStep = ({ projectName, gitHost, protocol, onComplete }: CloneStepProps) => {
+export const CloneStep = ({ projectName, ssh, gitHost, onComplete }: CloneStepProps) => {
   const [status, setStatus] = useState<"cloning" | "complete" | "error">("cloning");
   const [progress, setProgress] = useState("Initializing...");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -23,8 +23,8 @@ export const CloneStep = ({ projectName, gitHost, protocol, onComplete }: CloneS
 
     const result = await cloneBoilerplate({
       projectName,
+      ssh,
       gitHost,
-      protocol,
       onProgress: setProgress,
     });
 
@@ -35,7 +35,7 @@ export const CloneStep = ({ projectName, gitHost, protocol, onComplete }: CloneS
       setStatus("error");
       setErrorMessage(result.error || "Unknown error");
     }
-  }, [projectName, gitHost, protocol, onComplete]);
+  }, [projectName, ssh, gitHost, onComplete]);
 
   useEffect(() => {
     void runClone();
