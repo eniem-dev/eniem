@@ -1,3 +1,24 @@
+# [eniem-cli-v2.0.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.10.0...eniem-cli-v2.0.0) (2026-04-23)
+
+
+* chore(cli)!: remove ai/plan/build/config commands ([dd8efe8](https://github.com/eniem-dev/eniem/commit/dd8efe8aa52d6e61b916196fea33d3d88376d673)), closes [#110](https://github.com/eniem-dev/eniem/issues/110)
+* feat(cli)!: auto-detect gh/git for clone, drop --protocol flag ([edaec1c](https://github.com/eniem-dev/eniem/commit/edaec1c789bec399e32cff893a8acb390a98aea9)), closes [#111](https://github.com/eniem-dev/eniem/issues/111)
+
+
+### Bug Fixes
+
+* **cli:** restore test→build dependency for CLI package ([9ef8137](https://github.com/eniem-dev/eniem/commit/9ef81378b7543a870df9f92404a4c34a41945ff8))
+
+
+### BREAKING CHANGES
+
+* `--protocol` is removed. Users who relied on
+`--protocol=ssh` should use `--ssh`; users who relied on
+`--protocol=https` get that behaviour by default.
+* `eni plan`, `eni build`, `eni ai init`, and `eni config`
+are no longer available. Users relying on these commands should migrate
+to Toby.
+
 # [eniem-cli-v1.10.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.9.0...eniem-cli-v1.10.0) (2026-03-18)
 
 
