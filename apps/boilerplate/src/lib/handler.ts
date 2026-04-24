@@ -78,6 +78,10 @@ async function resolveSessionOrThrow(): Promise<AuthSession> {
   return session;
 }
 
+export type RouteContext = {
+  params: Promise<Record<string, string | string[]>>;
+};
+
 export type AuthedCtx<I> = {
   user: AuthSession["user"];
   session: AuthSession;
@@ -90,8 +94,20 @@ export type PublicCtx<I> = {
   input: I;
 };
 
-type AuthedRouteCtx<I> = AuthedCtx<I> & { request: NextRequest };
-type PublicRouteCtx<I> = PublicCtx<I> & { request: NextRequest };
+type AuthedRouteCtx<I> = AuthedCtx<I> & {
+  request: NextRequest;
+  context: RouteContext;
+};
+
+type PublicRouteCtx<I> = PublicCtx<I> & {
+  request: NextRequest;
+  context: RouteContext;
+};
+
+type RouteHandler<R> = (
+  request: NextRequest,
+  context: RouteContext
+) => Promise<NextResponse<ApiResponse<R>>>;
 
 async function parseRequestInput<S extends z.ZodType>(
   request: NextRequest,
@@ -101,7 +117,9 @@ async function parseRequestInput<S extends z.ZodType>(
     const entries = Object.fromEntries(request.nextUrl.searchParams.entries());
     return schema.parse(entries);
   }
-  const body = await request.json().catch(() => ({}));
+  const body = await request.json().catch(() => {
+    throw new ValidationError(locales.errors.invalidJsonBody);
+  });
   return schema.parse(body);
 }
 
@@ -154,13 +172,13 @@ class AuthedValidated<S extends z.ZodType> {
 
   route<R>(
     fn: (ctx: AuthedRouteCtx<z.infer<S>>) => Promise<R>
-  ): (request: NextRequest) => Promise<NextResponse<ApiResponse<R>>> {
+  ): RouteHandler<R> {
     const schema = this.schema;
-    return (request) =>
+    return (request, context) =>
       runRoute(async () => {
         const input = await parseRequestInput(request, schema);
         const session = await resolveSessionOrThrow();
-        return fn({ user: session.user, session, input, request });
+        return fn({ user: session.user, session, input, request, context });
       });
   }
 
@@ -180,13 +198,13 @@ class PublicValidated<S extends z.ZodType> {
 
   route<R>(
     fn: (ctx: PublicRouteCtx<z.infer<S>>) => Promise<R>
-  ): (request: NextRequest) => Promise<NextResponse<ApiResponse<R>>> {
+  ): RouteHandler<R> {
     const schema = this.schema;
-    return (request) =>
+    return (request, context) =>
       runRoute(async () => {
         const input = await parseRequestInput(request, schema);
         const session = await resolveSession();
-        return fn({ user: null, session, input, request });
+        return fn({ user: null, session, input, request, context });
       });
   }
 
@@ -206,20 +224,15 @@ class AuthedRoot {
     return new AuthedValidated<S>(schema);
   }
 
-  query<R>(
-    fn: (ctx: AuthedCtx<void>) => Promise<R>
-  ): () => Promise<Result<R>> {
-    return () =>
-      runQuery(async () => {
-        const session = await resolveSessionOrThrow();
-        return fn({ user: session.user, session, input: undefined });
-      });
+  query<R>(fn: (ctx: AuthedCtx<void>) => Promise<R>): Promise<Result<R>> {
+    return runQuery(async () => {
+      const session = await resolveSessionOrThrow();
+      return fn({ user: session.user, session, input: undefined });
+    });
   }
 
-  route<R>(
-    fn: (ctx: AuthedRouteCtx<void>) => Promise<R>
-  ): (request: NextRequest) => Promise<NextResponse<ApiResponse<R>>> {
-    return (request) =>
+  route<R>(fn: (ctx: AuthedRouteCtx<void>) => Promise<R>): RouteHandler<R> {
+    return (request, context) =>
       runRoute(async () => {
         const session = await resolveSessionOrThrow();
         return fn({
@@ -227,6 +240,7 @@ class AuthedRoot {
           session,
           input: undefined,
           request,
+          context,
         });
       });
   }
@@ -247,23 +261,18 @@ class PublicRoot {
     return new PublicValidated<S>(schema);
   }
 
-  query<R>(
-    fn: (ctx: PublicCtx<void>) => Promise<R>
-  ): () => Promise<Result<R>> {
-    return () =>
-      runQuery(async () => {
-        const session = await resolveSession();
-        return fn({ user: null, session, input: undefined });
-      });
+  query<R>(fn: (ctx: PublicCtx<void>) => Promise<R>): Promise<Result<R>> {
+    return runQuery(async () => {
+      const session = await resolveSession();
+      return fn({ user: null, session, input: undefined });
+    });
   }
 
-  route<R>(
-    fn: (ctx: PublicRouteCtx<void>) => Promise<R>
-  ): (request: NextRequest) => Promise<NextResponse<ApiResponse<R>>> {
-    return (request) =>
+  route<R>(fn: (ctx: PublicRouteCtx<void>) => Promise<R>): RouteHandler<R> {
+    return (request, context) =>
       runRoute(async () => {
         const session = await resolveSession();
-        return fn({ user: null, session, input: undefined, request });
+        return fn({ user: null, session, input: undefined, request, context });
       });
   }
 
@@ -280,5 +289,5 @@ export const publicly: PublicRoot = new PublicRoot();
 export function isResultSuccessful<T>(
   result: Result<T>
 ): result is { data: T; error: null } {
-  return result.error === null && result.data !== null;
+  return result.error === null;
 }

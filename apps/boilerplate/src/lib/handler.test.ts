@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 import { NextRequest } from "next/server";
 
+const emptyContext = { params: Promise.resolve({}) };
+
 vi.mock("./logger", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), log: vi.fn() },
 }));
@@ -83,16 +85,16 @@ describe("authed.query", () => {
       session: { id: "s1" },
     });
     const { authed } = await import("./handler");
-    const run = authed.query(({ user }) => Promise.resolve({ id: user.id }));
-    const result = await run();
+    const result = await authed.query(({ user }) =>
+      Promise.resolve({ id: user.id })
+    );
     expect(result).toEqual({ data: { id: "u1" }, error: null });
   });
 
   it("returns { data: null, error } 401 when session missing", async () => {
     getSessionMock.mockResolvedValue(null);
     const { authed } = await import("./handler");
-    const run = authed.query(() => Promise.resolve("never"));
-    const result = await run();
+    const result = await authed.query(() => Promise.resolve("never"));
     expect(result.data).toBeNull();
     expect(result.error).toBeTruthy();
   });
@@ -104,10 +106,9 @@ describe("authed.query", () => {
     });
     const { authed } = await import("./handler");
     const { ServerError } = await import("./errors");
-    const run = authed.query(() => {
+    const result = await authed.query(() => {
       throw new ServerError("nope", 418);
     });
-    const result = await run();
     expect(result.error).toBe("nope");
   });
 });
@@ -121,10 +122,9 @@ describe("publicly.query", () => {
   it("passes a null session through when no user is logged in", async () => {
     getSessionMock.mockResolvedValue(null);
     const { publicly } = await import("./handler");
-    const run = publicly.query(({ session, user }) =>
+    const result = await publicly.query(({ session, user }) =>
       Promise.resolve({ hasSession: session !== null, user })
     );
-    const result = await run();
     expect(result).toEqual({
       data: { hasSession: false, user: null },
       error: null,
@@ -147,7 +147,7 @@ describe("authed.route", () => {
     const handler = authed.route(({ user }) =>
       Promise.resolve({ id: user.id })
     );
-    const res = await handler(new NextRequest("http://x/api"));
+    const res = await handler(new NextRequest("http://x/api"), emptyContext);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ success: true, data: { id: "u1" } });
@@ -157,7 +157,7 @@ describe("authed.route", () => {
     getSessionMock.mockResolvedValue(null);
     const { authed } = await import("./handler");
     const handler = authed.route(() => Promise.resolve("never"));
-    const res = await handler(new NextRequest("http://x/api"));
+    const res = await handler(new NextRequest("http://x/api"), emptyContext);
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.success).toBe(false);
@@ -178,7 +178,8 @@ describe("authed.route", () => {
         method: "POST",
         body: JSON.stringify({ name: "a" }),
         headers: { "content-type": "application/json" },
-      })
+      }),
+      emptyContext
     );
     expect(res.status).toBe(400);
   });

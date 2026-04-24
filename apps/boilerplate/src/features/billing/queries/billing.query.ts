@@ -10,4 +10,4 @@ export const getBillingDataQuery = () =>
     const orders = customerId ? await getCustomerOrders(customerId) : [];
 
     return { subscription, orders };
-  })();
+  });

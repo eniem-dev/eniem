@@ -5,4 +5,4 @@ import type { CreditBalance } from "../models/credits.model";
 export const getCreditsBalanceQuery = (meterId: string) =>
   authed.query(async ({ user }): Promise<CreditBalance | null> => {
     return getCreditsBalance(user.id, meterId);
-  })();
+  });
