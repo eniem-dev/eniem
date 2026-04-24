@@ -1,69 +1,22 @@
-import { polarClient } from "@/lib/polar";
+import { polar } from "@/lib/polar/index";
 import { logger } from "@/lib/logger";
 import { env } from "@/config";
-import { ResourceNotFound } from "@polar-sh/sdk/models/errors/resourcenotfound.js";
 import { resolveEventDisplayName } from "../meters.generated";
-
-async function getCustomerId(userId: string): Promise<string | null> {
-  try {
-    const customer = await polarClient.customers.getExternal({
-      externalId: userId,
-    });
-    return customer.id;
-  } catch (error) {
-    if (error instanceof ResourceNotFound) return null;
-    logger.error("Failed to get Polar customer ID", {
-      userId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
-  }
-}
-import type {
-  UsageHistoryEvent,
-  UsageHistoryResult,
-} from "../models/credits.model";
-
-const EMPTY_RESULT: UsageHistoryResult = {
-  events: [],
-  pagination: { totalCount: 0, maxPage: 1, currentPage: 1 },
-};
+import type { UsageHistoryResult } from "../models/credits.model";
 
 export async function getUsageHistory(
   userId: string,
   options?: { limit?: number; page?: number }
 ): Promise<UsageHistoryResult> {
-  const limit = options?.limit ?? 20;
-  const page = options?.page ?? 1;
-
-  const customerId = await getCustomerId(userId);
-  if (!customerId) {
-    return EMPTY_RESULT;
-  }
-
   try {
-    const response = await polarClient.events.list({
-      customerId,
-      limit,
-      page,
-      source: "user",
-    });
-
+    const result = await polar.listUsageHistory(userId, options);
     const polarEnv = env.payment.polarServer;
-    const events: UsageHistoryEvent[] = response.result.items.map((item) => ({
-      id: item.id,
-      name: resolveEventDisplayName(polarEnv, item.name),
-      timestamp: item.timestamp,
-      metadata: item.metadata,
-    }));
-
     return {
-      events,
-      pagination: {
-        totalCount: response.result.pagination.totalCount,
-        maxPage: response.result.pagination.maxPage,
-        currentPage: page,
-      },
+      ...result,
+      events: result.events.map((event) => ({
+        ...event,
+        name: resolveEventDisplayName(polarEnv, event.name),
+      })),
     };
   } catch (error) {
     logger.error("Failed to fetch usage history", {

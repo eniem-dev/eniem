@@ -1,55 +1,14 @@
-import { polarClient } from "@/lib/polar";
+import { polar } from "@/lib/polar/index";
 import { logger } from "@/lib/logger";
 import { UnauthorizedError } from "@/lib/errors";
 import { locales } from "@/locales";
-import { ResourceNotFound } from "@polar-sh/sdk/models/errors/resourcenotfound.js";
 import type { CreditBalance, UsageEvent } from "../models/credits.model";
-
-async function getCustomerId(userId: string): Promise<string | null> {
-  try {
-    const customer = await polarClient.customers.getExternal({
-      externalId: userId,
-    });
-    return customer.id;
-  } catch (error) {
-    if (error instanceof ResourceNotFound) return null;
-    logger.error("Failed to get Polar customer ID", {
-      userId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return null;
-  }
-}
 
 export async function getCreditsBalance(
   userId: string,
   meterId: string
 ): Promise<CreditBalance | null> {
-  const customerId = await getCustomerId(userId);
-  if (!customerId) {
-    return null;
-  }
-
-  try {
-    const customerState = await polarClient.customers.getStateExternal({
-      externalId: userId,
-    });
-
-    const meter = customerState.activeMeters?.find((m) => m.meterId === meterId);
-    if (!meter) {
-      logger.warn("Meter not found for customer", { customerId, meterId });
-      return { meterId, balance: 0, customerId };
-    }
-
-    return {
-      meterId,
-      balance: meter.balance,
-      customerId,
-    };
-  } catch (error) {
-    logger.error("Failed to fetch credit balance", { userId, meterId, error });
-    throw error;
-  }
+  return polar.getCreditBalance(userId, meterId);
 }
 
 /**
@@ -67,12 +26,10 @@ export async function hasCredits(
 ): Promise<boolean> {
   const creditBalance = await getCreditsBalance(userId, meterId);
 
-  // No customer/subscription = no credits
   if (!creditBalance) {
     return false;
   }
 
-  // Treat negative balance as 0 (Polar allows negative, we don't)
   const effectiveBalance = Math.max(0, creditBalance.balance);
 
   return effectiveBalance >= requiredAmount;
@@ -102,12 +59,10 @@ export async function assertHasCredits(
       throw new UnauthorizedError(locales.errors.insufficientCredits);
     }
   } catch (error) {
-    // Re-throw UnauthorizedError as-is
     if (error instanceof UnauthorizedError) {
       throw error;
     }
 
-    // API failure - fail-safe by blocking the action
     logger.error("Credits check failed", {
       userId,
       meterId,
@@ -124,43 +79,15 @@ export async function assertHasCredits(
  * Call this after an action completes successfully. Events are immutable
  * once ingested and cannot be changed or deleted.
  *
+ * Fire-and-forget: gateway swallows errors so the action result isn't
+ * undone by a downstream metering failure.
+ *
  * @param userId - The app user ID (used as externalCustomerId in Polar)
  * @param events - Single event or array of events to ingest
- * @returns void - errors are logged but not thrown (action already completed)
  */
 export async function ingestUsage(
   userId: string,
   events: UsageEvent | UsageEvent[]
 ): Promise<void> {
-  const eventArray = Array.isArray(events) ? events : [events];
-
-  if (eventArray.length === 0) {
-    return;
-  }
-
-  try {
-    await polarClient.events.ingest({
-      events: eventArray.map((event) => ({
-        name: event.name,
-        externalCustomerId: userId,
-        metadata: event.metadata,
-        timestamp: event.timestamp,
-      })),
-    });
-
-    logger.info("Usage events ingested", {
-      userId,
-      eventCount: eventArray.length,
-      eventNames: eventArray.map((e) => e.name),
-    });
-  } catch (error) {
-    // Log error but don't throw - the action already completed
-    // Consider implementing a retry queue for production
-    logger.error("Failed to ingest usage events", {
-      userId,
-      eventCount: eventArray.length,
-      eventNames: eventArray.map((e) => e.name),
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
+  await polar.recordUsage(userId, events);
 }
