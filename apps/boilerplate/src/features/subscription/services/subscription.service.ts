@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { polarClient } from "@/lib/polar";
+import { polar } from "@/lib/polar/index";
 import type { PolarSubscription } from "../models/subscription.model";
 
 // === Query functions ===
@@ -81,13 +81,11 @@ export async function deleteSubscription(userId: string) {
 // === Direct Polar API sync (for success page) ===
 
 export async function syncSubscriptionFromPolar(userId: string) {
-  const customerState = await polarClient.customers.getStateExternal({
-    externalId: userId,
-  });
+  const customerState = await polar.getUserCustomerState(userId);
 
   await syncSubscription(
     userId,
-    (customerState.activeSubscriptions as PolarSubscription[]) || []
+    (customerState?.activeSubscriptions as PolarSubscription[]) ?? []
   );
 
   return customerState;

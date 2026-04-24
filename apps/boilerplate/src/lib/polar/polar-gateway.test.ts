@@ -32,7 +32,10 @@ interface MockClient {
     ingest: ReturnType<typeof vi.fn>;
   };
   customerSessions: { create: ReturnType<typeof vi.fn> };
-  customerPortal: { benefitGrants: { list: ReturnType<typeof vi.fn> } };
+  customerPortal: {
+    benefitGrants: { list: ReturnType<typeof vi.fn> };
+    downloadables: { list: ReturnType<typeof vi.fn> };
+  };
 }
 
 function makeClient(): MockClient {
@@ -45,7 +48,10 @@ function makeClient(): MockClient {
     orders: { list: vi.fn() },
     events: { list: vi.fn(), ingest: vi.fn() },
     customerSessions: { create: vi.fn() },
-    customerPortal: { benefitGrants: { list: vi.fn() } },
+    customerPortal: {
+      benefitGrants: { list: vi.fn() },
+      downloadables: { list: vi.fn() },
+    },
   };
 }
 
@@ -354,6 +360,101 @@ describe("PolarGateway", () => {
       client.customerSessions.create.mockRejectedValue(makeNotFound());
       const result = await makeGateway(client).hasAnyBenefitGrant("user_1");
       expect(result).toBe(false);
+    });
+  });
+
+  describe("listDownloadables", () => {
+    it("maps downloadables into domain type on happy path", async () => {
+      client.customerSessions.create.mockResolvedValue({ token: "tok" });
+      const expiresAt = new Date("2026-06-01");
+      client.customerPortal.downloadables.list.mockResolvedValue({
+        result: {
+          items: [
+            {
+              file: {
+                id: "f1",
+                name: "guide.pdf",
+                size: 1234,
+                sizeReadable: "1.2 KB",
+                download: { url: "https://dl/x", expiresAt },
+              },
+            },
+          ],
+        },
+      });
+
+      const result = await makeGateway(client).listDownloadables("user_1");
+
+      expect(result).toEqual([
+        {
+          id: "f1",
+          name: "guide.pdf",
+          size: 1234,
+          sizeReadable: "1.2 KB",
+          downloadUrl: "https://dl/x",
+          expiresAt,
+        },
+      ]);
+    });
+
+    it("returns [] on ResourceNotFound", async () => {
+      client.customerSessions.create.mockRejectedValue(makeNotFound());
+      const result = await makeGateway(client).listDownloadables("user_1");
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("listGitHubBenefits", () => {
+    it("filters to github_repository benefits and maps properties", async () => {
+      client.customerSessions.create.mockResolvedValue({ token: "tok" });
+      const grantedAt = new Date("2026-03-01");
+      client.customerPortal.benefitGrants.list.mockResolvedValue({
+        result: {
+          items: [
+            {
+              benefit: {
+                id: "b1",
+                type: "github_repository",
+                description: "Repo access",
+                properties: {
+                  repositoryOwner: "acme",
+                  repositoryName: "core",
+                },
+              },
+              properties: { permission: "push" },
+              isGranted: true,
+              grantedAt,
+            },
+            {
+              benefit: { id: "b2", type: "discord", properties: {} },
+              properties: {},
+              isGranted: true,
+              grantedAt: null,
+            },
+          ],
+        },
+      });
+
+      const result = await makeGateway(client).listGitHubBenefits("user_1");
+
+      expect(result).toEqual([
+        {
+          id: "b1",
+          repositoryOwner: "acme",
+          repositoryName: "core",
+          repositoryUrl: "https://github.com/acme/core",
+          permission: "push",
+          isGranted: true,
+          grantedAt,
+          description: "Repo access",
+        },
+      ]);
+    });
+
+    it("returns [] on ResourceNotFound", async () => {
+      client.customerSessions.create.mockRejectedValue(makeNotFound());
+      const result = await makeGateway(client).listGitHubBenefits("user_1");
+      expect(result).toEqual([]);
     });
   });
 

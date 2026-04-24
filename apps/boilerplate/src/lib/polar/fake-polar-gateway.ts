@@ -1,6 +1,8 @@
 import type { PolarGateway } from "./polar-gateway";
 /* eslint-disable no-restricted-imports */
 import type { BillingOrder } from "@/features/billing/models/billing.model";
+import type { Downloadable } from "@/features/benefits/models/downloadable.model";
+import type { GitHubBenefit } from "@/features/benefits/models/github-benefit.model";
 import type {
   UsageEvent,
   UsageHistoryEvent,
@@ -17,6 +19,8 @@ export interface FakeCustomer {
   meters?: Array<{ meterId: string; balance: number }>;
   activeSubscriptions?: PolarSubscription[];
   benefitGrants?: number;
+  downloadables?: Downloadable[];
+  githubBenefits?: GitHubBenefit[];
   usageEvents?: UsageHistoryEvent[];
 }
 
@@ -125,6 +129,12 @@ export function createFakePolarGateway(
     async hasAnyBenefitGrant(userId) {
       const c = customers.get(userId);
       return (c?.benefitGrants ?? 0) > 0;
+    },
+    async listDownloadables(userId) {
+      return customers.get(userId)?.downloadables ?? [];
+    },
+    async listGitHubBenefits(userId) {
+      return customers.get(userId)?.githubBenefits ?? [];
     },
     async deleteUserCustomer(userId) {
       customers.delete(userId);

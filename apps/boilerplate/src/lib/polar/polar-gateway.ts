@@ -6,6 +6,8 @@ import { logger } from "@/lib/logger";
 // The gateway's contract is feature-owned domain models — types flow up by design.
 /* eslint-disable no-restricted-imports */
 import type { BillingOrder } from "@/features/billing/models/billing.model";
+import type { Downloadable } from "@/features/benefits/models/downloadable.model";
+import type { GitHubBenefit } from "@/features/benefits/models/github-benefit.model";
 import type {
   CreditBalance,
   UsageEvent,
@@ -13,7 +15,12 @@ import type {
 } from "@/features/credits/models/credits.model";
 import type { PolarSubscription } from "@/features/subscription/models/subscription.model";
 /* eslint-enable no-restricted-imports */
-import { mapOrderToBillingOrder, mapSubscriptionToDomain } from "./polar-mappers";
+import {
+  mapDownloadable,
+  mapGitHubBenefits,
+  mapOrderToBillingOrder,
+  mapSubscriptionToDomain,
+} from "./polar-mappers";
 
 export type { CustomerState };
 
@@ -28,6 +35,8 @@ export interface PolarGateway {
   getUserCustomerState(userId: string): Promise<CustomerState | null>;
   fetchActiveSubscriptions(userId: string): Promise<PolarSubscription[]>;
   hasAnyBenefitGrant(userId: string): Promise<boolean>;
+  listDownloadables(userId: string): Promise<Downloadable[]>;
+  listGitHubBenefits(userId: string): Promise<GitHubBenefit[]>;
   deleteUserCustomer(userId: string): Promise<void>;
 }
 
@@ -291,6 +300,74 @@ export function createPolarGateway(client: Polar): PolarGateway {
     }
   }
 
+  async function listDownloadables(userId: string): Promise<Downloadable[]> {
+    try {
+      const customerSession = await executeWrite("createCustomerSession", (signal) =>
+        client.customerSessions.create(
+          { externalCustomerId: userId },
+          { signal }
+        )
+      );
+      const response = await executeRead("listDownloadables", (signal) =>
+        client.customerPortal.downloadables.list(
+          { customerSession: customerSession.token },
+          {},
+          { signal }
+        )
+      );
+      const items = response.result.items ?? [];
+      return items.map(mapDownloadable);
+    } catch (error) {
+      if (error instanceof ResourceNotFound) {
+        logger.debug("Polar downloadables not found", {
+          op: "listDownloadables",
+          userId,
+        });
+        return [];
+      }
+      logger.error("Polar listDownloadables failed", {
+        op: "listDownloadables",
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  async function listGitHubBenefits(userId: string): Promise<GitHubBenefit[]> {
+    try {
+      const customerSession = await executeWrite("createCustomerSession", (signal) =>
+        client.customerSessions.create(
+          { externalCustomerId: userId },
+          { signal }
+        )
+      );
+      const response = await executeRead("listGitHubBenefits", (signal) =>
+        client.customerPortal.benefitGrants.list(
+          { customerSession: customerSession.token },
+          {},
+          { signal }
+        )
+      );
+      const items = response.result.items ?? [];
+      return mapGitHubBenefits(items);
+    } catch (error) {
+      if (error instanceof ResourceNotFound) {
+        logger.debug("Polar github benefits not found", {
+          op: "listGitHubBenefits",
+          userId,
+        });
+        return [];
+      }
+      logger.error("Polar listGitHubBenefits failed", {
+        op: "listGitHubBenefits",
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
   async function deleteUserCustomer(userId: string): Promise<void> {
     try {
       await executeWrite("deleteUserCustomer", (signal) =>
@@ -324,6 +401,8 @@ export function createPolarGateway(client: Polar): PolarGateway {
     getUserCustomerState,
     fetchActiveSubscriptions,
     hasAnyBenefitGrant,
+    listDownloadables,
+    listGitHubBenefits,
     deleteUserCustomer,
   };
 }
