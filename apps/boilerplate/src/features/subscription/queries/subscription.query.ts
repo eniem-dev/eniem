@@ -1,7 +1,7 @@
-import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
 import { getUserSubscription } from "../services/subscription.service";
 
 export const getSubscriptionQuery = () =>
-  createAuthenticatedQuery(async ({ user }) => {
+  authed.query(async ({ user }) => {
     return getUserSubscription(user.id);
-  });
+  })();

@@ -1,17 +1,12 @@
-import { NextRequest } from "next/server";
-import { createAuthenticatedApiHandler } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
+
 import { getUsageHistory } from "@/features/credits";
 import type { UsageHistoryResult } from "@/features/credits";
 
-export async function GET(request: NextRequest) {
-  const page = Number(request.nextUrl.searchParams.get("page") ?? "1");
-  const limit = Number(request.nextUrl.searchParams.get("limit") ?? "20");
-
-  const handler = await createAuthenticatedApiHandler<UsageHistoryResult>(
-    async ({ user }) => {
-      return getUsageHistory(user.id, { limit, page });
-    }
-  );
-
-  return handler(request);
-}
+export const GET = authed.route(
+  async ({ user, request }): Promise<UsageHistoryResult> => {
+    const page = Number(request.nextUrl.searchParams.get("page") ?? "1");
+    const limit = Number(request.nextUrl.searchParams.get("limit") ?? "20");
+    return getUsageHistory(user.id, { limit, page });
+  }
+);

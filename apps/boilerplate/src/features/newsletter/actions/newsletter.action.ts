@@ -1,14 +1,14 @@
 "use server";
 
-import { actionClient } from "@/lib/safe-action.server";
+import { publicly } from "@/lib/handler";
 import { newsletterSchema } from "../schemas/newsletter.schema";
 import { locales } from "@/locales";
 import { logger } from "@/lib/logger";
 import { saveEmailToDatabase } from "../services/newsletter.service";
 
-export const subscribeToNewsletterAction = actionClient
-  .inputSchema(newsletterSchema)
-  .action(async ({ parsedInput: { email } }) => {
+export const subscribeToNewsletterAction = publicly
+  .input(newsletterSchema)
+  .action(async ({ input: { email } }) => {
     try {
       logger.info("Collecting email for newsletter", { email });
 

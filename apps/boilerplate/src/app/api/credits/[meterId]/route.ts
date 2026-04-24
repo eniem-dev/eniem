@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createAuthenticatedApiHandler } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
 import { getCreditsBalance, getCustomerId } from "@/features/credits";
 import type { CreditBalance } from "@/features/credits";
 
@@ -14,15 +14,11 @@ export async function GET(
 ) {
   const { meterId } = await context.params;
 
-  const handler = await createAuthenticatedApiHandler<CreditsData>(
-    async ({ user }) => {
-      const customerId = await getCustomerId(user.id);
-      const hasCustomer = customerId !== null;
-      const balance = await getCreditsBalance(user.id, meterId);
+  return authed.route(async ({ user }): Promise<CreditsData> => {
+    const customerId = await getCustomerId(user.id);
+    const hasCustomer = customerId !== null;
+    const balance = await getCreditsBalance(user.id, meterId);
 
-      return { balance, hasCustomer };
-    }
-  );
-
-  return handler(request);
+    return { balance, hasCustomer };
+  })(request);
 }
