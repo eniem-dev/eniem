@@ -2,11 +2,24 @@ import { polarClient } from "@/lib/polar";
 import { logger } from "@/lib/logger";
 import { UnauthorizedError } from "@/lib/errors";
 import { locales } from "@/locales";
-import { getCustomerId } from "@/features/billing";
+import { ResourceNotFound } from "@polar-sh/sdk/models/errors/resourcenotfound.js";
 import type { CreditBalance, UsageEvent } from "../models/credits.model";
 
-// Re-export for backwards compatibility
-export { getCustomerId };
+async function getCustomerId(userId: string): Promise<string | null> {
+  try {
+    const customer = await polarClient.customers.getExternal({
+      externalId: userId,
+    });
+    return customer.id;
+  } catch (error) {
+    if (error instanceof ResourceNotFound) return null;
+    logger.error("Failed to get Polar customer ID", {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
 
 export async function getCreditsBalance(
   userId: string,

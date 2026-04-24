@@ -1,8 +1,24 @@
 import { polarClient } from "@/lib/polar";
 import { logger } from "@/lib/logger";
 import { env } from "@/config";
-import { getCustomerId } from "@/features/billing";
+import { ResourceNotFound } from "@polar-sh/sdk/models/errors/resourcenotfound.js";
 import { resolveEventDisplayName } from "../meters.generated";
+
+async function getCustomerId(userId: string): Promise<string | null> {
+  try {
+    const customer = await polarClient.customers.getExternal({
+      externalId: userId,
+    });
+    return customer.id;
+  } catch (error) {
+    if (error instanceof ResourceNotFound) return null;
+    logger.error("Failed to get Polar customer ID", {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
 import type {
   UsageHistoryEvent,
   UsageHistoryResult,

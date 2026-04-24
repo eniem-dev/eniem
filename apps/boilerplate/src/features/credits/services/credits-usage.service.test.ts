@@ -2,18 +2,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getUsageHistory } from "./credits-usage.service";
 
 const mockEventsList = vi.fn();
-const mockGetCustomerId = vi.fn();
+const mockGetExternal = vi.fn();
 
 vi.mock("@/lib/polar", () => ({
   polarClient: {
     events: {
       list: (...args: unknown[]) => mockEventsList(...args),
     },
+    customers: {
+      getExternal: (...args: unknown[]) => mockGetExternal(...args),
+    },
   },
-}));
-
-vi.mock("@/features/billing", () => ({
-  getCustomerId: (...args: unknown[]) => mockGetCustomerId(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -57,7 +56,7 @@ const makePolarEvent = (overrides: Record<string, unknown> = {}) => ({
 describe("getUsageHistory", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetCustomerId.mockResolvedValue("polar_cust_1");
+    mockGetExternal.mockResolvedValue({ id: "polar_cust_1" });
   });
 
   it("returns formatted UsageHistoryEvent array from Polar response", async () => {
@@ -89,7 +88,14 @@ describe("getUsageHistory", () => {
   });
 
   it("returns empty result when no Polar customer exists", async () => {
-    mockGetCustomerId.mockResolvedValue(null);
+    const { ResourceNotFound } = await import(
+      "@polar-sh/sdk/models/errors/resourcenotfound.js"
+    );
+    const notFound = new ResourceNotFound(
+      { error: "ResourceNotFound", detail: "not found", message: "not found" },
+      { request: new Request("http://x/"), response: new Response(), body: "{}" }
+    );
+    mockGetExternal.mockRejectedValue(notFound);
 
     const result = await getUsageHistory("user_1");
 
