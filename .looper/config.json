@@ -1,0 +1,7 @@
+{
+  "cli": "claude",
+  "model": "default",
+  "maxIterations": 20,
+  "sentinel": ":::LOOPER_DONE:::",
+  "vars": {}
+}
