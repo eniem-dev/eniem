@@ -34,9 +34,9 @@ const user = await prisma.user.findUnique({ where: { id } });
 | Environment          | `env` from `@/config`                                                 |
 | Routes               | `routes` from `@/config`                                              |
 | Auth session         | `auth.api.getSession({ headers: await headers() })`                   |
-| Authenticated action | `authenticatedActionClient` from `@/lib/safe-action.server`           |
-| Public query         | `createQuery` from `@/lib/server-handler`                             |
-| Auth query           | `createAuthenticatedQuery` from `@/lib/server-handler`                |
+| Authenticated action | `authed.action(...)` from `@/lib/handler`                             |
+| Public query         | `publicly.query(...)` from `@/lib/handler`                            |
+| Auth query           | `authed.query(...)` from `@/lib/handler`                              |
 | Errors               | `ServerError, UnauthorizedError, ValidationError` from `@/lib/errors` |
 | Email                | `sendOtpEmail, sendVerificationEmail...` from `@/lib/email`           |
 | Logger               | `logger` from `@/lib/logger`                                          |

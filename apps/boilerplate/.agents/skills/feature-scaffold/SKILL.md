@@ -95,20 +95,20 @@ Rules:
 
 ```typescript
 // src/features/my-feature/queries/my-feature.query.ts
-import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
 import { getMyFeature } from "../services/my-feature.service";
 
 export const getMyFeatureQuery = (id: string) =>
-  createAuthenticatedQuery(async ({ user }) => {
+  authed.query(async ({ user }) => {
     return getMyFeature(id);
   });
 ```
 
 Rules:
-- Query is a **factory function** that returns `createQuery()` or `createAuthenticatedQuery()`
+- Query is a **factory function** that returns `publicly.query()` or `authed.query()`
 - Parameters are closure arguments (e.g., `id`)
 - Handler receives `{ session }` (public) or `{ session, user }` (authenticated)
-- Returns `ServerResponse<T>`: `{ data: T, error: null }` or `{ data: null, error: string }`
+- Returns `Result<T>`: `{ data: T, error: null }` or `{ data: null, error: string }`
 
 ### 5. Create the Action
 
@@ -116,20 +116,18 @@ Rules:
 // src/features/my-feature/actions/my-feature.action.ts
 "use server";
 
-import { authenticatedActionClient } from "@/lib/safe-action.server";
+import { authed } from "@/lib/handler";
 import { createMyFeatureSchema } from "../schemas/my-feature.schema";
 import { createMyFeature } from "../services/my-feature.service";
 import { logger } from "@/lib/logger";
 import { locales } from "@/locales";
 
-export const createMyFeatureAction = authenticatedActionClient
-  .inputSchema(createMyFeatureSchema)
-  .action(async ({ parsedInput, ctx }) => {
-    const { user } = ctx.session;
-
+export const createMyFeatureAction = authed
+  .input(createMyFeatureSchema)
+  .action(async ({ input, user }) => {
     try {
       logger.info("Creating feature", { userId: user.id });
-      const result = await createMyFeature(user.id, parsedInput);
+      const result = await createMyFeature(user.id, input);
       return { success: true, data: result };
     } catch (error) {
       logger.error("Failed to create feature", {
@@ -143,8 +141,8 @@ export const createMyFeatureAction = authenticatedActionClient
 
 Rules:
 - Always start with `"use server"` directive
-- Use `actionClient` (public) or `authenticatedActionClient` (requires auth)
-- Chain `.inputSchema(schema).action(handler)`
+- Use `publicly` (public) or `authed` (requires auth) root from `@/lib/handler`
+- Chain `.input(schema).action(handler)`
 - Log before and after key operations
 - Throw errors with `locales.errors.*` messages
 

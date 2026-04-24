@@ -136,24 +136,21 @@ Create an authenticated action for secure uploads:
 // features/settings/settings.action.ts
 "use server";
 
-import { authenticatedActionClient } from "@/lib/safe-action.server";
+import { authed } from "@/lib/handler";
 import { updateImageSchema } from "./settings.schemas";
 import { uploadImage } from "@/lib/file-upload";
 import { logger } from "@/lib/logger";
 import { locales } from "@/locales";
 
-export const updateImageAction = authenticatedActionClient
-  .inputSchema(updateImageSchema())
-  .action(async ({ parsedInput, ctx }) => {
-    const { image } = parsedInput;
-    const { session } = ctx;
-
+export const updateImageAction = authed
+  .input(updateImageSchema())
+  .action(async ({ input: { image }, user }) => {
     logger.info("Starting image upload", {
-      userId: session.user.id,
+      userId: user.id,
       fileSize: image.size,
     });
 
-    const imageUrl = await uploadImage(image, session.user.id);
+    const imageUrl = await uploadImage(image, user.id);
 
     return { imageUrl };
   });
