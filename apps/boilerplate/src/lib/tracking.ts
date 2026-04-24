@@ -1,9 +1,30 @@
-import { getAnalyticsProvider } from "./analytics";
+import posthog from "posthog-js";
 
-export function captureEvent(eventName: string, properties?: Record<string, unknown>) {
-  getAnalyticsProvider().track(eventName, properties);
+import { env } from "@/config";
+
+declare global {
+  interface Window {
+    umami?: {
+      track: (eventName: string, data?: Record<string, unknown>) => void;
+    };
+  }
 }
 
-export function identifyUser(userId: string, traits?: Record<string, unknown>) {
-  getAnalyticsProvider().identify?.(userId, traits);
+export function captureEvent(
+  event: string,
+  properties?: Record<string, unknown>,
+): void {
+  if (typeof window === "undefined") return;
+
+  switch (env.analytics.provider) {
+    case "posthog":
+      posthog.capture(event, properties);
+      return;
+    case "umami":
+      window.umami?.track(event, properties);
+      return;
+    case "none":
+    default:
+      return;
+  }
 }
