@@ -1,8 +1,8 @@
-import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
 import { getGitHubBenefits } from "../services/github-benefits.service";
 
 export async function getGitHubBenefitsQuery() {
-  return createAuthenticatedQuery(async ({ user }) => {
+  return authed.query(async ({ user }) => {
     const benefits = await getGitHubBenefits(user.id);
     return { benefits };
   });

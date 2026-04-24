@@ -99,20 +99,18 @@ ingestUsage(userId, { name: "use-credit", metadata: { ... } })
 
 ### Pattern for Credit-Consuming Actions
 ```typescript
-export const myAction = authenticatedActionClient
-  .inputSchema(mySchema)
-  .action(async ({ parsedInput, ctx }) => {
-    const { user } = ctx.session;
-    
+export const myAction = authed
+  .input(mySchema)
+  .action(async ({ input, user }) => {
     // 1. Guard: check credits BEFORE doing work
     await assertHasCredits(user.id, METER_ID, 1);
-    
+
     // 2. Do the work
-    const result = await doExpensiveOperation(parsedInput);
-    
+    const result = await doExpensiveOperation(input);
+
     // 3. Record usage AFTER success (fire-and-forget)
     ingestUsage(user.id, { name: "use-credit", metadata: { ... } });
-    
+
     return result;
   });
 ```

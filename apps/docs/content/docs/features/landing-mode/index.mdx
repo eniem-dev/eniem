@@ -103,9 +103,9 @@ This is useful when you want to:
 Edit the action file at `features/newsletter/actions/newsletter.action.ts`:
 
 ```ts
-export const subscribeToNewsletterAction = actionClient
-  .inputSchema(newsletterSchema)
-  .action(async ({ parsedInput: { email } }) => {
+export const subscribeToNewsletterAction = publicly
+  .input(newsletterSchema)
+  .action(async ({ input: { email } }) => {
     try {
       logger.info("Collecting email for newsletter", { email });
 

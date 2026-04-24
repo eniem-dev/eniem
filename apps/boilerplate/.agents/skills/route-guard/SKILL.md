@@ -27,42 +27,41 @@ export default async function ProtectedPage() {
 }
 ```
 
-### 2. Authenticated data fetching (`createAuthenticatedQuery`)
+### 2. Authenticated data fetching (`authed.query`)
 
 Use for server-side queries that require a user. The handler gets `{ user, session }` guaranteed non-null; no inline redirect needed — the wrapper throws `UnauthorizedError` which the error boundary handles.
 
 ```typescript
-import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
 
 export const getProfile = () =>
-  createAuthenticatedQuery(async ({ user }) => {
+  authed.query(async ({ user }) => {
     return getUserProfile(user.id);
   });
 ```
 
-Always call a service function from inside the query — no direct `prisma` in queries. For public queries (session may be null), use `createQuery`.
+Always call a service function from inside the query — no direct `prisma` in queries. For public queries (session may be null), use `publicly.query`.
 
-### 3. Secure API route (`createAuthenticatedApiHandler`)
+### 3. Secure API route (`authed.route`)
 
-Use for API routes that require a user. Signature includes optional `validate` for Zod input validation.
+Use for API routes that require a user. Chain `.input(schema)` for Zod input validation.
 
 ```typescript
-import { createAuthenticatedApiHandler } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
 import { postSchema } from "./schemas";
 
-export const POST = createAuthenticatedApiHandler(
-  async ({ user, input }) => ({ created: true, userId: user.id }),
-  { validate: postSchema }
-);
+export const POST = authed
+  .input(postSchema)
+  .route(async ({ user, input }) => ({ created: true, userId: user.id }));
 ```
 
-For public API routes, use `createApiHandler`. See `docs/server-patterns.md` for error-handling conventions (`UnauthorizedError`, `ValidationError`, `ServerError`).
+For public API routes, use `publicly.route`. See `docs/server-patterns.md` for error-handling conventions (`UnauthorizedError`, `ValidationError`, `ServerError`).
 
 ### Rule of thumb
 
 - Page that should redirect on failure → inline `auth.api.getSession` + `redirect`.
-- Data for a page/component → `createAuthenticatedQuery`.
-- Route handler (`app/api/.../route.ts`) → `createAuthenticatedApiHandler`.
+- Data for a page/component → `authed.query`.
+- Route handler (`app/api/.../route.ts`) → `authed.route`.
 
 ## Middleware Pattern
 

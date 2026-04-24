@@ -18,6 +18,7 @@ export const locales = {
     networkError: "Network error. Please check your connection.",
     unhandledError: "An unexpected error occurred",
     validationFailed: "Invalid input provided",
+    invalidJsonBody: "Request body is not valid JSON",
     invalidEmail: "Please enter a valid email address",
 
     // Form validation errors

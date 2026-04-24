@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import type { ApiResponse } from "@/lib/server-handler";
+import type { ApiResponse } from "@/lib/handler";
 import type { CreditBalance } from "../models/credits.model";
 import type { CreditsData } from "@/app/api/credits/[meterId]/route";
 
