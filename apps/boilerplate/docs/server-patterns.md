@@ -3,18 +3,18 @@
 ## Queries (RSC)
 
 ```typescript
-import { createQuery, createAuthenticatedQuery } from "@/lib/server-handler";
+import { authed, publicly } from "@/lib/handler";
 
 // Public query (session can be null)
 export const getData = () =>
-  createQuery(async ({ session }) => {
+  publicly.query(async ({ session }) => {
     return { data: "public", userId: session?.user?.id };
   });
 
 // Authenticated query (session & user guaranteed)
 // Always call a service function — no direct prisma in queries
 export const getProfile = () =>
-  createAuthenticatedQuery(async ({ user }) => {
+  authed.query(async ({ user }) => {
     return getUserProfile(user.id);
   });
 ```
@@ -23,15 +23,14 @@ export const getProfile = () =>
 
 ```typescript
 "use server";
-import { actionClient, authenticatedActionClient } from "@/lib/safe-action.server";
+import { authed } from "@/lib/handler";
 import { updateProfileSchema } from "./schemas";
 
 // Always call a service function — no direct prisma in actions
-export const updateProfile = authenticatedActionClient
-  .inputSchema(updateProfileSchema)
-  .action(async ({ parsedInput, ctx }) => {
-    const { user } = ctx;
-    await updateUserProfile(user.id, parsedInput);
+export const updateProfile = authed
+  .input(updateProfileSchema)
+  .action(async ({ input, user }) => {
+    await updateUserProfile(user.id, input);
     revalidatePath("/dashboard/profile");
     return { success: true };
   });
@@ -40,16 +39,15 @@ export const updateProfile = authenticatedActionClient
 ## API Routes
 
 ```typescript
-import { createApiHandler, createAuthenticatedApiHandler } from "@/lib/server-handler";
+import { authed, publicly } from "@/lib/handler";
 
-export const GET = createApiHandler(async ({ session }) => {
+export const GET = publicly.route(async ({ session }) => {
   return { isAuthenticated: !!session?.user };
 });
 
-export const POST = createAuthenticatedApiHandler(
-  async ({ user, input }) => ({ created: true, userId: user.id }),
-  { validate: postSchema }
-);
+export const POST = authed
+  .input(postSchema)
+  .route(async ({ user, input }) => ({ created: true, userId: user.id }));
 ```
 
 ## Error Handling

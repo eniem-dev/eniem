@@ -175,7 +175,7 @@ const eslintConfig = [
             {
               group: ["@/features/*/services/*"],
               message:
-                "Pages and API routes must not import services directly. Use queries (createQuery/createAuthenticatedQuery) or actions (actionClient) instead. See docs/server-patterns.md.",
+                "Pages and API routes must not import services directly. Use queries (publicly.query/authed.query) or actions (authed.action/publicly.action) from @/lib/handler instead. See docs/server-patterns.md.",
             },
             polarSdkRestriction,
           ],

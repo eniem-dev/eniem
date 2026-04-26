@@ -129,7 +129,7 @@ async function handleAccess(
 
 ### Server Utilities
 
-For handling authentication in queries and API handlers, use the server utilities module which provides `getSession()`, `requireAuth()`, `createQuery()`, and `createAuthenticatedQuery()`.
+For handling authentication in queries, actions, and API routes, use the unified handler builder from `@/lib/handler` which exposes `authed` and `publicly` roots with `.query()`, `.action()`, and `.route()` terminals.
 
 See [Server Utilities](/features/server-utilities) for detailed documentation.
 
@@ -220,11 +220,11 @@ export default async function AccountPage() {
 ### Using Authenticated Query
 
 ```tsx
-import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
 import { prisma } from "@/lib/db";
 
 export const getUserQuery = () =>
-  createAuthenticatedQuery(async ({ user }) => {
+  authed.query(async ({ user }) => {
     return prisma.user.findUnique({ where: { id: user.id } });
   });
 ```
@@ -234,13 +234,12 @@ export const getUserQuery = () =>
 ```tsx
 "use server";
 
-import { authenticatedActionClient } from "@/lib/safe-action.server";
+import { authed } from "@/lib/handler";
 import { updateProfileSchema } from "./schemas";
 
-export const updateProfileAction = authenticatedActionClient
-  .inputSchema(updateProfileSchema)
-  .action(async ({ parsedInput, ctx }) => {
-    const { user } = ctx;
+export const updateProfileAction = authed
+  .input(updateProfileSchema)
+  .action(async ({ input, user }) => {
     // user is guaranteed non-null
     // ... update logic
   });

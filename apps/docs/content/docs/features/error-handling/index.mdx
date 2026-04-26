@@ -39,7 +39,7 @@ export class ValidationError extends ServerError {
 
 ## Server-Side Error Handling
 
-The `handleError` function in `lib/server-handler.ts` processes errors and returns appropriate HTTP responses.
+The `classifyError` function in `lib/handler.ts` processes errors and returns appropriate HTTP responses across every terminal (query/action/route).
 
 ### Error Processing Order
 
@@ -52,15 +52,15 @@ The `handleError` function in `lib/server-handler.ts` processes errors and retur
 
 ### Response Formats
 
-**Server Queries** (`createQuery`, `createAuthenticatedQuery`):
+**Server Queries** (`authed.query`, `publicly.query`):
 
 ```ts
-type ServerResponse<T> =
+type Result<T> =
   | { data: T; error: null }
   | { data: null; error: string };
 ```
 
-**API Handlers** (`createApiHandler`, `createAuthenticatedApiHandler`):
+**API Routes** (`authed.route`, `publicly.route`):
 
 ```ts
 type ApiResponse<T> =
@@ -113,7 +113,7 @@ import { UnauthorizedError, ValidationError, ServerError } from "@/lib/errors";
 
 // In a server query or API handler
 export const getResource = () =>
-  createAuthenticatedQuery(async ({ user }) => {
+  authed.query(async ({ user }) => {
     const resource = await db.resource.findUnique({ where: { userId: user.id } });
 
     if (!resource) {
@@ -193,18 +193,17 @@ const { execute, isPending } = useAction(updateProfileAction, {
 Use the provided type guard functions for cleaner TypeScript narrowing. These helpers ensure `data` is properly typed after the check.
 
 ```ts
-import { isServerResponseSuccessful, isApiResponseSuccessful } from "@/lib/server-handler";
 import { isActionSuccessful } from "@/lib/safe-action";
 
-// Server queries
+// Server queries — narrow via the error field
 const result = await getResource();
-if (isServerResponseSuccessful(result)) {
-  // result.data is typed, result.error is null
+if (!result.error) {
+  // result.data is non-null here
 }
 
-// API responses
-if (isApiResponseSuccessful(response)) {
-  // response.data is typed, response.success is true
+// API responses — narrow via success discriminant
+if (response.success) {
+  // response.data is typed
 }
 
 // Server actions

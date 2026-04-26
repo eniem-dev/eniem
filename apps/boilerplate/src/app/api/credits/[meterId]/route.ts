@@ -1,5 +1,5 @@
-import { NextRequest } from "next/server";
-import { createAuthenticatedApiHandler } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
+import { polar } from "@/lib/polar/index";
 import { getCreditsBalance } from "@/features/credits";
 import type { CreditBalance } from "@/features/credits";
 
@@ -8,20 +8,13 @@ export interface CreditsData {
   hasCustomer: boolean;
 }
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ meterId: string }> }
-) {
-  const { meterId } = await context.params;
+export const GET = authed.route(
+  async ({ user, context }): Promise<CreditsData> => {
+    const { meterId } = (await context.params) as { meterId: string };
+    const customerState = await polar.getUserCustomerState(user.id);
+    const hasCustomer = customerState !== null;
+    const balance = await getCreditsBalance(user.id, meterId);
 
-  const handler = await createAuthenticatedApiHandler<CreditsData>(
-    async ({ user }) => {
-      const balance = await getCreditsBalance(user.id, meterId);
-      const hasCustomer = balance !== null;
-
-      return { balance, hasCustomer };
-    }
-  );
-
-  return handler(request);
-}
+    return { balance, hasCustomer };
+  }
+);
