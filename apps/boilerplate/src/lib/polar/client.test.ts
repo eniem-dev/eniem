@@ -22,7 +22,7 @@ vi.mock("@/config", () => ({
 
 describe("polarClient", () => {
   it("instantiates Polar with config from env", async () => {
-    const { polarClient } = await import("./polar");
+    const { polarClient } = await import("./client");
     expect(polarClient).toBeDefined();
     expect(mockPolarConstructor).toHaveBeenCalledWith({
       accessToken: "test-token",

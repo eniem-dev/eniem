@@ -24,7 +24,6 @@ export type {
 
 // Services
 export {
-  getCustomerId,
   getCreditsBalance,
   hasCredits,
   assertHasCredits,

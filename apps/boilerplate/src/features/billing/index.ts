@@ -1,9 +1,6 @@
 // Models
 export type { BillingOrder, BillingData } from "./models/billing.model";
 
-// Services
-export { getCustomerId, getCustomerOrders } from "./services/billing.service";
-
 // Queries
 export { getBillingDataQuery } from "./queries/billing.query";
 

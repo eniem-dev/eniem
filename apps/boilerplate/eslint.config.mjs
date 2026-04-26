@@ -9,6 +9,15 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
+// Polar SDK is gateway-only: only files under src/lib/polar/** may import @polar-sh/sdk.
+// Bundled into every no-restricted-imports block below because flat config does not merge
+// rule values across matching blocks — the last matching block wins for a given rule name.
+const polarSdkRestriction = {
+  group: ["@polar-sh/sdk", "@polar-sh/sdk/*"],
+  message:
+    "Import from `@/lib/polar` (the gateway) instead. Direct @polar-sh/sdk usage is only permitted inside src/lib/polar/**.",
+};
+
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
@@ -23,6 +32,22 @@ const eslintConfig = [
   },
 
   // === Architectural Boundaries ===
+
+  // Default for all src/ files: forbid direct Polar SDK imports. Excludes src/lib/polar/**.
+  // More specific blocks below override this rule with their own pattern list — those
+  // blocks re-include polarSdkRestriction so the protection is preserved.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/polar/**"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [polarSdkRestriction],
+        },
+      ],
+    },
+  },
 
   // UI components must stay pure — no business logic imports
   {
@@ -42,6 +67,7 @@ const eslintConfig = [
               message:
                 "UI components must not import infrastructure. Accept data via props from a parent feature component.",
             },
+            polarSdkRestriction,
           ],
         },
       ],
@@ -69,15 +95,18 @@ const eslintConfig = [
               message:
                 "Import from the feature's public API: `import { ... } from '@/features/{name}'`. Within the same feature, use relative imports instead.",
             },
+            polarSdkRestriction,
           ],
         },
       ],
     },
   },
 
-  // Infrastructure (lib/) must not import from features — dependency flows downward
+  // Infrastructure (lib/) must not import from features — dependency flows downward.
+  // Excludes src/lib/polar/** so the gateway itself can import the Polar SDK.
   {
     files: ["src/lib/**/*.{ts,tsx}"],
+    ignores: ["src/lib/polar/**"],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -88,6 +117,7 @@ const eslintConfig = [
               message:
                 "lib/ must not import from features/ — dependency flows downward (app → features → lib). Extract shared code into lib/ or pass it as a parameter.",
             },
+            polarSdkRestriction,
           ],
         },
       ],
@@ -107,6 +137,7 @@ const eslintConfig = [
               message:
                 "Queries must not import the database directly. Call a service function instead. See docs/server-patterns.md.",
             },
+            polarSdkRestriction,
           ],
         },
       ],
@@ -126,6 +157,7 @@ const eslintConfig = [
               message:
                 "Actions must not import the database directly. Call a service function instead. See docs/server-patterns.md.",
             },
+            polarSdkRestriction,
           ],
         },
       ],
@@ -145,6 +177,7 @@ const eslintConfig = [
               message:
                 "Pages and API routes must not import services directly. Use queries (publicly.query/authed.query) or actions (authed.action/publicly.action) from @/lib/handler instead. See docs/server-patterns.md.",
             },
+            polarSdkRestriction,
           ],
         },
       ],

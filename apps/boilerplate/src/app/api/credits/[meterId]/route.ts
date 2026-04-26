@@ -1,5 +1,6 @@
 import { authed } from "@/lib/handler";
-import { getCreditsBalance, getCustomerId } from "@/features/credits";
+import { polar } from "@/lib/polar/index";
+import { getCreditsBalance } from "@/features/credits";
 import type { CreditBalance } from "@/features/credits";
 
 export interface CreditsData {
@@ -10,8 +11,8 @@ export interface CreditsData {
 export const GET = authed.route(
   async ({ user, context }): Promise<CreditsData> => {
     const { meterId } = (await context.params) as { meterId: string };
-    const customerId = await getCustomerId(user.id);
-    const hasCustomer = customerId !== null;
+    const customerState = await polar.getUserCustomerState(user.id);
+    const hasCustomer = customerState !== null;
     const balance = await getCreditsBalance(user.id, meterId);
 
     return { balance, hasCustomer };

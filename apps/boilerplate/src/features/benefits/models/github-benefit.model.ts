@@ -1,13 +1,6 @@
-export interface GitHubBenefit {
-  id: string;
-  repositoryOwner: string;
-  repositoryName: string;
-  repositoryUrl: string;
-  permission: string;
-  isGranted: boolean;
-  grantedAt: Date | null;
-  description: string;
-}
+import type { GitHubBenefit } from "@/lib/polar/polar-domain";
+
+export type { GitHubBenefit };
 
 export interface GitHubBenefitsResult {
   benefits: GitHubBenefit[];
