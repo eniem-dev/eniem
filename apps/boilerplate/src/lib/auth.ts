@@ -5,12 +5,7 @@ import { verifyMessage } from "viem";
 import { generateSiweNonce } from "viem/siwe";
 import { polar, checkout, portal, usage, webhooks } from "@polar-sh/better-auth";
 
-import {
-  sendOtpEmail,
-  sendPasswordResetEmail,
-  sendVerificationEmail,
-  sendDeleteAccountEmail,
-} from "./email";
+import { sendEmail } from "./email/send-email";
 import { logger } from "./logger";
 import { env } from "@/config";
 import { prisma } from "./db";
@@ -61,7 +56,7 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
     sendResetPassword: async ({ user, url, token }) => {
-      await sendPasswordResetEmail(user.email, token, url);
+      await sendEmail({ type: "password-reset", to: user.email, data: { url, token } });
     },
     onPasswordReset: async ({ user }) => {
       logger.info("Password reset successful", {
@@ -73,7 +68,7 @@ export const auth = betterAuth({
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url, token }) => {
-      await sendVerificationEmail(user.email, token, url);
+      await sendEmail({ type: "verification", to: user.email, data: { url, token } });
     },
     autoSignInAfterVerification: true,
   },
@@ -82,13 +77,13 @@ export const auth = betterAuth({
       enabled: true,
       sendChangeEmailVerification: async ({ user, url, token }) => {
         // verification email must be sent to the current user email to approve the change
-        await sendVerificationEmail(user.email, token, url);
+        await sendEmail({ type: "verification", to: user.email, data: { url, token } });
       },
     },
     deleteUser: {
       enabled: true,
       sendDeleteAccountVerification: async ({ user, url, token }) => {
-        await sendDeleteAccountEmail(user.email, token, url);
+        await sendEmail({ type: "delete-account", to: user.email, data: { url, token } });
       },
       afterDelete: async (user) => {
         logger.info("User deleted, cleaning up Polar customer", { userId: user.id });
@@ -148,7 +143,7 @@ export const auth = betterAuth({
   plugins: [
     emailOTP({
       async sendVerificationOTP({ email, otp }) {
-        await sendOtpEmail(email, otp);
+        await sendEmail({ type: "otp", to: email, data: { otp } });
       },
       otpLength: AUTH_CONSTANTS.OTP_LENGTH,
       expiresIn: AUTH_CONSTANTS.OTP_EXPIRES_IN_SECONDS,

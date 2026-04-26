@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { addContact } from "@/lib/email";
+import { getResend } from "@/lib/email/resend-client";
 import { logger } from "@/lib/logger";
 
 const isDuplicateEmailError = (error: unknown): boolean => {
@@ -7,7 +7,7 @@ const isDuplicateEmailError = (error: unknown): boolean => {
     error !== null &&
     typeof error === "object" &&
     "code" in error &&
-    (error as { code: string }).code === "P2002"
+    error.code === "P2002"
   );
 };
 
@@ -21,10 +21,35 @@ export async function saveEmailToDatabase(email: string): Promise<void> {
     throw error;
   }
 }
-export async function saveEmailToProvider(email: string): Promise<void> {
-  const { error } = await addContact(email);
+
+export async function addNewsletterContact(input: {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+}): Promise<{ success: true; data: { id: string } } | { success: false; error: string }> {
+  const { data, error } = await getResend().contacts.create({
+    email: input.email,
+    firstName: input.firstName,
+    lastName: input.lastName,
+  });
+
   if (error) {
-    logger.error("Failed to add contact to email provider", { email, error });
-    throw new Error(`Failed to add contact: ${error.message}`);
+    return { success: false, error: error.message };
   }
+
+  return { success: true, data: { id: data.id } };
+}
+
+export async function saveEmailToProvider(
+  email: string,
+): Promise<{ success: true } | { success: false; error: string }> {
+  const result = await addNewsletterContact({ email });
+  if (!result.success) {
+    logger.error("Failed to add contact to email provider", {
+      email,
+      error: result.error,
+    });
+    return { success: false, error: result.error };
+  }
+  return { success: true };
 }
