@@ -1,7 +1,7 @@
 import { authed } from "@/lib/handler";
 
-import { getUsageHistory } from "@/features/credits";
-import type { UsageHistoryResult } from "@/features/credits";
+import { getUsageHistory } from "@/features/billing";
+import type { UsageHistoryResult } from "@/features/billing";
 
 export const GET = authed.route(
   async ({ user, request }): Promise<UsageHistoryResult> => {

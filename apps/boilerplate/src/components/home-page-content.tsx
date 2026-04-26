@@ -20,7 +20,7 @@ import {
   Users,
   ShieldCheck,
 } from "lucide-react";
-import type { GeneratedProduct } from "@/features/subscription";
+import type { GeneratedProduct } from "@/features/billing";
 import { motion, useInView } from "framer-motion";
 import { useRef } from "react";
 

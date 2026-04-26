@@ -4,7 +4,7 @@ import { ErrorCard } from "@/components/error-card";
 import {
   getCreditsUsageQuery,
   CreditsUsageHistory,
-} from "@/features/credits";
+} from "@/features/billing";
 import {
   Card,
   CardContent,

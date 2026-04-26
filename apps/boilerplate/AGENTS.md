@@ -27,6 +27,7 @@ Build/test/lint/typecheck scripts are wrapped in `./scripts/run_silent` internal
 - Never `throw new Error(string)`. Use typed errors / Result pattern (`{ success, data } | { success, error }`).
 - No barrel files (`index.ts` re-exports) outside a feature's public API.
 - Never mock your own code. Tests use public interfaces only.
+- A feature imports zero other features. If a file needs data/UI from ≥2 features, it belongs inside the most relevant one or a dedicated orchestrator feature — cross-feature imports are a design smell, not a shortcut.
 
 ## Conventions
 

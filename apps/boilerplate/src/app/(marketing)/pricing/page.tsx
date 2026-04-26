@@ -1,7 +1,7 @@
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { PricingCard } from "@/components/pricing-card";
-import { getDisplayProducts } from "@/features/subscription";
+import { getDisplayProducts } from "@/features/billing";
 import { env } from "@/config";
 
 export const metadata = createMetadata({

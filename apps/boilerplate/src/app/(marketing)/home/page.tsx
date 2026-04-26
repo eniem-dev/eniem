@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { HomePageContent } from "@/components/home-page-content";
-import { getDisplayProducts } from "@/features/subscription";
+import { getDisplayProducts } from "@/features/billing";
 import { env } from "@/config";
 
 export const metadata = createMetadata({
