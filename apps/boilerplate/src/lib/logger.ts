@@ -56,10 +56,6 @@ export const logger = {
       console.log(`[LOG] ${message}`, data);
     }
   },
-  /**
-   * Logs debug messages (expected, low-signal events) with optional data context.
-   * Only outputs in development mode.
-   */
   debug: (message: string, data?: unknown) => {
     if (env.isDevelopment) {
       console.debug(`[DEBUG] ${message}`, data);

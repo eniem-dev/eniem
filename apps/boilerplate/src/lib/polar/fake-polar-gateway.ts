@@ -1,16 +1,16 @@
+import type { CustomerState } from "@polar-sh/sdk/models/components/customerstate.js";
+import type { CustomerStateSubscription } from "@polar-sh/sdk/models/components/customerstatesubscription.js";
+import type { CustomerStateBenefitGrant } from "@polar-sh/sdk/models/components/customerstatebenefitgrant.js";
 import type { PolarGateway } from "./polar-gateway";
-/* eslint-disable no-restricted-imports */
-import type { BillingOrder } from "@/features/billing/models/billing.model";
-import type { Downloadable } from "@/features/benefits/models/downloadable.model";
-import type { GitHubBenefit } from "@/features/benefits/models/github-benefit.model";
 import type {
+  BillingOrder,
+  Downloadable,
+  GitHubBenefit,
+  PolarSubscription,
   UsageEvent,
   UsageHistoryEvent,
   UsageHistoryResult,
-} from "@/features/credits/models/credits.model";
-import type { PolarSubscription } from "@/features/subscription/models/subscription.model";
-/* eslint-enable no-restricted-imports */
-import type { CustomerState } from "@polar-sh/sdk/models/components/customerstate.js";
+} from "./polar-domain";
 
 export interface FakeCustomer {
   userId: string;
@@ -28,6 +28,14 @@ export interface FakePolarGateway extends PolarGateway {
   seedCustomer(customer: FakeCustomer): void;
   removeCustomer(userId: string): void;
   getRecordedEvents(userId: string): UsageEvent[];
+}
+
+function fakeSubscription(sub: PolarSubscription): CustomerStateSubscription {
+  return sub as unknown as CustomerStateSubscription;
+}
+
+function fakeBenefitGrant(): CustomerStateBenefitGrant {
+  return {} as unknown as CustomerStateBenefitGrant;
 }
 
 export function createFakePolarGateway(
@@ -95,6 +103,7 @@ export function createFakePolarGateway(
     async getUserCustomerState(userId) {
       const c = customers.get(userId);
       if (!c) return null;
+      const grantCount = c.benefitGrants ?? 0;
       const state: CustomerState = {
         id: c.customerId,
         createdAt: new Date(0),
@@ -108,8 +117,8 @@ export function createFakePolarGateway(
         taxId: null,
         organizationId: "org_fake",
         deletedAt: null,
-        activeSubscriptions: [],
-        grantedBenefits: [],
+        activeSubscriptions: (c.activeSubscriptions ?? []).map(fakeSubscription),
+        grantedBenefits: Array.from({ length: grantCount }, fakeBenefitGrant),
         activeMeters: (c.meters ?? []).map((m) => ({
           id: `meter_${m.meterId}`,
           createdAt: new Date(0),
@@ -142,4 +151,3 @@ export function createFakePolarGateway(
     },
   };
 }
-

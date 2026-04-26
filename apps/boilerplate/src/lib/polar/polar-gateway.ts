@@ -1,26 +1,23 @@
 import type { Polar } from "@polar-sh/sdk";
 import type { CustomerState } from "@polar-sh/sdk/models/components/customerstate.js";
 import { ResourceNotFound } from "@polar-sh/sdk/models/errors/resourcenotfound.js";
-import { cache } from "react";
 import { logger } from "@/lib/logger";
-// The gateway's contract is feature-owned domain models — types flow up by design.
-/* eslint-disable no-restricted-imports */
-import type { BillingOrder } from "@/features/billing/models/billing.model";
-import type { Downloadable } from "@/features/benefits/models/downloadable.model";
-import type { GitHubBenefit } from "@/features/benefits/models/github-benefit.model";
-import type {
-  CreditBalance,
-  UsageEvent,
-  UsageHistoryResult,
-} from "@/features/credits/models/credits.model";
-import type { PolarSubscription } from "@/features/subscription/models/subscription.model";
-/* eslint-enable no-restricted-imports */
 import {
   mapDownloadable,
   mapGitHubBenefits,
   mapOrderToBillingOrder,
   mapSubscriptionToDomain,
 } from "./polar-mappers";
+import type {
+  BillingOrder,
+  CreditBalance,
+  Downloadable,
+  GitHubBenefit,
+  PolarSubscription,
+  UsageEvent,
+  UsageHistoryResult,
+  UsageMetadata,
+} from "./polar-domain";
 
 export type { CustomerState };
 
@@ -44,21 +41,24 @@ const READ_TIMEOUT_MS = 5_000;
 const WRITE_TIMEOUT_MS = 10_000;
 const READ_MAX_ATTEMPTS = 2;
 
-interface RetryableError {
-  status?: number;
-  statusCode?: number;
-  code?: string;
-  name?: string;
+function readNumber(obj: object, key: string): number | undefined {
+  const v = (obj as Record<string, unknown>)[key];
+  return typeof v === "number" ? v : undefined;
+}
+
+function readString(obj: object, key: string): string | undefined {
+  const v = (obj as Record<string, unknown>)[key];
+  return typeof v === "string" ? v : undefined;
 }
 
 function isRetryable(error: unknown): boolean {
   if (error instanceof ResourceNotFound) return false;
   if (!(error instanceof Error)) return false;
-  const e = error as Error & RetryableError;
-  const status = e.status ?? e.statusCode;
+  const status = readNumber(error, "status") ?? readNumber(error, "statusCode");
   if (typeof status === "number" && status >= 500 && status < 600) return true;
-  if (e.name === "AbortError" || e.name === "TimeoutError") return true;
-  if (e.code === "ECONNRESET" || e.code === "ETIMEDOUT" || e.code === "ENOTFOUND") return true;
+  if (error.name === "AbortError" || error.name === "TimeoutError") return true;
+  const code = readString(error, "code");
+  if (code === "ECONNRESET" || code === "ETIMEDOUT" || code === "ENOTFOUND") return true;
   return false;
 }
 
@@ -66,7 +66,28 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-async function executeRead<T>(op: string, fn: (signal: AbortSignal) => Promise<T>): Promise<T> {
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isUsageMetadata(value: unknown): value is UsageMetadata {
+  if (typeof value !== "object" || value === null) return false;
+  for (const v of Object.values(value)) {
+    const t = typeof v;
+    if (t !== "string" && t !== "number" && t !== "boolean") return false;
+  }
+  return true;
+}
+
+function toUsageMetadata(value: unknown): UsageMetadata {
+  return isUsageMetadata(value) ? value : {};
+}
+
+async function safeRead<T>(
+  op: string,
+  userId: string,
+  fn: (signal: AbortSignal) => Promise<T>
+): Promise<T> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= READ_MAX_ATTEMPTS; attempt++) {
     const start = Date.now();
@@ -74,95 +95,91 @@ async function executeRead<T>(op: string, fn: (signal: AbortSignal) => Promise<T
       return await fn(AbortSignal.timeout(READ_TIMEOUT_MS));
     } catch (error) {
       lastError = error;
-      if (error instanceof ResourceNotFound) throw error;
+      if (error instanceof ResourceNotFound) {
+        logger.debug(`Polar ${op} not found`, { op, userId });
+        throw error;
+      }
       if (attempt < READ_MAX_ATTEMPTS && isRetryable(error)) {
         const backoffMs = 50 * Math.pow(2, attempt - 1);
         logger.warn("Polar read retrying", {
           op,
+          userId,
           attempt,
           durationMs: Date.now() - start,
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage(error),
         });
         await sleep(backoffMs);
         continue;
       }
+      logger.error(`Polar ${op} failed`, { op, userId, error: errorMessage(error) });
       throw error;
     }
   }
   throw lastError;
 }
 
-async function executeWrite<T>(_op: string, fn: (signal: AbortSignal) => Promise<T>): Promise<T> {
-  return fn(AbortSignal.timeout(WRITE_TIMEOUT_MS));
+async function safeWrite<T>(
+  op: string,
+  userId: string,
+  fn: (signal: AbortSignal) => Promise<T>
+): Promise<T> {
+  try {
+    return await fn(AbortSignal.timeout(WRITE_TIMEOUT_MS));
+  } catch (error) {
+    if (error instanceof ResourceNotFound) {
+      logger.debug(`Polar ${op} not found`, { op, userId });
+      throw error;
+    }
+    logger.error(`Polar ${op} failed`, { op, userId, error: errorMessage(error) });
+    throw error;
+  }
+}
+
+async function notFoundOr<T>(promise: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await promise;
+  } catch (error) {
+    if (error instanceof ResourceNotFound) return fallback;
+    throw error;
+  }
 }
 
 export function createPolarGateway(client: Polar): PolarGateway {
-  const resolveCustomerId = cache(async (userId: string): Promise<string | null> => {
-    try {
-      const customer = await executeRead("resolveCustomerId", (signal) =>
-        client.customers.getExternal({ externalId: userId }, { signal })
-      );
-      return customer.id;
-    } catch (error) {
-      if (error instanceof ResourceNotFound) {
-        logger.debug("Polar customer not found", { op: "resolveCustomerId", userId });
-        return null;
-      }
-      logger.error("Polar customer resolution failed", {
-        op: "resolveCustomerId",
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
-  });
+  const customerIdMemo = new Map<string, Promise<string | null>>();
 
-  async function getUserCustomerState(userId: string): Promise<CustomerState | null> {
-    try {
-      return await executeRead("getUserCustomerState", (signal) =>
-        client.customers.getStateExternal(
-          { externalId: userId },
-          { signal }
-        )
-      );
-    } catch (error) {
-      if (error instanceof ResourceNotFound) {
-        logger.debug("Polar customer state not found", {
-          op: "getUserCustomerState",
-          userId,
-        });
-        return null;
-      }
-      logger.error("Polar getUserCustomerState failed", {
-        op: "getUserCustomerState",
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+  function resolveCustomerId(userId: string): Promise<string | null> {
+    const cached = customerIdMemo.get(userId);
+    if (cached) return cached;
+    const promise = notFoundOr(
+      safeRead("resolveCustomerId", userId, (signal) =>
+        client.customers.getExternal({ externalId: userId }, { signal })
+      ).then((c) => c.id),
+      null
+    );
+    customerIdMemo.set(userId, promise);
+    return promise;
+  }
+
+  function getUserCustomerState(userId: string): Promise<CustomerState | null> {
+    return notFoundOr<CustomerState | null>(
+      safeRead("getUserCustomerState", userId, (signal) =>
+        client.customers.getStateExternal({ externalId: userId }, { signal })
+      ),
+      null
+    );
   }
 
   async function listUserOrders(userId: string): Promise<BillingOrder[]> {
     const customerId = await resolveCustomerId(userId);
     if (!customerId) return [];
-    try {
-      const response = await executeRead("listUserOrders", (signal) =>
+    const response = await notFoundOr(
+      safeRead("listUserOrders", userId, (signal) =>
         client.orders.list({ customerId, limit: 20 }, { signal })
-      );
-      const items = response.result.items ?? [];
-      return items.map(mapOrderToBillingOrder);
-    } catch (error) {
-      if (error instanceof ResourceNotFound) {
-        logger.debug("Polar orders not found", { op: "listUserOrders", userId });
-        return [];
-      }
-      logger.error("Polar listUserOrders failed", {
-        op: "listUserOrders",
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+      ),
+      null
+    );
+    if (!response) return [];
+    return (response.result.items ?? []).map(mapOrderToBillingOrder);
   }
 
   async function getCreditBalance(
@@ -172,10 +189,7 @@ export function createPolarGateway(client: Polar): PolarGateway {
     const state = await getUserCustomerState(userId);
     if (!state) return null;
     const meter = state.activeMeters?.find((m) => m.meterId === meterId);
-    if (!meter) {
-      return { meterId, balance: 0, customerId: state.id };
-    }
-    return { meterId, balance: meter.balance, customerId: state.id };
+    return { meterId, balance: meter?.balance ?? 0, customerId: state.id };
   }
 
   async function recordUsage(
@@ -185,7 +199,7 @@ export function createPolarGateway(client: Polar): PolarGateway {
     const eventArray = Array.isArray(events) ? events : [events];
     if (eventArray.length === 0) return;
     try {
-      await executeWrite("recordUsage", (signal) =>
+      await safeWrite("recordUsage", userId, (signal) =>
         client.events.ingest(
           {
             events: eventArray.map((event) => ({
@@ -198,13 +212,8 @@ export function createPolarGateway(client: Polar): PolarGateway {
           { signal }
         )
       );
-    } catch (error) {
-      logger.error("Polar recordUsage failed", {
-        op: "recordUsage",
-        userId,
-        eventCount: eventArray.length,
-        error: error instanceof Error ? error.message : String(error),
-      });
+    } catch {
+      // fire-and-forget: errors already logged by safeWrite
     }
   }
 
@@ -214,51 +223,33 @@ export function createPolarGateway(client: Polar): PolarGateway {
   ): Promise<UsageHistoryResult> {
     const limit = opts?.limit ?? 20;
     const page = opts?.page ?? 1;
+    const empty: UsageHistoryResult = {
+      events: [],
+      pagination: { totalCount: 0, maxPage: 1, currentPage: page },
+    };
     const customerId = await resolveCustomerId(userId);
-    if (!customerId) {
-      return {
-        events: [],
-        pagination: { totalCount: 0, maxPage: 1, currentPage: page },
-      };
-    }
-    try {
-      const response = await executeRead("listUsageHistory", (signal) =>
-        client.events.list(
-          { customerId, limit, page, source: "user" },
-          { signal }
-        )
-      );
-      return {
-        events: response.result.items.map((item) => ({
-          id: item.id,
-          name: item.name,
-          timestamp: item.timestamp,
-          metadata: item.metadata as Record<string, string | number | boolean>,
-        })),
-        pagination: {
-          totalCount: response.result.pagination.totalCount,
-          maxPage: response.result.pagination.maxPage,
-          currentPage: page,
-        },
-      };
-    } catch (error) {
-      if (error instanceof ResourceNotFound) {
-        logger.debug("Polar usage history not found", {
-          op: "listUsageHistory",
-          userId,
-        });
-        return {
-          events: [],
-          pagination: { totalCount: 0, maxPage: 1, currentPage: page },
-        };
-      }
-      logger.error("Polar listUsageHistory failed", {
-        op: "listUsageHistory",
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+    if (!customerId) return empty;
+
+    const response = await notFoundOr(
+      safeRead("listUsageHistory", userId, (signal) =>
+        client.events.list({ customerId, limit, page, source: "user" }, { signal })
+      ),
+      null
+    );
+    if (!response) return empty;
+    return {
+      events: response.result.items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        timestamp: item.timestamp,
+        metadata: toUsageMetadata(item.metadata),
+      })),
+      pagination: {
+        totalCount: response.result.pagination.totalCount,
+        maxPage: response.result.pagination.maxPage,
+        currentPage: page,
+      },
+    };
   }
 
   async function fetchActiveSubscriptions(userId: string): Promise<PolarSubscription[]> {
@@ -267,130 +258,71 @@ export function createPolarGateway(client: Polar): PolarGateway {
     return (state.activeSubscriptions ?? []).map(mapSubscriptionToDomain);
   }
 
+  async function openPortal(userId: string): Promise<string> {
+    const session = await safeWrite("createCustomerSession", userId, (signal) =>
+      client.customerSessions.create({ externalCustomerId: userId }, { signal })
+    );
+    return session.token;
+  }
+
   async function hasAnyBenefitGrant(userId: string): Promise<boolean> {
-    try {
-      const customerSession = await executeWrite("createCustomerSession", (signal) =>
-        client.customerSessions.create(
-          { externalCustomerId: userId },
-          { signal }
-        )
-      );
-      const response = await executeRead("listBenefitGrants", (signal) =>
-        client.customerPortal.benefitGrants.list(
-          { customerSession: customerSession.token },
-          {},
-          { signal }
-        )
-      );
-      return (response.result.items?.length ?? 0) > 0;
-    } catch (error) {
-      if (error instanceof ResourceNotFound) {
-        logger.debug("Polar benefit grants not found", {
-          op: "hasAnyBenefitGrant",
-          userId,
-        });
-        return false;
-      }
-      logger.error("Polar hasAnyBenefitGrant failed", {
-        op: "hasAnyBenefitGrant",
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return false;
-    }
+    return notFoundOr(
+      (async () => {
+        const token = await openPortal(userId);
+        const response = await safeRead("listBenefitGrants", userId, (signal) =>
+          client.customerPortal.benefitGrants.list(
+            { customerSession: token },
+            {},
+            { signal }
+          )
+        );
+        return (response.result.items?.length ?? 0) > 0;
+      })(),
+      false
+    );
   }
 
   async function listDownloadables(userId: string): Promise<Downloadable[]> {
-    try {
-      const customerSession = await executeWrite("createCustomerSession", (signal) =>
-        client.customerSessions.create(
-          { externalCustomerId: userId },
-          { signal }
-        )
-      );
-      const response = await executeRead("listDownloadables", (signal) =>
-        client.customerPortal.downloadables.list(
-          { customerSession: customerSession.token },
-          {},
-          { signal }
-        )
-      );
-      const items = response.result.items ?? [];
-      return items.map(mapDownloadable);
-    } catch (error) {
-      if (error instanceof ResourceNotFound) {
-        logger.debug("Polar downloadables not found", {
-          op: "listDownloadables",
-          userId,
-        });
-        return [];
-      }
-      logger.error("Polar listDownloadables failed", {
-        op: "listDownloadables",
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+    return notFoundOr<Downloadable[]>(
+      (async () => {
+        const token = await openPortal(userId);
+        const response = await safeRead("listDownloadables", userId, (signal) =>
+          client.customerPortal.downloadables.list(
+            { customerSession: token },
+            {},
+            { signal }
+          )
+        );
+        return (response.result.items ?? []).map(mapDownloadable);
+      })(),
+      []
+    );
   }
 
   async function listGitHubBenefits(userId: string): Promise<GitHubBenefit[]> {
-    try {
-      const customerSession = await executeWrite("createCustomerSession", (signal) =>
-        client.customerSessions.create(
-          { externalCustomerId: userId },
-          { signal }
-        )
-      );
-      const response = await executeRead("listGitHubBenefits", (signal) =>
-        client.customerPortal.benefitGrants.list(
-          { customerSession: customerSession.token },
-          {},
-          { signal }
-        )
-      );
-      const items = response.result.items ?? [];
-      return mapGitHubBenefits(items);
-    } catch (error) {
-      if (error instanceof ResourceNotFound) {
-        logger.debug("Polar github benefits not found", {
-          op: "listGitHubBenefits",
-          userId,
-        });
-        return [];
-      }
-      logger.error("Polar listGitHubBenefits failed", {
-        op: "listGitHubBenefits",
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+    return notFoundOr<GitHubBenefit[]>(
+      (async () => {
+        const token = await openPortal(userId);
+        const response = await safeRead("listGitHubBenefits", userId, (signal) =>
+          client.customerPortal.benefitGrants.list(
+            { customerSession: token },
+            {},
+            { signal }
+          )
+        );
+        return mapGitHubBenefits(response.result.items ?? []);
+      })(),
+      []
+    );
   }
 
   async function deleteUserCustomer(userId: string): Promise<void> {
-    try {
-      await executeWrite("deleteUserCustomer", (signal) =>
-        client.customers.deleteExternal(
-          { externalId: userId },
-          { signal }
-        )
-      );
-    } catch (error) {
-      if (error instanceof ResourceNotFound) {
-        logger.debug("Polar customer to delete not found", {
-          op: "deleteUserCustomer",
-          userId,
-        });
-        return;
-      }
-      logger.error("Polar deleteUserCustomer failed", {
-        op: "deleteUserCustomer",
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
+    await notFoundOr(
+      safeWrite("deleteUserCustomer", userId, (signal) =>
+        client.customers.deleteExternal({ externalId: userId }, { signal })
+      ),
+      undefined
+    );
   }
 
   return {

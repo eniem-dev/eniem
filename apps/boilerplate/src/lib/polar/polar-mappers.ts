@@ -1,11 +1,11 @@
 import type { Order } from "@polar-sh/sdk/models/components/order.js";
 import type { CustomerStateSubscription } from "@polar-sh/sdk/models/components/customerstatesubscription.js";
-/* eslint-disable no-restricted-imports */
-import type { BillingOrder } from "@/features/billing/models/billing.model";
-import type { Downloadable } from "@/features/benefits/models/downloadable.model";
-import type { GitHubBenefit } from "@/features/benefits/models/github-benefit.model";
-import type { PolarSubscription } from "@/features/subscription/models/subscription.model";
-/* eslint-enable no-restricted-imports */
+import type {
+  BillingOrder,
+  Downloadable,
+  GitHubBenefit,
+  PolarSubscription,
+} from "./polar-domain";
 
 export function mapOrderToBillingOrder(order: Order): BillingOrder {
   return {
@@ -52,41 +52,47 @@ interface BenefitGrantItem {
   grantedAt: Date | string | null;
 }
 
+interface GitHubBenefitProperties {
+  repositoryOwner?: string;
+  repositoryName?: string;
+  permission?: string;
+}
+
+function readGitHubProps(value: unknown): GitHubBenefitProperties {
+  if (typeof value !== "object" || value === null) return {};
+  const v = value as Record<string, unknown>;
+  return {
+    repositoryOwner: typeof v.repositoryOwner === "string" ? v.repositoryOwner : undefined,
+    repositoryName: typeof v.repositoryName === "string" ? v.repositoryName : undefined,
+    permission: typeof v.permission === "string" ? v.permission : undefined,
+  };
+}
+
 export function mapGitHubBenefits(items: BenefitGrantItem[]): GitHubBenefit[] {
-  const result: GitHubBenefit[] = [];
-  for (const item of items) {
-    if (item.benefit.type !== "github_repository") continue;
+  return items
+    .filter((item) => item.benefit.type === "github_repository")
+    .map((item): GitHubBenefit | null => {
+      const itemProps = readGitHubProps(item.properties);
+      const benefitProps = readGitHubProps(item.benefit.properties);
 
-    const itemProps = (item.properties ?? {}) as {
-      repositoryOwner?: string;
-      repositoryName?: string;
-      permission?: string;
-    };
-    const benefitProps = (item.benefit.properties ?? {}) as {
-      repositoryOwner?: string;
-      repositoryName?: string;
-    };
+      const repositoryOwner = itemProps.repositoryOwner || benefitProps.repositoryOwner;
+      const repositoryName = itemProps.repositoryName || benefitProps.repositoryName;
+      const permission = itemProps.permission || "pull";
 
-    const repositoryOwner =
-      itemProps.repositoryOwner || benefitProps.repositoryOwner;
-    const repositoryName =
-      itemProps.repositoryName || benefitProps.repositoryName;
-    const permission = itemProps.permission || "pull";
+      if (!repositoryOwner || !repositoryName) return null;
 
-    if (!repositoryOwner || !repositoryName) continue;
-
-    result.push({
-      id: item.benefit.id,
-      repositoryOwner,
-      repositoryName,
-      repositoryUrl: `https://github.com/${repositoryOwner}/${repositoryName}`,
-      permission,
-      isGranted: item.isGranted,
-      grantedAt: item.grantedAt ? new Date(item.grantedAt) : null,
-      description: item.benefit.description ?? "",
-    });
-  }
-  return result;
+      return {
+        id: item.benefit.id,
+        repositoryOwner,
+        repositoryName,
+        repositoryUrl: `https://github.com/${repositoryOwner}/${repositoryName}`,
+        permission,
+        isGranted: item.isGranted,
+        grantedAt: item.grantedAt ? new Date(item.grantedAt) : null,
+        description: item.benefit.description ?? "",
+      };
+    })
+    .filter((b): b is GitHubBenefit => b !== null);
 }
 
 export function mapSubscriptionToDomain(

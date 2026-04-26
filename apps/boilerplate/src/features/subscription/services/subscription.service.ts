@@ -81,12 +81,7 @@ export async function deleteSubscription(userId: string) {
 // === Direct Polar API sync (for success page) ===
 
 export async function syncSubscriptionFromPolar(userId: string) {
-  const customerState = await polar.getUserCustomerState(userId);
-
-  await syncSubscription(
-    userId,
-    (customerState?.activeSubscriptions as PolarSubscription[]) ?? []
-  );
-
-  return customerState;
+  const activeSubscriptions = await polar.fetchActiveSubscriptions(userId);
+  await syncSubscription(userId, activeSubscriptions);
+  return polar.getUserCustomerState(userId);
 }

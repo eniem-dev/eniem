@@ -11,14 +11,6 @@ export async function getCreditsBalance(
   return polar.getCreditBalance(userId, meterId);
 }
 
-/**
- * Check if user has sufficient credits for an action.
- *
- * @param userId - The app user ID
- * @param meterId - The Polar meter identifier
- * @param requiredAmount - The number of credits required
- * @returns true if user has >= requiredAmount credits, false otherwise
- */
 export async function hasCredits(
   userId: string,
   meterId: string,
@@ -35,17 +27,6 @@ export async function hasCredits(
   return effectiveBalance >= requiredAmount;
 }
 
-/**
- * Server-side guard that throws if user lacks sufficient credits.
- *
- * Use this in server actions before credit-consuming operations.
- * Implements fail-safe: throws on API errors (doesn't allow action to proceed).
- *
- * @param userId - The app user ID
- * @param meterId - The Polar meter identifier
- * @param requiredAmount - The number of credits required
- * @throws UnauthorizedError if credits insufficient or API unavailable
- */
 export async function assertHasCredits(
   userId: string,
   meterId: string,
@@ -73,18 +54,6 @@ export async function assertHasCredits(
   }
 }
 
-/**
- * Ingest usage events to Polar to decrement the user's credit meter.
- *
- * Call this after an action completes successfully. Events are immutable
- * once ingested and cannot be changed or deleted.
- *
- * Fire-and-forget: gateway swallows errors so the action result isn't
- * undone by a downstream metering failure.
- *
- * @param userId - The app user ID (used as externalCustomerId in Polar)
- * @param events - Single event or array of events to ingest
- */
 export async function ingestUsage(
   userId: string,
   events: UsageEvent | UsageEvent[]

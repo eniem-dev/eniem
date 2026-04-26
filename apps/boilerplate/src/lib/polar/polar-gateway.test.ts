@@ -3,16 +3,6 @@ import { ResourceNotFound } from "@polar-sh/sdk/models/errors/resourcenotfound.j
 import type { Polar } from "@polar-sh/sdk";
 import { createPolarGateway } from "./polar-gateway";
 
-vi.mock("@/lib/logger", () => ({
-  logger: {
-    error: vi.fn(),
-    warn: vi.fn(),
-    info: vi.fn(),
-    debug: vi.fn(),
-    log: vi.fn(),
-  },
-}));
-
 function makeNotFound(): ResourceNotFound {
   return new ResourceNotFound(
     { error: "ResourceNotFound", detail: "not found", message: "not found" },
