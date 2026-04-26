@@ -1,27 +1,21 @@
-// Models
+// Re-export shim. Subscription has been folded into the billing feature.
+// New code should import from `@/features/billing` directly.
 export type {
   SubscriptionResult,
   PolarSubscription,
-} from "./models/subscription.model";
-
-// Services
+  ProductDisplay,
+  GeneratedProduct,
+} from "@/features/billing";
 export {
   getUserSubscription,
   hasActiveSubscription,
   syncSubscription,
   syncSubscriptionFromPolar,
   deleteSubscription,
-} from "./services/subscription.service";
-
-// Queries
-export { getSubscriptionQuery } from "./queries/subscription.query";
-
-// Generated Products
-export type { ProductDisplay, GeneratedProduct } from "./products.generated";
-export {
+  getSubscriptionQuery,
   sandboxProducts,
   productionProducts,
   getProducts,
   getCheckoutProducts,
   getDisplayProducts,
-} from "./products.generated";
+} from "@/features/billing";

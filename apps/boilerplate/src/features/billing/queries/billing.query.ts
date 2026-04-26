@@ -1,5 +1,5 @@
 import { authed } from "@/lib/handler";
-import { getUserSubscription } from "@/features/subscription";
+import { getUserSubscription } from "../services/subscription.service";
 import { getCustomerId, getCustomerOrders } from "../services/billing.service";
 import type { BillingData } from "../models/billing.model";
 
