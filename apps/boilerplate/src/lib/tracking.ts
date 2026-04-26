@@ -1,11 +1,12 @@
 import posthog from "posthog-js";
 
 import { env } from "@/config";
+import { logger } from "@/lib/logger";
 
 declare global {
   interface Window {
     umami?: {
-      track: (eventName: string, data?: Record<string, unknown>) => void;
+      track: (event: string, properties?: Record<string, unknown>) => void;
     };
   }
 }
@@ -13,17 +14,21 @@ declare global {
 export function captureEvent(
   event: string,
   properties?: Record<string, unknown>,
-): void {
+) {
   if (typeof window === "undefined") return;
 
   switch (env.analytics.provider) {
     case "posthog":
       posthog.capture(event, properties);
-      return;
+      break;
     case "umami":
       window.umami?.track(event, properties);
-      return;
-    default:
-      return;
+      break;
+    case "none":
+      break;
+    default: {
+      const _exhaustive: never = env.analytics.provider;
+      logger.error(`Unknown analytics provider: ${_exhaustive}`);
+    }
   }
 }
