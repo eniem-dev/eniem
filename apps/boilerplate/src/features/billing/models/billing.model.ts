@@ -10,7 +10,7 @@ export interface BillingOrder {
   description: string;
 }
 
-export interface BillingData {
+export interface BillingOverview {
   subscription: SubscriptionResult | null;
   orders: BillingOrder[];
 }

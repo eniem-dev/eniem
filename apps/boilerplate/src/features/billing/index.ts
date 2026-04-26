@@ -1,5 +1,5 @@
 // Models
-export type { BillingOrder, BillingData } from "./models/billing.model";
+export type { BillingOrder, BillingOverview } from "./models/billing.model";
 export type {
   SubscriptionResult,
   PolarSubscription,
@@ -31,7 +31,7 @@ export {
 export { getUsageHistory } from "./services/credits-usage.service";
 
 // Queries
-export { getBillingDataQuery } from "./queries/billing.query";
+export { getBillingOverviewQuery } from "./queries/billing-overview.query";
 export { getSubscriptionQuery } from "./queries/subscription.query";
 export { getCreditsBalanceQuery } from "./queries/credits.query";
 export { getCreditsUsageQuery } from "./queries/credits-usage.query";
@@ -67,7 +67,7 @@ export {
 export { useCredits } from "./hooks/use-credits";
 
 // Components
-export { BillingOverview } from "./components/billing-overview";
+export { BillingOverview as BillingOverviewCard } from "./components/billing-overview";
 export { SubscriptionStatusCard } from "./components/subscription-status-card";
 export { OrderHistoryCard } from "./components/order-history-card";
 export { CreditBalance as CreditBalanceDisplay } from "./components/credit-balance";
