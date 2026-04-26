@@ -8,7 +8,7 @@ import {
   PasswordResetEmail,
   DeleteAccountEmail,
 } from "@/components/emails";
-import { resend } from "./resend-client";
+import { getResend } from "./resend-client";
 import type { EmailMessage, EmailResult } from "./types";
 
 interface RenderedMessage {
@@ -17,7 +17,7 @@ interface RenderedMessage {
   debugInfo: Record<string, string>;
 }
 
-export function renderMessage(msg: EmailMessage): RenderedMessage {
+function renderMessage(msg: EmailMessage): RenderedMessage {
   switch (msg.type) {
     case "otp":
       return {
@@ -75,7 +75,7 @@ export async function sendEmail(msg: EmailMessage): Promise<EmailResult> {
     return { success: true };
   }
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: env.email.fromAddress,
     to: msg.to,
     subject,
