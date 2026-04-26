@@ -1,44 +1,31 @@
-// Meter Config
+// Re-export shim — credits has been folded into @/features/billing.
+// Slice 4 of #121 will codemod call sites and remove this stub entirely.
+
 export type {
   GeneratedMeter,
   MeterSlug,
   MeterEventNames,
-} from "./meters.generated";
-export {
-  sandboxMeters,
-  productionMeters,
-  getMeters,
-  getMeter,
-  resolveEventDisplayName,
-} from "./meters.generated";
-
-// Models
-export type {
   CreditBalance,
   UsageMetadata,
   UsageEvent,
   UsageHistoryEvent,
   UsageHistoryPagination,
   UsageHistoryResult,
-} from "./models/credits.model";
-
-// Services
+} from "@/features/billing";
 export {
-  getCustomerId,
+  sandboxMeters,
+  productionMeters,
+  getMeters,
+  getMeter,
+  resolveEventDisplayName,
   getCreditsBalance,
   hasCredits,
   assertHasCredits,
   ingestUsage,
-} from "./services/credits.service";
-export { getUsageHistory } from "./services/credits-usage.service";
-
-// Queries
-export { getCreditsBalanceQuery } from "./queries/credits.query";
-export { getCreditsUsageQuery } from "./queries/credits-usage.query";
-
-// Hooks
-export { useCredits } from "./hooks/use-credits";
-
-// Components
-export { CreditBalance as CreditBalanceDisplay } from "./components/credit-balance";
-export { CreditsUsageHistory } from "./components/credits-usage-history";
+  getUsageHistory,
+  getCreditsBalanceQuery,
+  getCreditsUsageQuery,
+  useCredits,
+  CreditBalanceDisplay,
+  CreditsUsageHistory,
+} from "@/features/billing";

@@ -1,8 +1,8 @@
 import { polarClient } from "@/lib/polar";
 import { logger } from "@/lib/logger";
 import { env } from "@/config";
-import { getCustomerId } from "@/features/billing";
-import { resolveEventDisplayName } from "../meters.generated";
+import { getCustomerId } from "./billing.service";
+import { resolveEventDisplayName } from "../generated/meters.generated";
 import type {
   UsageHistoryEvent,
   UsageHistoryResult,

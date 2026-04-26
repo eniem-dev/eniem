@@ -12,7 +12,7 @@ vi.mock("@/lib/polar", () => ({
   },
 }));
 
-vi.mock("@/features/billing", () => ({
+vi.mock("./billing.service", () => ({
   getCustomerId: (...args: unknown[]) => mockGetCustomerId(...args),
 }));
 
@@ -32,7 +32,7 @@ vi.mock("@/config", () => ({
   },
 }));
 
-vi.mock("../meters.generated", () => ({
+vi.mock("../generated/meters.generated", () => ({
   resolveEventDisplayName: (env: string, eventName: string) => {
     const displayNames: Record<string, string> = {
       "use-credit": "LLM Tokens",

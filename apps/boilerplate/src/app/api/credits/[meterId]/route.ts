@@ -1,5 +1,6 @@
 import { authed } from "@/lib/handler";
-import { getCreditsBalance, getCustomerId } from "@/features/credits";
+import { getCreditsBalance } from "@/features/credits";
+import { getCustomerId } from "@/features/billing";
 import type { CreditBalance } from "@/features/credits";
 
 export interface CreditsData {

@@ -2,11 +2,8 @@ import { polarClient } from "@/lib/polar";
 import { logger } from "@/lib/logger";
 import { UnauthorizedError } from "@/lib/errors";
 import { locales } from "@/locales";
-import { getCustomerId } from "@/features/billing";
+import { getCustomerId } from "./billing.service";
 import type { CreditBalance, UsageEvent } from "../models/credits.model";
-
-// Re-export for backwards compatibility
-export { getCustomerId };
 
 export async function getCreditsBalance(
   userId: string,
