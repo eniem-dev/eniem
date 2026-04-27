@@ -1,8 +1,7 @@
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { ErrorCard } from "@/components/error-card";
-import { BillingOverview } from "@/features/billing/components/billing-overview";
-import { getBillingDataQuery } from "@/features/billing/queries/billing.query";
+import { BillingOverview, getBillingOverviewQuery } from "@/features/billing";
 
 export const metadata = createMetadata({
   ...getDefaultMetadata(),
@@ -11,7 +10,7 @@ export const metadata = createMetadata({
 });
 
 export default async function AccountBillingPage() {
-  const { data, error } = await getBillingDataQuery();
+  const { data, error } = await getBillingOverviewQuery();
 
   if (error || !data) {
     return <ErrorCard message={error || locales.errors.serverError} />;

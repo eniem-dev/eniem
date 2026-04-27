@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { env, routes } from "@/config";
-import { hasActiveSubscription } from "@/features/subscription";
+import { hasActiveSubscription } from "@/features/billing";
 
 // Routes accessible in landing mode ONLY
 const LANDING_MODE_ALLOWED_ROUTES = [

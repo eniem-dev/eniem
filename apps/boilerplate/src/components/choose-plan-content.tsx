@@ -14,7 +14,7 @@ import {
   getPlanSelectionFromSearchParams,
   hasPlanSelection,
 } from "@/lib/plan-selection";
-import type { GeneratedProduct } from "@/features/subscription";
+import type { GeneratedProduct } from "@/features/billing";
 
 interface ChoosePlanContentProps {
   products: GeneratedProduct[];

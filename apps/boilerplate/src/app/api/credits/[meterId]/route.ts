@@ -1,7 +1,7 @@
 import { authed } from "@/lib/handler";
 import { polar } from "@/lib/polar/index";
-import { getCreditsBalance } from "@/features/credits";
-import type { CreditBalance } from "@/features/credits";
+import { getCreditsBalance } from "@/features/billing";
+import type { CreditBalance } from "@/features/billing";
 
 export interface CreditsData {
   balance: CreditBalance | null;

@@ -3,7 +3,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { locales } from "@/locales";
-import { formatShortDate } from "@/features/billing/billing.util";
+import { formatShortDate } from "../billing.util";
 import type { UsageHistoryEvent, UsageHistoryResult } from "../models/credits.model";
 import type { ApiResponse } from "@/lib/handler";
 import { MetadataTooltip } from "./metadata-tooltip";

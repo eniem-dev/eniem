@@ -29,7 +29,7 @@ vi.mock("@/config", () => ({
   },
 }));
 
-vi.mock("../meters.generated", () => ({
+vi.mock("../generated/meters.generated", () => ({
   resolveEventDisplayName: (_env: string, eventName: string) => {
     const displayNames: Record<string, string> = {
       "use-credit": "LLM Tokens",

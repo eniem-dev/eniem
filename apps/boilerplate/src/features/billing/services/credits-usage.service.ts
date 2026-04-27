@@ -1,6 +1,6 @@
 import { polar } from "@/lib/polar/index";
 import { env } from "@/config";
-import { resolveEventDisplayName } from "../meters.generated";
+import { resolveEventDisplayName } from "../generated/meters.generated";
 import type { UsageHistoryResult } from "../models/credits.model";
 
 export async function getUsageHistory(

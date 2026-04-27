@@ -2,7 +2,7 @@ import { ChoosePlanContent } from "@/components/choose-plan-content";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { Suspense } from "react";
-import { getDisplayProducts } from "@/features/subscription";
+import { getDisplayProducts } from "@/features/billing";
 import { env } from "@/config";
 
 export const metadata = createMetadata({

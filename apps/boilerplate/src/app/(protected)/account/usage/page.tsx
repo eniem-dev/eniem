@@ -1,8 +1,10 @@
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { ErrorCard } from "@/components/error-card";
-import { getCreditsUsageQuery } from "@/features/credits/queries/credits-usage.query";
-import { CreditsUsageHistory } from "@/features/credits/components/credits-usage-history";
+import {
+  getCreditsUsageQuery,
+  CreditsUsageHistory,
+} from "@/features/billing";
 import {
   Card,
   CardContent,
