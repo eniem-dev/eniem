@@ -5,6 +5,7 @@ import type { PolarSubscription } from "@/lib/polar/polar-domain";
 import { logger } from "@/lib/logger";
 
 export { polarClient };
+export type { PolarSubscription };
 
 export async function onUserDeleted(userId: string): Promise<void> {
   logger.info("Deleting Polar customer for user", { userId });

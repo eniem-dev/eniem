@@ -169,7 +169,10 @@ const eslintConfig = [
   // and lifecycle callbacks importable in isolation, and localizes feature/external coupling.
   {
     files: ["src/lib/auth/**/*.{ts,tsx}"],
-    ignores: ["src/lib/auth/side-effects.ts"],
+    ignores: [
+      "src/lib/auth/side-effects.ts",
+      "src/lib/auth/side-effects.test.ts",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",

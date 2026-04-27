@@ -3,6 +3,28 @@ import { polar, checkout, portal, usage, webhooks } from "@polar-sh/better-auth"
 import { env } from "@/config";
 import { logger } from "@/lib/logger";
 import * as sideEffects from "../side-effects";
+import type { PolarSubscription } from "../side-effects";
+
+interface CustomerStateChangedPayload {
+  data: {
+    externalId: string | null | undefined;
+    activeSubscriptions: PolarSubscription[] | null | undefined;
+  };
+}
+
+export async function onCustomerStateChanged(
+  payload: CustomerStateChangedPayload
+): Promise<void> {
+  const { externalId, activeSubscriptions } = payload.data;
+  logger.info("Polar: Customer state changed", { externalId });
+
+  if (externalId) {
+    await sideEffects.onPolarCustomerStateChanged(
+      externalId,
+      activeSubscriptions || []
+    );
+  }
+}
 
 export const polarPlugin = polar({
   client: sideEffects.polarClient,
@@ -17,19 +39,7 @@ export const polarPlugin = polar({
     usage(),
     webhooks({
       secret: env.payment.polarWebhookSecret,
-      onCustomerStateChanged: async (payload) => {
-        const { externalId, activeSubscriptions } = payload.data;
-        logger.info("Polar: Customer state changed", { externalId, payload });
-
-        if (externalId) {
-          await sideEffects.onPolarCustomerStateChanged(
-            externalId,
-            activeSubscriptions || []
-          );
-        }
-
-        logger.info("Polar: Customer state changed", { payload });
-      },
+      onCustomerStateChanged,
       onOrderPaid: async (payload) => {
         logger.info("Polar: Order paid", {
           orderId: payload.data.id,
