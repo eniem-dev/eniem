@@ -32,12 +32,19 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock("@/config", () => ({
-  env: { payment: { polarServer: "sandbox" } },
+vi.mock("@/lib/auth/config", () => ({
+  auth: { api: { getSession: vi.fn() } },
 }));
 
-vi.mock("@/lib/auth", () => ({
-  auth: { api: { getSession: vi.fn() } },
+vi.mock("@/config", () => ({
+  env: {
+    payment: { polarServer: "sandbox", polarWebhookSecret: "whsec_test" },
+    projectUrl: "https://example.com",
+    oauth: {
+      github: { clientId: undefined, clientSecret: undefined },
+      twitter: { clientId: undefined, clientSecret: undefined },
+    },
+  },
 }));
 
 const { onUserDeleted, onPolarCustomerStateChanged } = await import(
@@ -78,12 +85,12 @@ describe("onUserDeleted (integration with real PolarGateway fake)", () => {
     expect(await fakeGateway.getUserCustomerState("u1")).toBeNull();
   });
 
-  it("swallows errors so user deletion is not blocked", async () => {
+  it("propagates errors from the Polar gateway", async () => {
     fakeGateway.deleteUserCustomer = vi
       .fn()
       .mockRejectedValue(new Error("polar down"));
 
-    await expect(onUserDeleted("u1")).resolves.toBeUndefined();
+    await expect(onUserDeleted("u1")).rejects.toThrow("polar down");
   });
 });
 

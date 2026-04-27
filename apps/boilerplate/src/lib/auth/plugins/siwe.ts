@@ -1,5 +1,5 @@
 import { siwe } from "better-auth/plugins";
-import { verifyMessage } from "viem";
+import { isHex, verifyMessage } from "viem";
 import { generateSiweNonce } from "viem/siwe";
 
 import { env } from "@/config";
@@ -11,12 +11,12 @@ export const siwePlugin = siwe({
   anonymous: true,
   getNonce: async () => generateSiweNonce(),
   verifyMessage: async ({ message, signature, address }) => {
+    if (!isHex(address) || !isHex(signature)) {
+      logger.error("SIWE verification failed: invalid hex input", { address });
+      return false;
+    }
     try {
-      return await verifyMessage({
-        address: address as `0x${string}`,
-        message,
-        signature: signature as `0x${string}`,
-      });
+      return await verifyMessage({ address, message, signature });
     } catch (error) {
       logger.error("SIWE verification failed", { error, address });
       return false;

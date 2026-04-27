@@ -2,7 +2,11 @@ import { polar, checkout, portal, usage, webhooks } from "@polar-sh/better-auth"
 
 import { env } from "@/config";
 import { logger } from "@/lib/logger";
-import * as sideEffects from "../side-effects";
+import {
+  getPurchasableProducts,
+  onPolarCustomerStateChanged,
+  polarClient,
+} from "../side-effects";
 import type { PolarSubscription } from "../side-effects";
 
 interface CustomerStateChangedPayload {
@@ -19,19 +23,16 @@ export async function onCustomerStateChanged(
   logger.info("Polar: Customer state changed", { externalId });
 
   if (externalId) {
-    await sideEffects.onPolarCustomerStateChanged(
-      externalId,
-      activeSubscriptions || []
-    );
+    await onPolarCustomerStateChanged(externalId, activeSubscriptions || []);
   }
 }
 
 export const polarPlugin = polar({
-  client: sideEffects.polarClient,
+  client: polarClient,
   createCustomerOnSignUp: true,
   use: [
     checkout({
-      products: sideEffects.getPurchasableProducts(env.payment.polarServer),
+      products: getPurchasableProducts(env.payment.polarServer),
       successUrl: "/success?checkout_id={CHECKOUT_ID}",
       authenticatedUsersOnly: true,
     }),

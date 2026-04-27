@@ -3,7 +3,11 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 
 import { AUTH_CONSTANTS } from "@/lib/auth.constants";
 import { prisma } from "@/lib/db";
-import * as emailHooks from "./email-hooks";
+import {
+  onPasswordReset,
+  sendResetPassword,
+  sendVerificationEmail,
+} from "./email-hooks";
 import { loggerAdapter } from "./logger-adapter";
 import { socialProviders } from "./oauth";
 import { rateLimit } from "./rate-limit";
@@ -20,12 +24,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    sendResetPassword: emailHooks.sendResetPassword,
-    onPasswordReset: emailHooks.onPasswordReset,
+    sendResetPassword,
+    onPasswordReset,
     resetPasswordTokenExpiresIn: AUTH_CONSTANTS.PASSWORD_RESET_EXPIRES_IN_SECONDS,
   },
   emailVerification: {
-    sendVerificationEmail: emailHooks.sendVerificationEmail,
+    sendVerificationEmail,
     autoSignInAfterVerification: true,
   },
   user: userConfig,

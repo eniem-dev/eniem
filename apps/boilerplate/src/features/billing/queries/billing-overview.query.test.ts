@@ -9,7 +9,7 @@ const getSessionMock = vi.fn();
 const findUniqueMock = vi.fn();
 let fakeGateway: FakePolarGateway;
 
-vi.mock("@/lib/auth", () => ({
+vi.mock("@/lib/auth/config", () => ({
   auth: {
     api: {
       getSession: (...args: unknown[]) => getSessionMock(...args),

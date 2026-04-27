@@ -1,16 +1,19 @@
-import * as emailHooks from "./email-hooks";
-import * as sideEffects from "./side-effects";
+import {
+  sendChangeEmailVerification,
+  sendDeleteAccountVerification,
+} from "./email-hooks";
+import { onUserDeleted } from "./side-effects";
 
 export const userConfig = {
   changeEmail: {
     enabled: true,
-    sendChangeEmailVerification: emailHooks.sendChangeEmailVerification,
+    sendChangeEmailVerification,
   },
   deleteUser: {
     enabled: true,
-    sendDeleteAccountVerification: emailHooks.sendDeleteAccountVerification,
+    sendDeleteAccountVerification,
     afterDelete: async (user: { id: string }) => {
-      await sideEffects.onUserDeleted(user.id);
+      await onUserDeleted(user.id);
     },
   },
 };

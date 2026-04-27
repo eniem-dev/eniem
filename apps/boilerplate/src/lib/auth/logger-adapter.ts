@@ -2,22 +2,16 @@ import type { BetterAuthOptions } from "better-auth";
 
 import { logger } from "@/lib/logger";
 
+const logByLevel = {
+  error: logger.error,
+  warn: logger.warn,
+  info: logger.info,
+} as const;
+
 export const loggerAdapter: BetterAuthOptions["logger"] = {
   level: "info",
   log: (level, message, ...args) => {
-    switch (level) {
-      case "error":
-        logger.error(message, { metadata: args });
-        break;
-      case "warn":
-        logger.warn(message, { metadata: args });
-        break;
-      case "info":
-        logger.info(message, { metadata: args });
-        break;
-      default:
-        logger.log(message, { metadata: args });
-        break;
-    }
+    const fn = logByLevel[level as keyof typeof logByLevel] ?? logger.log;
+    fn(message, { metadata: args });
   },
 };

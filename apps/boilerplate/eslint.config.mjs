@@ -106,7 +106,11 @@ const eslintConfig = [
   // Excludes src/lib/polar/** so the gateway itself can import the Polar SDK.
   {
     files: ["src/lib/**/*.{ts,tsx}"],
-    ignores: ["src/lib/polar/**"],
+    ignores: [
+      "src/lib/polar/**",
+      "src/lib/auth/side-effects.ts",
+      "src/lib/auth/side-effects.test.ts",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",

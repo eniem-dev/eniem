@@ -2,7 +2,7 @@ import { routes } from "@/config/routes";
 
 import { redirect } from "next/navigation";
 
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/config";
 import { headers } from "next/headers";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";

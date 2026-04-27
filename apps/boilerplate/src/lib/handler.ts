@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { createSafeActionClient } from "next-safe-action";
 
-import { auth } from "./auth";
+import { auth } from "./auth/config";
 import { logger } from "./logger";
 import { locales } from "@/locales";
 import { ServerError, UnauthorizedError, ValidationError } from "./errors";
