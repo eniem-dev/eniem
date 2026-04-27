@@ -1,6 +1,6 @@
 import { ErrorCard } from "@/components/error-card";
 import { AccountEdition } from "@/features/settings/components/account-edition";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/config";
 import { locales } from "@/locales";
 import { headers } from "next/headers";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/config";
 import { env, routes } from "@/config";
 import { hasActiveSubscription } from "@/features/billing";
 

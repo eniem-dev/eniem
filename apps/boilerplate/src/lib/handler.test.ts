@@ -9,7 +9,7 @@ vi.mock("./logger", () => ({
 }));
 
 const getSessionMock = vi.fn();
-vi.mock("./auth", () => ({
+vi.mock("./auth/config", () => ({
   auth: {
     api: {
       getSession: (...args: unknown[]) => getSessionMock(...args),

@@ -106,7 +106,11 @@ const eslintConfig = [
   // Excludes src/lib/polar/** so the gateway itself can import the Polar SDK.
   {
     files: ["src/lib/**/*.{ts,tsx}"],
-    ignores: ["src/lib/polar/**"],
+    ignores: [
+      "src/lib/polar/**",
+      "src/lib/auth/side-effects.ts",
+      "src/lib/auth/side-effects.test.ts",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",
@@ -156,6 +160,32 @@ const eslintConfig = [
               group: ["@/lib/db", "@prisma/*", "prisma", "prisma/*"],
               message:
                 "Actions must not import the database directly. Call a service function instead. See docs/server-patterns.md.",
+            },
+            polarSdkRestriction,
+          ],
+        },
+      ],
+    },
+  },
+
+  // src/lib/auth/** must not import from features/ or @/lib/polar — except side-effects.ts,
+  // which is the explicit bridge between auth and the rest of the app. This keeps webhook
+  // and lifecycle callbacks importable in isolation, and localizes feature/external coupling.
+  {
+    files: ["src/lib/auth/**/*.{ts,tsx}"],
+    ignores: [
+      "src/lib/auth/side-effects.ts",
+      "src/lib/auth/side-effects.test.ts",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/features/*", "@/lib/polar", "@/lib/polar/*"],
+              message:
+                "src/lib/auth/** must not import from features/ or @/lib/polar. Route through src/lib/auth/side-effects.ts (the bridge).",
             },
             polarSdkRestriction,
           ],
