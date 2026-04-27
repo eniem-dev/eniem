@@ -164,6 +164,29 @@ const eslintConfig = [
     },
   },
 
+  // src/lib/auth/** must not import from features/ or @/lib/polar — except side-effects.ts,
+  // which is the explicit bridge between auth and the rest of the app. This keeps webhook
+  // and lifecycle callbacks importable in isolation, and localizes feature/external coupling.
+  {
+    files: ["src/lib/auth/**/*.{ts,tsx}"],
+    ignores: ["src/lib/auth/side-effects.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/features/*", "@/lib/polar", "@/lib/polar/*"],
+              message:
+                "src/lib/auth/** must not import from features/ or @/lib/polar. Route through src/lib/auth/side-effects.ts (the bridge).",
+            },
+            polarSdkRestriction,
+          ],
+        },
+      ],
+    },
+  },
+
   // Pages and API routes must not use services directly — go through queries or actions
   {
     files: ["src/app/**/*.{ts,tsx}"],
