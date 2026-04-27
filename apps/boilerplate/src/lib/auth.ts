@@ -9,9 +9,8 @@ import { sendEmail } from "./email/send-email";
 import { logger } from "./logger";
 import { env } from "@/config";
 import { prisma } from "./db";
-import { polarClient } from "./polar";
-// eslint-disable-next-line no-restricted-imports -- auth.ts is the integration point between BetterAuth and Polar subscription features
-import { syncSubscription, getCheckoutProducts } from "@/features/billing";
+import * as sideEffects from "./auth/side-effects";
+import { polarClient } from "./auth/side-effects";
 import { AUTH_CONSTANTS } from "./auth.constants";
 
 export { AUTH_CONSTANTS };
@@ -86,16 +85,7 @@ export const auth = betterAuth({
         await sendEmail({ type: "delete-account", to: user.email, data: { url, token } });
       },
       afterDelete: async (user) => {
-        logger.info("User deleted, cleaning up Polar customer", { userId: user.id });
-        try {
-          await polarClient.customers.deleteExternal({ externalId: user.id });
-          logger.info("Polar customer deleted successfully", { userId: user.id });
-        } catch (error) {
-          logger.error("Failed to delete Polar customer", {
-            userId: user.id,
-            error: error instanceof Error ? error.message : error,
-          });
-        }
+        await sideEffects.onUserDeleted(user.id);
       },
     },
   },
@@ -175,7 +165,7 @@ export const auth = betterAuth({
       createCustomerOnSignUp: true,
       use: [
         checkout({
-          products: getCheckoutProducts(env.payment.polarServer),
+          products: sideEffects.getPurchasableProducts(env.payment.polarServer),
           successUrl: "/success?checkout_id={CHECKOUT_ID}",
           authenticatedUsersOnly: true,
         }),
@@ -188,7 +178,10 @@ export const auth = betterAuth({
             logger.info("Polar: Customer state changed", { externalId, payload });
 
             if (externalId) {
-              await syncSubscription(externalId, activeSubscriptions || []);
+              await sideEffects.onPolarCustomerStateChanged(
+                externalId,
+                activeSubscriptions || []
+              );
             }
 
             logger.info("Polar: Customer state changed", { payload });
