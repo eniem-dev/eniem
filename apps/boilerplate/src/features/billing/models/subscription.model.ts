@@ -16,22 +16,4 @@ export interface SubscriptionResult {
   userId: string;
 }
 
-export interface PolarSubscription {
-  id: string;
-  createdAt: Date;
-  modifiedAt: Date | null;
-  status: string;
-  amount: number;
-  currency: string;
-  recurringInterval: string;
-  currentPeriodStart: Date | null;
-  currentPeriodEnd: Date | null;
-  trialStart: Date | null;
-  trialEnd: Date | null;
-  cancelAtPeriodEnd: boolean;
-  canceledAt: Date | null;
-  startedAt: Date | null;
-  endsAt: Date | null;
-  productId: string;
-  discountId: string | null;
-}
+export type { PolarSubscription } from "@/lib/polar/polar-domain";

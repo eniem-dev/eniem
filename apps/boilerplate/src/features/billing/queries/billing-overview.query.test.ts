@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  createFakePolarGateway,
+  type FakePolarGateway,
+} from "@/lib/polar/fake-polar-gateway";
 
 const getSessionMock = vi.fn();
 const getUserSubscriptionMock = vi.fn();
-const getCustomerIdMock = vi.fn();
-const getCustomerOrdersMock = vi.fn();
+let fakeGateway: FakePolarGateway;
 
 vi.mock("@/lib/auth", () => ({
   auth: {
@@ -17,18 +20,20 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), log: vi.fn() },
 }));
 
-vi.mock("../services/subscription.service", () => ({
-  getUserSubscription: (...args: unknown[]) => getUserSubscriptionMock(...args),
+vi.mock("@/lib/polar/index", () => ({
+  get polar() {
+    return fakeGateway;
+  },
 }));
 
-vi.mock("../services/billing.service", () => ({
-  getCustomerId: (...args: unknown[]) => getCustomerIdMock(...args),
-  getCustomerOrders: (...args: unknown[]) => getCustomerOrdersMock(...args),
+vi.mock("../services/subscription.service", () => ({
+  getUserSubscription: (...args: unknown[]) => getUserSubscriptionMock(...args),
 }));
 
 describe("getBillingOverviewQuery", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fakeGateway = createFakePolarGateway();
     getSessionMock.mockResolvedValue({
       user: { id: "u1", email: "a@b.com" },
       session: { id: "s1" },
@@ -49,27 +54,23 @@ describe("getBillingOverviewQuery", () => {
       },
     ];
     getUserSubscriptionMock.mockResolvedValue(subscription);
-    getCustomerIdMock.mockResolvedValue("cust_1");
-    getCustomerOrdersMock.mockResolvedValue(orders);
+    fakeGateway.listUserOrders = vi.fn().mockResolvedValue(orders);
 
     const { getBillingOverviewQuery } = await import("./billing-overview.query");
     const result = await getBillingOverviewQuery();
 
     expect(result.error).toBeNull();
     expect(result.data).toEqual({ subscription, orders });
-    expect(getCustomerOrdersMock).toHaveBeenCalledWith("cust_1");
+    expect(fakeGateway.listUserOrders).toHaveBeenCalledWith("u1");
   });
 
   it("returns null subscription and empty orders for a user with no Polar customer", async () => {
     getUserSubscriptionMock.mockResolvedValue(null);
-    getCustomerIdMock.mockResolvedValue(null);
 
     const { getBillingOverviewQuery } = await import("./billing-overview.query");
     const result = await getBillingOverviewQuery();
 
     expect(result.error).toBeNull();
     expect(result.data).toEqual({ subscription: null, orders: [] });
-    expect(getCustomerOrdersMock).not.toHaveBeenCalled();
   });
-
 });

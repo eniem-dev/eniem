@@ -14,7 +14,6 @@ export type {
 } from "./models/credits.model";
 
 // Services
-export { getCustomerId, getCustomerOrders } from "./services/billing.service";
 export {
   getUserSubscription,
   hasActiveSubscription,
