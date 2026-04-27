@@ -1,0 +1,155 @@
+### Overall Assessment
+
+This refactor demonstrates solid architectural intuition: decoupling auth from Polar via a side-effects bridge is the right move, and the boundary enforcement via ESLint is commendable. However, the execution falls short of exemplary. The code preserves too many anti-patterns from the original monolith (type assertions, swallowed errors, repetitive functions) and introduces new violations of the project's own coding standards (barrel files, `import *`, mocking own code in tests). A refactor is a chance to leave the code cleaner than you found it — this one merely rearranges it.
+
+### Critical Issues
+
+1. **Barrel file (`src/lib/auth/index.ts`)** — Direct violation of the hard rule: *"No barrel files (`index.ts` re-exports). Import from the actual source."* Delete it and import from the concrete modules.
+
+2. **`import * as` pattern** — Used in `config.ts`, `user-hooks.ts`, `plugins/email-otp.ts`, `plugins/polar.ts`, and `side-effects.ts`. The standard forbids this: *"No `import *`. No deep cross-feature imports."* Use named imports.
+
+3. **Type assertions (`as string`, `` as `0x${string}` ``)** — In `oauth.ts` and `plugins/siwe.ts`. The standard is absolute: *"No `any`. No `as Type` assertions. Use type guards and narrowing."* For SIWE, use `isHex` from viem. For OAuth, validate env vars with a type guard or parse them through a schema before asserting their presence.
+
+4. **Swallowing errors in `side-effects.ts`** — The `onUserDeleted` catch block logs and returns, hiding failure from callers. The standard: *"Never swallow errors — no empty catch, no `catch (e) { console.log(e) }`."* If user deletion must not block on Polar cleanup, make it a proper async job/event; don't silently discard failures.
+
+5. **Mocking your own code in tests** — `plugins/polar.test.ts` mocks `../side-effects`; `user-hooks.test.ts` mocks `./side-effects` and `./email-hooks`. The standard is explicit: *"Never mock your own code. Tests use public interfaces only."* These tests verify wiring, not behavior, and are implementation-detail traps.
+
+6. **Dead mock code** — `side-effects.test.ts` mocks `@/lib/auth` which is never imported by the module under test. Remove it.
+
+7. **Redundant ESLint comment** — `side-effects.ts` has `// eslint-disable-next-line no-restricted-imports`, but the ESLint config already ignores this file via the `ignores` array. Comments are a code smell; remove it.
+
+### Improvements Needed
+
+**Eliminate repetitive email hooks (`email-hooks.ts`)**
+
+Four functions differ only by an email type string. This is a DRY violation:
+
+```ts
+// BEFORE
+export async function sendResetPassword({ user, url, token }: UserUrlToken) {
+  await sendEmail({ type: "password-reset", to: user.email, data: { url, token } });
+}
+export async function sendVerificationEmail({ user, url, token }: UserUrlToken) {
+  await sendEmail({ type: "verification", to: user.email, data: { url, token } });
+}
+// ... two more identical shapes
+
+// AFTER
+type EmailType = "password-reset" | "verification" | "delete-account";
+
+async function sendUserEmail(type: EmailType, { user, url, token }: UserUrlToken) {
+  await sendEmail({ type, to: user.email, data: { url, token } });
+}
+
+export const sendResetPassword = (p: UserUrlToken) => sendUserEmail("password-reset", p);
+export const sendVerificationEmail = (p: UserUrlToken) => sendUserEmail("verification", p);
+export const sendChangeEmailVerification = (p: UserUrlToken) => sendUserEmail("verification", p);
+export const sendDeleteAccountVerification = (p: UserUrlToken) => sendUserEmail("delete-account", p);
+```
+
+**Replace switch with lookup (`logger-adapter.ts`)**
+
+```ts
+// BEFORE
+log: (level, message, ...args) => {
+  switch (level) {
+    case "error": logger.error(message, { metadata: args }); break;
+    // ... etc
+  }
+}
+
+// AFTER
+const logByLevel: Record<string, typeof logger.info> = {
+  error: logger.error,
+  warn: logger.warn,
+  info: logger.info,
+};
+
+export const loggerAdapter: BetterAuthOptions["logger"] = {
+  level: "info",
+  log: (level, message, ...args) => {
+    (logByLevel[level] ?? logger.log)(message, { metadata: args });
+  },
+};
+```
+
+**Remove pass-through wrapper (`side-effects.ts`)**
+
+```ts
+// BEFORE
+export function getPurchasableProducts(polarServer: "sandbox" | "production") {
+  return getCheckoutProducts(polarServer);
+}
+
+// AFTER — just re-export or let the consumer import directly
+export { getCheckoutProducts as getPurchasableProducts } from "@/features/billing";
+```
+
+**Delete implementation-detail tests (`user-hooks.test.ts`)**
+
+The test `"is enabled and wires the email-hook adapter"` asserts `typeof === "function"`. This tests plumbing, not behavior. If the contract is that `changeEmail` is enabled, test that through the public auth interface (e.g., a configuration snapshot test or an integration test), not by inspecting function references.
+
+### What Works Well
+
+- The ESLint boundary rule is excellent craftsmanship: it encodes the architecture into the build, making violations impossible rather than merely discouraged.
+- `config.ts` is now readable — the `betterAuth` call fits on a screen and tells a clear story.
+- `side-effects.test.ts` correctly mocks at system boundaries (`@/lib/polar`, `@/lib/db`) rather than internal modules, and the fake gateway pattern is the right testing strategy.
+- Extracting `rate-limit.ts`, `logger-adapter.ts`, and the individual plugins keeps the config declarative and focused.
+
+### Refactored Version
+
+Here is how `email-hooks.ts` and `logger-adapter.ts` should look to meet the standard:
+
+```ts
+// email-hooks.ts
+import { sendEmail } from "@/lib/email/send-email";
+import { logger } from "@/lib/logger";
+
+export interface UserUrlToken {
+  user: { email: string };
+  url: string;
+  token: string;
+}
+
+type EmailType = "password-reset" | "verification" | "delete-account";
+
+async function sendUserEmail(type: EmailType, { user, url, token }: UserUrlToken) {
+  await sendEmail({ type, to: user.email, data: { url, token } });
+}
+
+export const sendResetPassword = (p: UserUrlToken) => sendUserEmail("password-reset", p);
+export const sendVerificationEmail = (p: UserUrlToken) => sendUserEmail("verification", p);
+export const sendChangeEmailVerification = (p: UserUrlToken) => sendUserEmail("verification", p);
+export const sendDeleteAccountVerification = (p: UserUrlToken) => sendUserEmail("delete-account", p);
+
+export async function onPasswordReset({ user }: { user: { id: string; email: string } }) {
+  logger.info("Password reset successful", { userId: user.id, email: user.email });
+}
+
+export async function sendOtp({ email, otp }: { email: string; otp: string }) {
+  await sendEmail({ type: "otp", to: email, data: { otp } });
+}
+```
+
+```ts
+// logger-adapter.ts
+import type { BetterAuthOptions } from "better-auth";
+import { logger } from "@/lib/logger";
+
+const logByLevel = {
+  error: logger.error,
+  warn: logger.warn,
+  info: logger.info,
+} as const;
+
+export const loggerAdapter: BetterAuthOptions["logger"] = {
+  level: "info",
+  log: (level, message, ...args) => {
+    (logByLevel[level as keyof typeof logByLevel] ?? logger.log)(message, { metadata: args });
+  },
+};
+```
+
+(Note: the `as keyof typeof logByLevel` in the logger adapter is a narrow cast on a closed set of literals — acceptable because `level` comes from a bounded external contract, but ideally `level` is already typed as that union.)
+
+**Bottom line:** The architecture is correct, but the code needs to be scrubbed of standard violations before it can land. Fix the barrel file, the `import *`, the type assertions, the swallowed error, and the own-code mocks. Then this will be exemplary.
