@@ -3,9 +3,10 @@ import {
   createFakePolarGateway,
   type FakePolarGateway,
 } from "@/lib/polar/fake-polar-gateway";
+import type { BillingOrder } from "@/lib/polar/polar-domain";
 
 const getSessionMock = vi.fn();
-const getUserSubscriptionMock = vi.fn();
+const findUniqueMock = vi.fn();
 let fakeGateway: FakePolarGateway;
 
 vi.mock("@/lib/auth", () => ({
@@ -20,14 +21,18 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), log: vi.fn() },
 }));
 
+vi.mock("@/lib/db", () => ({
+  prisma: {
+    subscription: {
+      findUnique: (...args: unknown[]) => findUniqueMock(...args),
+    },
+  },
+}));
+
 vi.mock("@/lib/polar/index", () => ({
   get polar() {
     return fakeGateway;
   },
-}));
-
-vi.mock("../services/subscription.service", () => ({
-  getUserSubscription: (...args: unknown[]) => getUserSubscriptionMock(...args),
 }));
 
 describe("getBillingOverviewQuery", () => {
@@ -41,8 +46,8 @@ describe("getBillingOverviewQuery", () => {
   });
 
   it("returns subscription and orders for a user with a Polar customer", async () => {
-    const subscription = { id: "sub_1", status: "active" };
-    const orders = [
+    const subscription = { id: "sub_1", userId: "u1", status: "active" };
+    const orders: BillingOrder[] = [
       {
         id: "ord_1",
         createdAt: new Date("2026-01-01"),
@@ -53,19 +58,23 @@ describe("getBillingOverviewQuery", () => {
         description: "Pro plan",
       },
     ];
-    getUserSubscriptionMock.mockResolvedValue(subscription);
-    fakeGateway.listUserOrders = vi.fn().mockResolvedValue(orders);
+    findUniqueMock.mockResolvedValue(subscription);
+    fakeGateway.seedCustomer({
+      userId: "u1",
+      customerId: "polar_u1",
+      orders,
+    });
 
     const { getBillingOverviewQuery } = await import("./billing-overview.query");
     const result = await getBillingOverviewQuery();
 
     expect(result.error).toBeNull();
     expect(result.data).toEqual({ subscription, orders });
-    expect(fakeGateway.listUserOrders).toHaveBeenCalledWith("u1");
+    expect(findUniqueMock).toHaveBeenCalledWith({ where: { userId: "u1" } });
   });
 
   it("returns null subscription and empty orders for a user with no Polar customer", async () => {
-    getUserSubscriptionMock.mockResolvedValue(null);
+    findUniqueMock.mockResolvedValue(null);
 
     const { getBillingOverviewQuery } = await import("./billing-overview.query");
     const result = await getBillingOverviewQuery();

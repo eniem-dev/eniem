@@ -1,9 +1,9 @@
-import type { BillingOverview as BillingOverviewModel } from "../models/billing.model";
+import type { BillingData } from "../models/billing.model";
 import { SubscriptionStatusCard } from "./subscription-status-card";
 import { OrderHistoryCard } from "./order-history-card";
 
 interface BillingOverviewProps {
-  data: BillingOverviewModel;
+  data: BillingData;
 }
 
 export function BillingOverview({ data }: BillingOverviewProps) {
