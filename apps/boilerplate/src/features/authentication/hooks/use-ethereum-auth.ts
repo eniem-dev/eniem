@@ -7,6 +7,9 @@ import { authClient, useSession } from "@/lib/auth-client";
 import { routes } from "@/config";
 import { locales } from "@/locales";
 
+// Must stay <= better-auth SIWE nonce TTL (900s) to avoid valid signatures with expired nonces.
+const SIWE_MESSAGE_TTL_MS = 10 * 60 * 1000;
+
 export function useEthereumAuth(callbackURL?: string) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -34,7 +37,7 @@ export function useEthereumAuth(callbackURL?: string) {
       }
 
       const issuedAt = new Date();
-      const expirationTime = new Date(issuedAt.getTime() + 10 * 60 * 1000);
+      const expirationTime = new Date(issuedAt.getTime() + SIWE_MESSAGE_TTL_MS);
       const siweMessage = new SiweMessage({
         domain: window.location.hostname,
         address,

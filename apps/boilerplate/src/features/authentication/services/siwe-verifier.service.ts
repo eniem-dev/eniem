@@ -6,8 +6,10 @@ export type SiweVerifyFailureReason =
   | "invalid-signature-format"
   | "domain-mismatch"
   | "nonce-mismatch"
+  | "invalid-expected-address"
   | "address-mismatch"
   | "chain-id-mismatch"
+  | "missing-expiration"
   | "expired"
   | "not-yet-valid"
   | "invalid-signature";
@@ -36,7 +38,7 @@ export async function verifySiweMessage(
     return { success: false, reason: "invalid-signature-format" };
   }
   if (!isAddress(input.expectedAddress)) {
-    return { success: false, reason: "address-mismatch" };
+    return { success: false, reason: "invalid-expected-address" };
   }
 
   let parsed: SiweMessage;
@@ -60,7 +62,7 @@ export async function verifySiweMessage(
   }
 
   if (!parsed.expirationTime) {
-    return { success: false, reason: "expired" };
+    return { success: false, reason: "missing-expiration" };
   }
   const expiresAt = new Date(parsed.expirationTime);
   if (Number.isNaN(expiresAt.getTime())) {

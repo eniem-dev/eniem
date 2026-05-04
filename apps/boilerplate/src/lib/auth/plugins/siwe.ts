@@ -13,11 +13,9 @@ export const siwePlugin = siwe({
   emailDomainName: APP_DOMAIN,
   anonymous: true,
   getNonce: async () => generateSiweNonce(),
-  // The plugin's `cacao.p` is the canonical source for the expected domain and
-  // nonce — if a future better-auth upgrade changes its shape, this adapter
-  // must be re-checked.
+  // Expected domain is server-owned config; cacao only carries the server-stored nonce.
   verifyMessage: async ({ message, signature, address, chainId, cacao }) => {
-    const expectedDomain = cacao?.p.domain ?? APP_DOMAIN;
+    const expectedDomain = APP_DOMAIN;
     const expectedNonce = cacao?.p.nonce;
     if (!expectedNonce) {
       logger.error("SIWE verification failed: missing nonce in cacao", {
@@ -32,6 +30,7 @@ export const siwePlugin = siwe({
       expectedDomain,
       expectedNonce,
       expectedAddress: address,
+      // The plugin keys nonces by address + request chainId, so chain-specific replay is blocked.
       expectedChainId: chainId,
       now: new Date(),
     });

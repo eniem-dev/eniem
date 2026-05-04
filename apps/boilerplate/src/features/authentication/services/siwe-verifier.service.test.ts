@@ -6,7 +6,10 @@ import { verifySiweMessage } from "./siwe-verifier.service";
 
 const TEST_PRIVATE_KEY =
   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+const WRONG_PRIVATE_KEY =
+  "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d";
 const account = privateKeyToAccount(TEST_PRIVATE_KEY);
+const wrongAccount = privateKeyToAccount(WRONG_PRIVATE_KEY);
 
 const DOMAIN = "app.example.com";
 const NONCE = "abcdef0123456789";
@@ -98,11 +101,8 @@ describe("verifySiweMessage", () => {
   });
 
   it("rejects when the message address does not match the request address", async () => {
-    const otherAccount = privateKeyToAccount(
-      "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d",
-    );
     const { message, signature } = await buildSignedMessage({
-      address: otherAccount.address,
+      address: wrongAccount.address,
     });
 
     const result = await verifySiweMessage({
@@ -116,6 +116,25 @@ describe("verifySiweMessage", () => {
     });
 
     expect(result).toEqual({ success: false, reason: "address-mismatch" });
+  });
+
+  it("rejects when the expected address is malformed", async () => {
+    const { message, signature } = await buildSignedMessage();
+
+    const result = await verifySiweMessage({
+      message,
+      signature,
+      expectedDomain: DOMAIN,
+      expectedNonce: NONCE,
+      expectedAddress: "not-an-address",
+      expectedChainId: CHAIN_ID,
+      now: NOW_VALID,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      reason: "invalid-expected-address",
+    });
   });
 
   it("rejects when chain id does not match", async () => {
@@ -165,7 +184,24 @@ describe("verifySiweMessage", () => {
       now: NOW_VALID,
     });
 
-    expect(result).toEqual({ success: false, reason: "expired" });
+    expect(result).toEqual({ success: false, reason: "missing-expiration" });
+  });
+
+  it("rejects a malformed expirationTime", async () => {
+    const { message, signature } = await buildSignedMessage();
+    const malformed = message.replace(EXPIRATION, "not-a-date");
+
+    const result = await verifySiweMessage({
+      message: malformed,
+      signature,
+      expectedDomain: DOMAIN,
+      expectedNonce: NONCE,
+      expectedAddress: account.address,
+      expectedChainId: CHAIN_ID,
+      now: NOW_VALID,
+    });
+
+    expect(result).toEqual({ success: false, reason: "malformed-message" });
   });
 
   it("rejects a not-yet-valid message", async () => {
@@ -186,6 +222,28 @@ describe("verifySiweMessage", () => {
     expect(result).toEqual({ success: false, reason: "not-yet-valid" });
   });
 
+  it("rejects a malformed notBefore", async () => {
+    const { message, signature } = await buildSignedMessage({
+      notBefore: "2026-05-04T12:01:00.000Z",
+    });
+    const malformed = message.replace(
+      "2026-05-04T12:01:00.000Z",
+      "not-a-date",
+    );
+
+    const result = await verifySiweMessage({
+      message: malformed,
+      signature,
+      expectedDomain: DOMAIN,
+      expectedNonce: NONCE,
+      expectedAddress: account.address,
+      expectedChainId: CHAIN_ID,
+      now: NOW_VALID,
+    });
+
+    expect(result).toEqual({ success: false, reason: "malformed-message" });
+  });
+
   it("rejects a malformed message string", async () => {
     const result = await verifySiweMessage({
       message: "this is not a SIWE message",
@@ -202,10 +260,37 @@ describe("verifySiweMessage", () => {
 
   it("rejects when the message body is tampered after signing", async () => {
     const { message, signature } = await buildSignedMessage();
-    const tampered = message.replace("Sign in", "Sign-in upgraded");
+    const tampered = message.replace("Sign in", "Sign In");
 
     const result = await verifySiweMessage({
       message: tampered,
+      signature,
+      expectedDomain: DOMAIN,
+      expectedNonce: NONCE,
+      expectedAddress: account.address,
+      expectedChainId: CHAIN_ID,
+      now: NOW_VALID,
+    });
+
+    expect(result).toEqual({ success: false, reason: "invalid-signature" });
+  });
+
+  it("rejects when a different private key signed a valid message", async () => {
+    const message = new SiweMessage({
+      domain: DOMAIN,
+      address: account.address,
+      statement: "Sign in",
+      uri: `https://${DOMAIN}`,
+      version: "1",
+      chainId: CHAIN_ID,
+      nonce: NONCE,
+      issuedAt: ISSUED_AT,
+      expirationTime: EXPIRATION,
+    }).prepareMessage();
+    const signature = await wrongAccount.signMessage({ message });
+
+    const result = await verifySiweMessage({
+      message,
       signature,
       expectedDomain: DOMAIN,
       expectedNonce: NONCE,
