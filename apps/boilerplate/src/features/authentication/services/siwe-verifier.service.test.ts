@@ -275,6 +275,25 @@ describe("verifySiweMessage", () => {
     expect(result).toEqual({ success: false, reason: "invalid-signature" });
   });
 
+  it("rejects when the signature bytes are tampered", async () => {
+    const { message, signature } = await buildSignedMessage();
+    const lastNibble = signature.slice(-1);
+    const replacementNibble = lastNibble === "0" ? "1" : "0";
+    const tamperedSignature = `${signature.slice(0, -1)}${replacementNibble}`;
+
+    const result = await verifySiweMessage({
+      message,
+      signature: tamperedSignature,
+      expectedDomain: DOMAIN,
+      expectedNonce: NONCE,
+      expectedAddress: account.address,
+      expectedChainId: CHAIN_ID,
+      now: NOW_VALID,
+    });
+
+    expect(result).toEqual({ success: false, reason: "invalid-signature" });
+  });
+
   it("rejects when a different private key signed a valid message", async () => {
     const message = new SiweMessage({
       domain: DOMAIN,

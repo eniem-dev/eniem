@@ -17,31 +17,36 @@ export const siwePlugin = siwe({
   verifyMessage: async ({ message, signature, address, chainId, cacao }) => {
     const expectedDomain = APP_DOMAIN;
     const expectedNonce = cacao?.p.nonce;
-    if (!expectedNonce) {
+    if (expectedNonce === undefined) {
       logger.error("SIWE verification failed: missing nonce in cacao", {
         address,
       });
       return false;
     }
 
-    const result = await verifySiweMessage({
-      message,
-      signature,
-      expectedDomain,
-      expectedNonce,
-      expectedAddress: address,
-      // The plugin keys nonces by address + request chainId, so chain-specific replay is blocked.
-      expectedChainId: chainId,
-      now: new Date(),
-    });
-
-    if (!result.success) {
-      logger.error("SIWE verification failed", {
-        reason: result.reason,
-        address,
+    try {
+      const result = await verifySiweMessage({
+        message,
+        signature,
+        expectedDomain,
+        expectedNonce,
+        expectedAddress: address,
+        // The plugin keys nonces by address + request chainId, so chain-specific replay is blocked.
+        expectedChainId: chainId,
+        now: new Date(),
       });
+
+      if (!result.success) {
+        logger.error("SIWE verification failed", {
+          reason: result.reason,
+          address,
+        });
+        return false;
+      }
+      return true;
+    } catch (error) {
+      logger.error("SIWE verification crashed", { error, address });
       return false;
     }
-    return true;
   },
 });

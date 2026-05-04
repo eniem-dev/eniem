@@ -34,11 +34,11 @@ const sameAddress = (a: string, b: string) =>
 export async function verifySiweMessage(
   input: SiweVerifyInput,
 ): Promise<SiweVerifyResult> {
-  if (!isHex(input.signature)) {
-    return { success: false, reason: "invalid-signature-format" };
-  }
   if (!isAddress(input.expectedAddress)) {
     return { success: false, reason: "invalid-expected-address" };
+  }
+  if (!isHex(input.signature)) {
+    return { success: false, reason: "invalid-signature-format" };
   }
 
   let parsed: SiweMessage;
