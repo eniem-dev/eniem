@@ -7,6 +7,10 @@ import { authClient, useSession } from "@/lib/auth-client";
 import { routes } from "@/config";
 import { locales } from "@/locales";
 
+// Must be <= the BetterAuth SIWE nonce TTL (currently 900s) so a valid
+// signature is never rejected for an expired server-side nonce.
+const SIWE_MESSAGE_TTL_MS = 10 * 60 * 1000;
+
 export function useEthereumAuth(callbackURL?: string) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -33,8 +37,10 @@ export function useEthereumAuth(callbackURL?: string) {
         return;
       }
 
+      const issuedAt = new Date();
+      const expirationTime = new Date(issuedAt.getTime() + SIWE_MESSAGE_TTL_MS);
       const siweMessage = new SiweMessage({
-        domain: window.location.host,
+        domain: window.location.hostname,
         address,
         statement:
           mode === "signin"
@@ -44,7 +50,8 @@ export function useEthereumAuth(callbackURL?: string) {
         version: "1",
         chainId: chain.id,
         nonce: nonceResult.data!.nonce,
-        issuedAt: new Date().toISOString(),
+        issuedAt: issuedAt.toISOString(),
+        expirationTime: expirationTime.toISOString(),
       });
 
       const messageString = siweMessage.prepareMessage();

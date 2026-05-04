@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 
 export { polarClient };
 export { getCheckoutProducts as getPurchasableProducts } from "@/features/billing";
+export { verifySiweMessage } from "@/features/authentication/services/siwe-verifier.service";
 export type { PolarSubscription };
 
 export async function onUserDeleted(userId: string): Promise<void> {
