@@ -33,8 +33,10 @@ export function useEthereumAuth(callbackURL?: string) {
         return;
       }
 
+      const issuedAt = new Date();
+      const expirationTime = new Date(issuedAt.getTime() + 10 * 60 * 1000);
       const siweMessage = new SiweMessage({
-        domain: window.location.host,
+        domain: window.location.hostname,
         address,
         statement:
           mode === "signin"
@@ -44,7 +46,8 @@ export function useEthereumAuth(callbackURL?: string) {
         version: "1",
         chainId: chain.id,
         nonce: nonceResult.data!.nonce,
-        issuedAt: new Date().toISOString(),
+        issuedAt: issuedAt.toISOString(),
+        expirationTime: expirationTime.toISOString(),
       });
 
       const messageString = siweMessage.prepareMessage();
