@@ -47,6 +47,13 @@ Build/test/lint/typecheck scripts are wrapped in `./scripts/run_silent` internal
 - Read `docs/server-patterns.md` for queries, actions, API routes, error handling, email
 - Read `docs/quick-reference.md` for import table, config, and database access
 
+## Doctrine and ADRs
+
+- `CODING_STANDARDS.md` — TDD doctrine plus eniem-specific Prisma/Polar/BetterAuth/Next.js rules. Read before writing code.
+- `CODE_REVIEW.md` — reviewer checklist (used by `/code-review`).
+- `CONTEXT.md` — domain glossary (maintained via `/grill-with-docs`).
+- `docs/adr/` — architectural decisions; template at `docs/adr/0000-template.md`.
+
 ## Stack docs
 
 Long-form integration references for stack pieces. Read the relevant one before touching that area.

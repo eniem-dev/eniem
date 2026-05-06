@@ -1,6 +1,6 @@
 # Coding Standard
 
-For the test-driven development workflow (cadence, per-cycle checklist, anti-patterns), see `../../CODING_STANDARDS.md` (repo root) or invoke `/tdd`.
+For the test-driven development workflow (cadence, per-cycle checklist, anti-patterns), see `../CODING_STANDARDS.md` or invoke `/tdd`.
 
 ## 1. Testing rules
 

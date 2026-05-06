@@ -55,21 +55,23 @@ git checkout -b feat/<feature-name>
 
 ## Agent skills
 
+The doctrine, domain glossary, and ADRs live with the boilerplate (`apps/boilerplate/`), since that's the product surface. The root only carries workspace-level concerns.
+
 ### Doctrine
 
-Engineering doctrine (TDD, tests, mocking, interface design, deep modules) lives in `CODING_STANDARDS.md`. Read it before writing code. The `/tdd` skill references it; `.looper/PROMPT_BUILD.md` reads it directly.
+Engineering doctrine (TDD, tests, mocking, interface design, deep modules, plus eniem-specific Prisma/Polar/BetterAuth/Next.js rules) lives in `apps/boilerplate/CODING_STANDARDS.md`. Read it before writing code. The `/tdd` skill references it; `.looper/PROMPT_BUILD.md` reads it directly.
 
 ### Code review
 
-Reviewer doctrine lives in `CODE_REVIEW.md`. The `/code-review` skill reads it before reviewing a PR.
+Reviewer doctrine lives in `apps/boilerplate/CODE_REVIEW.md`. The `/code-review` skill reads it before reviewing a PR.
 
 ### Domain
 
-Shared domain language: `CONTEXT.md`. Maintained via `/grill-with-docs`.
+Shared domain language: `apps/boilerplate/CONTEXT.md`. Maintained via `/grill-with-docs`.
 
 ### Architectural decisions
 
-ADRs live under `docs/adr/NNNN-*.md`. Template at `docs/adr/0000-template.md`.
+ADRs live under `apps/boilerplate/docs/adr/NNNN-*.md`. Template at `apps/boilerplate/docs/adr/0000-template.md`.
 
 ### Issue tracker
 

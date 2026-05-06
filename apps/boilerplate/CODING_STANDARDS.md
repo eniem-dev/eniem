@@ -303,7 +303,7 @@ After TDD cycle, look for:
 
 # Eniem-specific rules
 
-These rules apply on top of the doctrine above. Stack-specific long-form references live under `apps/boilerplate/docs/stack/`.
+These rules apply on top of the doctrine above. Stack-specific long-form references live under `docs/stack/`.
 
 ## Prisma migrations
 
@@ -316,17 +316,17 @@ These rules apply on top of the doctrine above. Stack-specific long-form referen
 - Webhook handlers must be idempotent under replay. The same event can arrive more than once.
 - Side effects must key on stable Polar IDs (customer/subscription/order), never on event arrival order.
 - Verification is done by the BetterAuth Polar plugin — don't add a parallel handler.
-- See `apps/boilerplate/docs/stack/payments-polar.md` for the integration shape.
+- See `docs/stack/payments-polar.md` for the integration shape.
 
 ## BetterAuth flows
 
 - Do not roll your own session check. Use `auth.api.getSession` for inline page guards or `authed.query` / `authed.route` for handlers.
 - New auth providers, rate-limit rules, or email callbacks go through `src/lib/auth.ts` — not bespoke routes.
-- See `apps/boilerplate/docs/stack/auth-guide.md` before touching auth.
+- See `docs/stack/auth-guide.md` before touching auth.
 
 ## Next.js boundaries
 
 - Server-only modules (`*.service.ts`, `*.query.ts`, `*.action.ts`, anything importing `prisma` / `auth` / the Polar SDK) must not be imported by client components.
 - Action files start with `"use server"`. Query factories are invoked from RSC, not client code.
 - Use the `authed` / `publicly` wrappers from `@/lib/handler` — never replicate their session-check logic inline.
-- See `apps/boilerplate/docs/stack/route-guard.md` and `apps/boilerplate/docs/stack/feature-scaffold.md`.
+- See `docs/stack/route-guard.md` and `docs/stack/feature-scaffold.md`.
