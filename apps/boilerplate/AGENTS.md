@@ -50,8 +50,8 @@ Build/test/lint/typecheck scripts are wrapped in `./scripts/run_silent` internal
 ## Doctrine and ADRs
 
 - `CODING_STANDARDS.md` — TDD doctrine plus eniem-specific Prisma/Polar/BetterAuth/Next.js rules. Read before writing code.
-- `CODE_REVIEW.md` — reviewer checklist (used by `/code-review`).
-- `CONTEXT.md` — domain glossary (maintained via `/grill-with-docs`).
+- `docs/CODE_REVIEW.md` — reviewer checklist (used by `/code-review`).
+- `docs/CONTEXT.md` — domain glossary (maintained via `/grill-with-docs`).
 - `docs/adr/` — architectural decisions; template at `docs/adr/0000-template.md`.
 
 ## Stack docs

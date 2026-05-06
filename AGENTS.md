@@ -63,11 +63,11 @@ Engineering doctrine (TDD, tests, mocking, interface design, deep modules, plus 
 
 ### Code review
 
-Reviewer doctrine lives in `apps/boilerplate/CODE_REVIEW.md`. The `/code-review` skill reads it before reviewing a PR.
+Reviewer doctrine lives in `apps/boilerplate/docs/CODE_REVIEW.md`. The `/code-review` skill reads it before reviewing a PR.
 
 ### Domain
 
-Shared domain language: `apps/boilerplate/CONTEXT.md`. Maintained via `/grill-with-docs`.
+Shared domain language: `apps/boilerplate/docs/CONTEXT.md`. Maintained via `/grill-with-docs`.
 
 ### Architectural decisions
 

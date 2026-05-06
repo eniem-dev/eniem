@@ -29,7 +29,7 @@ Scan for immediate red flags:
 Check the change against the repo's own rules:
 
 - **`CODING_STANDARDS.md`** — TDD discipline, mocking boundaries, deep modules, interface design. Are tests integration-style? Are mocks at system boundaries only? Are interfaces small and deep?
-- **`CONTEXT.md`** — does the code use the project's canonical domain vocabulary? Flag terminology drift (e.g. code introducing "Account" when `CONTEXT.md` defines "Customer").
+- **`docs/CONTEXT.md`** — does the code use the project's canonical domain vocabulary? Flag terminology drift (e.g. code introducing "Account" when `docs/CONTEXT.md` defines "Customer").
 - **`docs/adr/`** — is the change consistent with prior architectural decisions? If it contradicts an ADR, the PR should explicitly supersede that ADR.
 - **`AGENTS.md`** — does the change respect the repo's hard rules (logger usage, error handling pattern, file naming, etc.)?
 
