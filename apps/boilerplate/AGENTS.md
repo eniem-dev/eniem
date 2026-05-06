@@ -47,6 +47,15 @@ Build/test/lint/typecheck scripts are wrapped in `./scripts/run_silent` internal
 - Read `docs/server-patterns.md` for queries, actions, API routes, error handling, email
 - Read `docs/quick-reference.md` for import table, config, and database access
 
+## Stack docs
+
+Long-form integration references for stack pieces. Read the relevant one before touching that area.
+
+- `docs/stack/auth-guide.md` — BetterAuth: providers, OAuth, Email OTP, SIWE, rate limits, email callbacks
+- `docs/stack/payments-polar.md` — Polar: checkout, subscriptions, credits, webhooks, customer lifecycle
+- `docs/stack/route-guard.md` — Request-time route protection (`authed.query`, `authed.route`, middleware)
+- `docs/stack/feature-scaffold.md` — Conventions for adding a new feature module
+
 ## Plan Mode
 
 - Make the plan extremely concise. Sacrifice grammar for the sake of concision.

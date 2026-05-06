@@ -52,3 +52,29 @@ git checkout -b feat/<feature-name>
 - **CLI**: Conventional commits on `packages/cli/**` → auto-publish to npm (triggered on merge to `main`)
 - **Boilerplate**: Auto-tagged on merge from `quality` to `main` via conventional commits → syncs to customer repo
 - **Docs**: Push to main → deploy via Vercel/Netlify
+
+## Agent skills
+
+### Doctrine
+
+Engineering doctrine (TDD, tests, mocking, interface design, deep modules) lives in `CODING_STANDARDS.md`. Read it before writing code. The `/tdd` skill references it; `.looper/PROMPT_BUILD.md` reads it directly.
+
+### Code review
+
+Reviewer doctrine lives in `CODE_REVIEW.md`. The `/code-review` skill reads it before reviewing a PR.
+
+### Domain
+
+Shared domain language: `CONTEXT.md`. Maintained via `/grill-with-docs`.
+
+### Architectural decisions
+
+ADRs live under `docs/adr/NNNN-*.md`. Template at `docs/adr/0000-template.md`.
+
+### Issue tracker
+
+GitHub Issues. Triage labels: `bug`, `enhancement`, `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`.
+
+### AFK loop
+
+`.looper/PROMPT_BUILD.md` — implements PRD sub-issues one at a time. Trigger: `looper run --prompt .looper/PROMPT_BUILD.md --var PRD_ISSUE=<n>`.
