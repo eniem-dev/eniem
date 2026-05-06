@@ -1,7 +1,3 @@
----
-name: route-guard
-description: "Request-time route protection and secure server handlers. Use when user says '/route-guard', or when implementing protected pages, secure API routes, authenticated queries, authenticated handlers, middleware, session checks, gated content, subscription-gated routes, or private-by-default routing."
----
 
 # Route Guard
 
@@ -82,6 +78,6 @@ Public-route whitelist lives in `src/middleware.ts`.
 
 ## Related
 
-- BetterAuth configuration, providers, flows, rate limits → `.agents/skills/auth-guide/SKILL.md`
+- BetterAuth configuration, providers, flows, rate limits → `docs/stack/auth-guide.md`
 - Error classes used by the wrappers (`UnauthorizedError`, `ValidationError`, `ServerError`) → `docs/server-patterns.md`
-- Subscription/order access helpers (`hasActiveSubscription`, `hasActiveOrder`) → `.agents/skills/payments-polar/SKILL.md`
+- Subscription/order access helpers (`hasActiveSubscription`, `hasActiveOrder`) → `docs/stack/payments-polar.md`

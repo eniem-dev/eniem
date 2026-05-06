@@ -3,5 +3,7 @@
   "model": "default",
   "maxIterations": 20,
   "sentinel": ":::LOOPER_DONE:::",
-  "vars": {}
+  "vars": {
+    "BASE_BRANCH": "quality"
+  }
 }

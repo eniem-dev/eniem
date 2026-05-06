@@ -1,7 +1,3 @@
----
-name: auth-guide
-description: "BetterAuth integration reference. Use when user says '/auth-guide', or when implementing login, signup, auth providers, OAuth (GitHub/Twitter), Email OTP, SIWE, rate limits, email verification, password reset, account deletion, or auth schemas/hooks. For protecting pages/APIs/middleware, use route-guard instead."
----
 
 # Authentication Guide
 
@@ -60,7 +56,7 @@ Client-side handling in `auth-client.ts` reads `X-Retry-After` header and shows 
 
 ## Protecting Routes
 
-For route protection (RSC pages, secure handlers, middleware), see `.agents/skills/route-guard/SKILL.md` or invoke `/route-guard`.
+For route protection (RSC pages, secure handlers, middleware), see `docs/stack/route-guard.md`.
 
 ## Email Callbacks
 

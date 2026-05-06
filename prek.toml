@@ -1,0 +1,15 @@
+# prek pre-commit hooks. Run via `prek run` or `prek install` to wire to git.
+[[hooks]]
+name = "lint"
+cmd = "./scripts/run_silent 'lint' pnpm lint"
+stages = ["pre-commit"]
+
+[[hooks]]
+name = "typecheck"
+cmd = "./scripts/run_silent 'typecheck' pnpm typecheck"
+stages = ["pre-commit"]
+
+[[hooks]]
+name = "test"
+cmd = "./scripts/run_silent 'test' pnpm test"
+stages = ["pre-push"]
