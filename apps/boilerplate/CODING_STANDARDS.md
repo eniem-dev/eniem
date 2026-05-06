@@ -301,6 +301,48 @@ After TDD cycle, look for:
 
 ---
 
+# Code style
+
+General TypeScript / Node code-quality rules that apply across the boilerplate. The TDD doctrine above is about *what to test*; this section is about *how to write the code under test*.
+
+## Error handling
+
+- Handle errors at system boundaries (API handlers, event listeners, user input). Trust internal code.
+- Use typed errors or the Result pattern (`{ success, data } | { success, error }`). Never `throw new Error(string)`.
+- Never swallow errors — no empty `catch`, no `catch (e) { console.log(e) }`.
+- No defensive `?? fallback` on values that must exist. If it's missing, fail loud.
+- Early return with guard clauses. No deep nesting.
+
+## Types (TypeScript)
+
+- No `any`. No `as Type` assertions. Use type guards and narrowing.
+- Discriminated unions over optional fields: `{ type: "guest" } | { type: "user", id: string }`, not `{ type?: string, id?: string }`.
+- Branded types for domain values: `UserId`, `Email`, `Amount` — not bare `string` / `number`.
+- Infer over annotate. Only annotate at module boundaries and function signatures.
+
+## Naming
+
+- Functions: verb + domain noun — `validateInvoiceTotal`, not `handleData`.
+- Booleans: read as questions — `isExpired`, `hasPermission`.
+- No god files: no `utils.ts`, `helpers.ts`, `common.ts`, `misc.ts`.
+- If you need a comment to explain the name, rename it.
+
+## Functions
+
+- One level of abstraction per function — orchestrate or do work, not both.
+- Max one side effect per function.
+- Extract when the "what" is unclear, not when the code is long.
+- Don't abstract until the pattern appears twice.
+
+## Modules and imports
+
+- No barrel files (`index.ts` re-exports) outside a feature's public API. Import from the actual source.
+- Colocate code next to where it's used.
+- No `import *`. No deep cross-feature imports.
+- Respect dependency direction — never import upward (e.g. DB layer importing from routes).
+
+---
+
 # Eniem-specific rules
 
 These rules apply on top of the doctrine above. Stack-specific long-form references live under `docs/stack/`.

@@ -20,7 +20,7 @@ Build/test/lint/typecheck scripts are wrapped in `./scripts/run_silent` internal
 
 ## Hard Rules
 
-- Read `docs/coding-standard.md` before writing any code.
+- Read `CODING_STANDARDS.md` before writing any code.
 - NEVER use `console.log` — use `logger` from `@/lib/logger`.
 - NEVER use PostHog directly — use `captureEvent` from `@/lib/tracking`.
 - No `any`. No `as Type` assertions. Use type guards and narrowing.
