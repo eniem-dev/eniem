@@ -68,10 +68,9 @@ Auth events trigger emails via callbacks in `auth.ts`:
 
 ## User Deletion
 
-`user.deleteUser.afterDelete` hook cascades to Polar:
-```typescript
-await polarClient.customers.deleteExternal({ externalId: user.id });
-```
+`user.deleteUser.afterDelete` delegates to `onUserDeleted(user.id)`, which attempts Polar customer cleanup after the local BetterAuth user has been deleted. Missing Polar customers are idempotent non-errors in the Polar gateway. Other Polar SDK/network failures are logged with `userId` and a safe error message, then swallowed so confirmed account deletion is not blocked by third-party cleanup.
+
+If guaranteed external cleanup is needed, add an explicit retry/outbox workflow rather than making the BetterAuth delete-user hook fail.
 
 ## Adding a New Auth Provider
 

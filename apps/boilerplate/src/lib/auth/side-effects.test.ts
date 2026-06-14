@@ -47,6 +47,7 @@ vi.mock("@/config", () => ({
   },
 }));
 
+const { logger } = await import("@/lib/logger");
 const { onUserDeleted, onPolarCustomerStateChanged } = await import(
   "./side-effects"
 );
@@ -72,6 +73,7 @@ function makeSubscription(
 
 describe("onUserDeleted (integration with real PolarGateway fake)", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     fakeGateway = createFakePolarGateway();
     upsertMock.mockReset();
     deleteManyMock.mockReset();
@@ -85,12 +87,23 @@ describe("onUserDeleted (integration with real PolarGateway fake)", () => {
     expect(await fakeGateway.getUserCustomerState("u1")).toBeNull();
   });
 
-  it("propagates errors from the Polar gateway", async () => {
+  it("logs and returns when Polar customer cleanup fails", async () => {
     fakeGateway.deleteUserCustomer = vi
       .fn()
       .mockRejectedValue(new Error("polar down"));
 
-    await expect(onUserDeleted("u1")).rejects.toThrow("polar down");
+    await expect(onUserDeleted("u1")).resolves.toBeUndefined();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      "Polar customer cleanup failed after user deletion",
+      { userId: "u1", error: "polar down" }
+    );
+  });
+
+  it("does not log an error when Polar customer cleanup is already complete", async () => {
+    await onUserDeleted("u1");
+
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });
 
