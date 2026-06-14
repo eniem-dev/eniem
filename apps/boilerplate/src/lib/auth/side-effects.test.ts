@@ -32,24 +32,11 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
-vi.mock("@/lib/auth/config", () => ({
-  auth: { api: { getSession: vi.fn() } },
-}));
-
-vi.mock("@/config", () => ({
-  env: {
-    payment: { polarServer: "sandbox", polarWebhookSecret: "whsec_test" },
-    projectUrl: "https://example.com",
-    oauth: {
-      github: { clientId: undefined, clientSecret: undefined },
-      twitter: { clientId: undefined, clientSecret: undefined },
-    },
-  },
-}));
-
-const { onUserDeleted, onPolarCustomerStateChanged } = await import(
-  "./side-effects"
-);
+const {
+  getPurchasableProducts,
+  onUserDeleted,
+  onPolarCustomerStateChanged,
+} = await import("./side-effects");
 
 function makeSubscription(
   overrides: Partial<PolarSubscription> = {}
@@ -69,6 +56,20 @@ function makeSubscription(
     ...overrides,
   };
 }
+
+describe("getPurchasableProducts", () => {
+  it("returns only products with concrete Polar product IDs", () => {
+    const products = getPurchasableProducts("sandbox");
+
+    expect(products.length).toBeGreaterThan(0);
+    expect(products).toEqual(
+      products.map((product) => ({
+        productId: expect.any(String),
+        slug: expect.any(String),
+      }))
+    );
+  });
+});
 
 describe("onUserDeleted (integration with real PolarGateway fake)", () => {
   beforeEach(() => {

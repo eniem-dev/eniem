@@ -1,10 +1,10 @@
-import { syncSubscription } from "@/features/billing";
+import { syncSubscription } from "@/features/billing/server-api";
 import { polar, polarClient } from "@/lib/polar";
-import type { PolarSubscription } from "@/lib/polar/polar-domain";
 import { logger } from "@/lib/logger";
+import type { PolarSubscription } from "@/features/billing/server-api";
 
 export { polarClient };
-export { getCheckoutProducts as getPurchasableProducts } from "@/features/billing";
+export { getCheckoutProducts as getPurchasableProducts } from "@/features/billing/server-api";
 export { verifySiweMessage } from "@/features/authentication/services/siwe-verifier.service";
 export type { PolarSubscription };
 

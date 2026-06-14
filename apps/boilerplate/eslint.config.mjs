@@ -194,6 +194,35 @@ const eslintConfig = [
     },
   },
 
+  // Auth side-effects may touch billing only through the narrow server API.
+  // Do not import the billing feature barrel here: it re-exports UI, hooks, and
+  // queries that can pull handler/auth config back into auth initialization.
+  {
+    files: ["src/lib/auth/side-effects.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@/features/billing",
+              message:
+                "Auth side-effects must import billing through `@/features/billing/server-api` only. The billing barrel includes UI/hooks/queries and can create auth cycles.",
+            },
+          ],
+          patterns: [
+            {
+              regex: "^@/features/billing/(?!server-api$).*",
+              message:
+                "Auth side-effects must import billing through `@/features/billing/server-api` only. Keep UI/hooks/queries out of the auth bridge.",
+            },
+            polarSdkRestriction,
+          ],
+        },
+      ],
+    },
+  },
+
   // Pages and API routes must not use services directly — go through queries or actions
   {
     files: ["src/app/**/*.{ts,tsx}"],
