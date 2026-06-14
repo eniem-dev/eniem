@@ -145,19 +145,13 @@ async function notFoundOr<T>(promise: Promise<T>, fallback: T): Promise<T> {
 }
 
 export function createPolarGateway(client: Polar): PolarGateway {
-  const customerIdMemo = new Map<string, Promise<string | null>>();
-
   function resolveCustomerId(userId: string): Promise<string | null> {
-    const cached = customerIdMemo.get(userId);
-    if (cached) return cached;
-    const promise = notFoundOr(
+    return notFoundOr(
       safeRead("resolveCustomerId", userId, (signal) =>
         client.customers.getExternal({ externalId: userId }, { signal })
       ).then((c) => c.id),
       null
     );
-    customerIdMemo.set(userId, promise);
-    return promise;
   }
 
   function getUserCustomerState(userId: string): Promise<CustomerState | null> {
