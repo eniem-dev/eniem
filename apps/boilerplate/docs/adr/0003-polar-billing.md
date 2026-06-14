@@ -11,7 +11,7 @@ Polar is a younger product purpose-built for software companies (digital product
 
 ## Decision
 
-Use Polar via the `@polar-sh/better-auth` plugin. Customer is created on signup. Subscription state is synced via webhooks (`onCustomerStateChanged`) and on the post-checkout success page. Credit metering is wired through `src/features/credits/` against Polar meters.
+Use Polar via the `@polar-sh/better-auth` plugin. Customer is created on signup. Subscription state is synced via webhooks (`onCustomerStateChanged`) and on the post-checkout success page. Subscription state, generated products/meters, and credit metering live under the consolidated `src/features/billing/` feature and use `PolarGateway` through `src/lib/polar/`.
 
 ## Consequences
 

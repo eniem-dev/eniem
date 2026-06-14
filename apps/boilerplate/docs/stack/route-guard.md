@@ -12,7 +12,7 @@ Pick by surface area.
 Use when an entire page should redirect unauthenticated users to login.
 
 ```typescript
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/config";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -69,8 +69,8 @@ Private-by-default. Three route categories:
 
 ```typescript
 // In middleware.ts — choose ONE access model:
-const hasUserAccess = await hasActiveSubscription(userId);     // Subscription
-// const hasUserAccess = await hasActiveOrder(userId);          // One-time
+const hasUserAccess = await hasActiveSubscription(userId);     // Subscription (`@/features/billing`)
+// const hasUserAccess = await hasActiveOrder(userId);          // One-time (`@/features/benefits`)
 // const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId); // Hybrid
 ```
 
@@ -80,4 +80,4 @@ Public-route whitelist lives in `src/middleware.ts`.
 
 - BetterAuth configuration, providers, flows, rate limits → `docs/stack/auth-guide.md`
 - Error classes used by the wrappers (`UnauthorizedError`, `ValidationError`, `ServerError`) → `docs/server-patterns.md`
-- Subscription/order access helpers (`hasActiveSubscription`, `hasActiveOrder`) → `docs/stack/payments-polar.md`
+- Subscription/order access helpers (`hasActiveSubscription` from billing, `hasActiveOrder` from benefits) → `docs/stack/payments-polar.md`

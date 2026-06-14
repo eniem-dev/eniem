@@ -363,7 +363,7 @@ These rules apply on top of the doctrine above. Stack-specific long-form referen
 ## BetterAuth flows
 
 - Do not roll your own session check. Use `auth.api.getSession` for inline page guards or `authed.query` / `authed.route` for handlers.
-- New auth providers, rate-limit rules, or email callbacks go through `src/lib/auth.ts` — not bespoke routes.
+- New auth providers, rate-limit rules, or email callbacks go through `src/lib/auth/*` (`config.ts`, `oauth.ts`, `rate-limit.ts`, `email-hooks.ts`) — not bespoke routes.
 - See `docs/stack/auth-guide.md` before touching auth.
 
 ## Next.js boundaries

@@ -1,43 +1,40 @@
 ---
 title: "Page Level Access"
-description: "ENIEM uses a centralized access control system enforced by the Next.js middleware."
+description: "ENIEM uses centralized access control enforced by the Next.js middleware and server handler wrappers."
 ---
 
 ## Philosophy
 
 ### Middleware-First Approach
 
-We rely on middleware as much as possible to handle access control. This centralizes security logic in a single location (`middleware.ts`) and prevents developers from forgetting to add authentication checks in individual pages.
+We rely on middleware as much as possible for access control. This centralizes security in `src/middleware.ts` and prevents individual pages from forgetting authentication checks.
 
 ### Private by Default
 
-To avoid accidentally exposing pages that should be protected, we opt for making pages **private by default**. Only explicitly whitelisted routes in `PUBLIC_ROUTES` are accessible without authentication.
+Pages are protected by default. Only explicitly whitelisted routes in `PUBLIC_ROUTES` or `PUBLIC_ROUTE_PREFIXES` are accessible without authentication.
 
-This approach means:
+This means:
 
-- If you **forget** to add a route to `PUBLIC_ROUTES`, it will be protected (safe)
-- With the opposite approach (public by default), forgetting to protect a route would expose it (unsafe)
+- If you forget to add a route to `PUBLIC_ROUTES`, it stays protected
+- You avoid the unsafe public-by-default failure mode
 
 ## Access Levels Overview
 
 | Level         | Requirement                    | Redirect       | Example Routes             |
 | ------------- | ------------------------------ | -------------- | -------------------------- |
-| **Public**    | None                           | -              | `/`, `/pricing`, `/docs/*` |
+| **Public**    | None                           | -              | `/`, `/pricing`, `/blog/*` |
 | **Protected** | Logged in                      | `/login`       | `/account/*`               |
 | **Access**    | Logged in + Subscription/Order | `/choose-plan` | `/dashboard/*`             |
 
 ## Public Pages
 
-Public pages are defined in the `PUBLIC_ROUTES` array in the middleware. These routes are accessible to everyone without authentication.
-
-**middleware.ts**
+Public pages are defined in `src/middleware.ts`:
 
 ```ts
 const PUBLIC_ROUTES = [
   routes.home,
   routes.homeRedirect,
   routes.pricing,
-  routes.docs,
   routes.auth.signup,
   routes.auth.login,
   routes.auth.forgotPassword,
@@ -46,55 +43,52 @@ const PUBLIC_ROUTES = [
   routes.legal.privacy,
 ];
 
+const PUBLIC_ROUTE_PREFIXES = [routes.blog];
 const AUTH_API_PREFIX = "/api/auth";
 ```
 
-The middleware also automatically allows:
-
-- All routes under `/api/auth/*` (BetterAuth API endpoints)
-- All routes under `/docs/*` (documentation)
+The middleware also allows all routes under `/api/auth/*` for BetterAuth.
 
 ## Protected Pages
 
-Protected pages require the user to be logged in. If no session is found, the user is redirected to `/login`.
-
-**middleware.ts**
+Protected pages require a valid BetterAuth session. If no session is found, the user is redirected to `/login`.
 
 ```ts
+import { auth } from "@/lib/auth/config";
+
 async function handleAuthentication(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
   const isPublicRoute =
-    PUBLIC_ROUTES.some(
-      (route) => pathname === route || pathname.startsWith(AUTH_API_PREFIX)
-    ) || pathname.startsWith(routes.docs);
+    PUBLIC_ROUTES.includes(pathname) ||
+    PUBLIC_ROUTE_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+    ) ||
+    pathname.startsWith(AUTH_API_PREFIX);
 
   if (isPublicRoute) return NextResponse.next();
 
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
+  const session = await auth.api.getSession({ headers: await headers() });
 
-    if (!session) {
-      return NextResponse.redirect(new URL(routes.auth.login, request.url));
-    }
-
-    const accessResponse = await handleAccess(request, session.user.id);
-    if (accessResponse) return accessResponse;
-
-    return NextResponse.next();
-  } catch {
+  if (!session) {
     return NextResponse.redirect(new URL(routes.auth.login, request.url));
   }
+
+  const accessResponse = await handleAccess(request, session.user.id);
+  if (accessResponse) return accessResponse;
+
+  return NextResponse.next();
 }
 ```
 
 ## Access Required Pages
 
-Some pages require both authentication AND either an active subscription or a one-time purchase. If the user is logged in but doesn't have access, they are redirected to `/choose-plan`.
-
-**middleware.ts**
+Some pages require authentication plus either an active subscription or a one-time purchase. If the user is logged in but lacks access, they are redirected to `/choose-plan`.
 
 ```ts
+import { hasActiveSubscription } from "@/features/billing";
+import { hasActiveOrder } from "@/features/benefits";
+
 const REQUIRE_ACCESS_ROUTES: string[] = [routes.dashboard];
 
 async function handleAccess(
@@ -110,13 +104,8 @@ async function handleAccess(
   if (!requiresAccess) return null;
 
   // Choose ONE based on your business model:
-  // 1. Subscription-only (recurring payments)
-  // const hasUserAccess = await hasActiveSubscription(userId);
-
-  // 2. One-time purchase (orders/benefits)
-  const hasUserAccess = await hasActiveOrder(userId);
-
-  // 3. Hybrid (subscription OR one-time)
+  const hasUserAccess = await hasActiveSubscription(userId);
+  // const hasUserAccess = await hasActiveOrder(userId);
   // const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId);
 
   return hasUserAccess
@@ -129,7 +118,7 @@ async function handleAccess(
 
 ### Server Utilities
 
-For handling authentication in queries, actions, and API routes, use the unified handler builder from `@/lib/handler` which exposes `authed` and `publicly` roots with `.query()`, `.action()`, and `.route()` terminals.
+For authentication inside queries, actions, and API routes, use `authed` and `publicly` from `@/lib/handler`.
 
 See [Server Utilities](/features/server-utilities) for detailed documentation.
 
@@ -137,73 +126,40 @@ See [Server Utilities](/features/server-utilities) for detailed documentation.
 
 #### Subscription Check
 
-Located in `features/subscription/services/subscription.service.ts`:
-
-**`hasActiveSubscription(userId: string)`**
-
-Returns `Promise<boolean>`. Checks if a user has an active subscription (recurring payments).
+Located in `features/billing/services/subscription.service.ts` and exported from `@/features/billing`:
 
 ```ts
-export async function hasActiveSubscription(userId: string): Promise<boolean> {
-  const sub = await getUserSubscription(userId);
-  return sub?.status === "active";
-}
+import { hasActiveSubscription } from "@/features/billing";
+
+const isActive = await hasActiveSubscription(userId);
 ```
 
-**`getUserSubscription(userId: string)`**
-
-Returns `Promise<Subscription | null>`. Retrieves the full subscription details for a user.
-
-```ts
-export async function getUserSubscription(userId: string) {
-  return prisma.subscription.findUnique({
-    where: { userId },
-  });
-}
-```
+`hasActiveSubscription(userId)` returns `Promise<boolean>` and checks the locally synced subscription status.
 
 #### One-Time Purchase Check
 
-Located in `features/benefits/services/benefits.service.ts`:
-
-**`hasActiveOrder(userId: string)`**
-
-Returns `Promise<boolean>`. Checks if a user has any benefit grants from Polar (works for both GitHub repository access and downloadable files).
+Located in `features/benefits/services/benefits.service.ts` and exported from `@/features/benefits`:
 
 ```ts
-export async function hasActiveOrder(userId: string): Promise<boolean> {
-  try {
-    const customerSession = await polarClient.customerSessions.create({
-      externalCustomerId: userId,
-    });
+import { hasActiveOrder } from "@/features/benefits";
 
-    const response = await polarClient.customerPortal.benefitGrants.list(
-      { customerSession: customerSession.token },
-      {}
-    );
-
-    return (response.result.items?.length ?? 0) > 0;
-  } catch (error) {
-    logger.error("Failed to check benefit grants", { userId, error });
-    return false;
-  }
-}
+const hasOrder = await hasActiveOrder(userId);
 ```
 
-This function queries Polar's API to check if the user has any active benefit grants, regardless of how they were acquired (subscription or one-time purchase).
+`hasActiveOrder(userId)` returns `Promise<boolean>` and checks Polar benefit grants through the `PolarGateway`. It works for GitHub repository access and downloadable files.
 
 ## Usage Examples
 
 ### Creating a Protected Page
 
-Even though middleware handles protection, you may still need to access the session in your page:
+Middleware handles protection, but a page may still need session data for rendering:
 
 ```tsx
 // app/(protected)/account/general/page.tsx
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { ErrorCard } from "@/components/error-card";
+import { auth } from "@/lib/auth/config";
 import { locales } from "@/locales";
+import { headers } from "next/headers";
 
 export default async function AccountPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -212,35 +168,35 @@ export default async function AccountPage() {
     return <ErrorCard message={locales.errors.unauthorized} />;
   }
 
-  const user = session.user;
-  return <div>Welcome, {user.name}</div>;
+  return <div>Welcome, {session.user.name}</div>;
 }
 ```
 
 ### Using Authenticated Query
 
-```tsx
+```ts
 import { authed } from "@/lib/handler";
-import { prisma } from "@/lib/db";
+import { getUserProfile } from "../services/user.service";
 
 export const getUserQuery = () =>
   authed.query(async ({ user }) => {
-    return prisma.user.findUnique({ where: { id: user.id } });
+    return getUserProfile(user.id);
   });
 ```
 
 ### Using Authenticated Server Action
 
-```tsx
+```ts
 "use server";
 
 import { authed } from "@/lib/handler";
+import { updateProfile } from "../services/profile.service";
 import { updateProfileSchema } from "./schemas";
 
 export const updateProfileAction = authed
   .input(updateProfileSchema)
   .action(async ({ input, user }) => {
-    // user is guaranteed non-null
-    // ... update logic
+    await updateProfile(user.id, input);
+    return { success: true };
   });
 ```

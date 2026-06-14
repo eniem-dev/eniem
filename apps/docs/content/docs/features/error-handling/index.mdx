@@ -1,20 +1,19 @@
 ---
 title: "Error Handling"
-description: "ENIEM provides a layered error handling system with custom error classes, centralized server-side processing, and a client-side error boundary."
+description: "ENIEM provides typed errors, centralized server-side classification, and client-side error boundaries."
 ---
 
 ## Error Classes
 
-Custom error classes in `lib/errors.ts` provide typed errors with HTTP status codes.
+Custom error classes in `src/lib/errors.ts` provide typed errors with HTTP status codes.
 
-| Class              | Status Code | Default Message      |
-| ------------------ | ----------- | -------------------- |
-| `ServerError`      | 500         | (custom)             |
-| `UnauthorizedError`| 401         | `"Unauthorized"`     |
-| `ValidationError`  | 400         | `"Validation failed"`|
+| Class               | Status Code | Default Message       |
+| ------------------- | ----------- | --------------------- |
+| `ServerError`       | 500         | custom message        |
+| `UnauthorizedError` | 401         | `"Unauthorized"`     |
+| `ValidationError`   | 400         | `"Validation failed"` |
 
 ```ts
-// lib/errors.ts
 export class ServerError extends Error {
   constructor(message: string, public statusCode: number = 500) {
     super(message);
@@ -39,16 +38,18 @@ export class ValidationError extends ServerError {
 
 ## Server-Side Error Handling
 
-The `classifyError` function in `lib/handler.ts` processes errors and returns appropriate HTTP responses across every terminal (query/action/route).
+`classifyError` in `src/lib/handler.ts` converts thrown errors into response metadata for queries, actions, and routes.
 
 ### Error Processing Order
 
-1. **UnauthorizedError** → 401, logged as error
+1. **UnauthorizedError** → 401, logged as warning
 2. **ValidationError** → 400, logged as warning
 3. **ServerError** → custom status code, logged as error
 4. **ZodError** → 400, first issue message extracted, logged as warning
 5. **Generic Error** → 500, logged as error with stack trace
-6. **Unknown** → 500, uses `locales.errors.unhandledError`
+6. **Unknown** → 500, uses `locales.errors.unhandledError`, logged as error
+
+Expected client-side failures (401/400) are warnings. Unexpected server failures are errors.
 
 ### Response Formats
 
@@ -70,51 +71,37 @@ type ApiResponse<T> =
 
 ## Error Boundary
 
-The `app/error.tsx` component catches runtime errors in the React tree and displays a user-friendly error page.
+The `app/error.tsx` component catches runtime errors in the React tree and displays a user-friendly error page. The `reset()` function re-renders the route segment, allowing recovery from transient errors.
 
 ```tsx
-// app/error.tsx
 "use client";
 
-export default function Error({
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function Error({ reset }: { reset: () => void }) {
   return (
-    <>
-      <Navbar />
-      <main>
-        <p>{locales.ErrorPage.code}</p>
-        <h1>{locales.ErrorPage.title}</h1>
-        <p>{locales.ErrorPage.description}</p>
-        <button onClick={() => reset()}>
-          {locales.ErrorPage.tryAgain}
-        </button>
-        <Link href="/">{locales.ErrorPage.backToHome}</Link>
-      </main>
-      <Footer />
-    </>
+    <main>
+      <h1>{locales.ErrorPage.title}</h1>
+      <p>{locales.ErrorPage.description}</p>
+      <button onClick={() => reset()}>{locales.ErrorPage.tryAgain}</button>
+      <Link href="/">{locales.ErrorPage.backToHome}</Link>
+    </main>
   );
 }
 ```
-
-The `reset()` function re-renders the route segment, allowing recovery from transient errors.
 
 ## Usage
 
 ### Throwing Errors in Handlers
 
-Throw custom errors inside handlers. The `handleError` function catches them and returns the appropriate response format.
+Throw custom errors inside handlers or services. Request-boundary wrappers catch and classify them.
 
 ```ts
-import { UnauthorizedError, ValidationError, ServerError } from "@/lib/errors";
+import { ServerError, ValidationError } from "@/lib/errors";
+import { authed } from "@/lib/handler";
+import { getResourceForUser } from "../services/resource.service";
 
-// In a server query or API handler
 export const getResource = () =>
   authed.query(async ({ user }) => {
-    const resource = await db.resource.findUnique({ where: { userId: user.id } });
+    const resource = await getResourceForUser(user.id);
 
     if (!resource) {
       throw new ServerError("Resource not found", 404);
@@ -130,56 +117,59 @@ export const getResource = () =>
 
 ### Handling Responses
 
-Both server queries and API handlers return discriminated unions. Check the `error` or `success` field before accessing data.
+Both server queries and API handlers return discriminated unions. Check the discriminator before accessing data.
 
 ```ts
-// Server queries
+import { logger } from "@/lib/logger";
+
 const result = await getResource();
 if (result.error) {
-  // Handle error
-  console.error(result.error);
+  logger.warn("Unable to load resource", { error: result.error });
   return;
 }
-// Use result.data
 
-// API responses
+const resource = result.data;
+```
+
+```ts
 const response = await fetch("/api/resource");
 const json = await response.json();
+
 if (!json.success) {
-  // Handle error
   toast.error(json.error);
   return;
 }
-// Use json.data
+
+const resource = json.data;
 ```
 
 ### Server Actions
 
-Server actions using NextSafeAction return a different error structure with `serverError` and `validationErrors`.
+Server actions using next-safe-action return `serverError` and `validationErrors`.
 
 ```ts
+import { logger } from "@/lib/logger";
+
 const result = await updateProfileAction({ name: "John" });
 
 if (result?.serverError) {
-  // serverError is a string message from handleServerError
   toast.error(result.serverError);
   return;
 }
 
 if (result?.validationErrors) {
-  // Field-level validation errors from Zod schema
-  console.log(result.validationErrors);
+  logger.warn("Profile validation failed", { validationErrors: result.validationErrors });
   return;
 }
 
-// Success - use result.data
+const data = result?.data;
 ```
 
 With the `useAction` hook:
 
 ```tsx
 const { execute, isPending } = useAction(updateProfileAction, {
-  onSuccess: ({ data }) => {
+  onSuccess: () => {
     toast.success("Updated!");
   },
   onError: ({ error }) => {
@@ -190,33 +180,21 @@ const { execute, isPending } = useAction(updateProfileAction, {
 
 ### Type Guards
 
-Use the provided type guard functions for cleaner TypeScript narrowing. These helpers ensure `data` is properly typed after the check.
+Use the provided type guards for cleaner TypeScript narrowing.
 
 ```ts
+import { logger } from "@/lib/logger";
 import { isActionSuccessful } from "@/lib/safe-action";
 
-// Server queries — narrow via the error field
-const result = await getResource();
-if (!result.error) {
-  // result.data is non-null here
-}
-
-// API responses — narrow via success discriminant
-if (response.success) {
-  // response.data is typed
-}
-
-// Server actions
 const actionResult = await subscribeAction({ email: "user@example.com" });
 if (isActionSuccessful(actionResult)) {
-  // No serverError or validationErrors
-  console.log(actionResult.data);
+  logger.info("Subscribe action completed", { id: actionResult.data?.id });
 }
 ```
 
 ### resolveActionResult
 
-Promise wrapper that throws on failure, useful for async/await patterns:
+`resolveActionResult` converts an action result into a Promise that resolves with data or rejects with the server error message.
 
 ```ts
 import { resolveActionResult } from "@/lib/safe-action";
@@ -225,9 +203,8 @@ try {
   const data = await resolveActionResult(
     subscribeAction({ email: "user@example.com" })
   );
-  // data is the successful result
+  // use data
 } catch (error) {
-  // error is the serverError message
-  toast.error(error as string);
+  toast.error(String(error));
 }
 ```

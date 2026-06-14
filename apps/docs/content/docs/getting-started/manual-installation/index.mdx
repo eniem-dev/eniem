@@ -61,7 +61,7 @@ When not using the CLI, you'll need to create products directly in Polar and con
 
 ### 2. Create Product Configuration Files
 
-Create `products.sandbox.json` in your project root:
+Create `polar/products.sandbox.json` in your project:
 
 ```json
 {
@@ -91,33 +91,34 @@ Create `products.sandbox.json` in your project root:
 }
 ```
 
-For production, create a matching `products.production.json` with production Product IDs.
+For production, create a matching `polar/products.production.json` with production Product IDs.
 
 ### 3. Generate TypeScript Types
 
-Run the type generator to create type-safe product references:
+Run the CLI and select **Regenerate** (or sync products) to create type-safe product references:
 
 ```bash
-pnpm generate:products
+eni products
 ```
 
-This creates `src/features/subscription/products.generated.ts` with:
-- Type definitions for product slugs
+This creates `src/features/billing/generated/products.generated.ts` with:
+- Type definitions for generated products
 - Helper functions for accessing product data
 
 ### 4. Configure Auth
 
-Update `/lib/auth.ts` with your products:
+The generated checkout products are consumed from `src/lib/auth/plugins/polar.ts`:
 
 ```typescript
-import { getCheckoutProducts } from "@/features/subscription/products.generated";
+import { env } from "@/config";
+import { getCheckoutProducts } from "@/features/billing/generated/products.generated";
 
 polar({
   client: polarClient,
   createCustomerOnSignUp: true,
   use: [
     checkout({
-      products: getCheckoutProducts(),
+      products: getCheckoutProducts(env.payment.polarServer),
       successUrl: "/success?checkout_id={CHECKOUT_ID}",
       authenticatedUsersOnly: true,
     }),
@@ -136,7 +137,7 @@ polar({
 - `pnpm db:start` — Start PostgreSQL container
 - `pnpm db:stop` — Stop PostgreSQL container
 - `pnpm db:studio` — Open Prisma Studio
-- `pnpm generate:products` — Regenerate product TypeScript types
+- `eni products` — Manage Polar products and regenerate TypeScript product exports
 
 ## Next Steps
 

@@ -1,141 +1,143 @@
 ---
 title: "Emails"
-description: "Type-safe email sending with React Email templates and provider-agnostic architecture."
+description: "Type-safe email sending with React Email templates and a provider-agnostic dispatcher."
 ---
 
-The email system provides a universal `sendEmail` function that you can use **anywhere in your application** - server actions, API routes, background jobs, webhooks, or any server-side code. Create beautiful, responsive emails using React components and swap providers without touching your templates.
+The email system provides a universal `sendEmail` dispatcher for server-side code. It accepts a discriminated `EmailMessage` union, renders the matching React Email template, logs in development, and sends through Resend in production.
 
 ## Why This Architecture?
 
-- **Universal email sending** - Use `sendEmail` anywhere in your codebase
-- **Provider independence** - Swap Resend for SendGrid, AWS SES, or Mailgun by changing one file
+- **Type-safe message shapes** - Each email type declares exactly the data it needs
+- **Provider independence** - Swap Resend for another provider by changing the dispatcher
 - **React components as templates** - Type-safe, composable, and easy to maintain
-- **Development mode debugging** - Emails logged to console with tokens/OTPs for easy testing
-- **Consistent styling** - Shared layout ensures brand consistency across all emails
+- **Development mode debugging** - Emails are logged with tokens/OTPs for local testing
+- **Boundary-specific behavior** - Callers decide whether a failed `EmailResult` should throw, retry, or show a user-facing error
 
 ## Overview
 
 | File | Purpose |
 | --- | --- |
-| `lib/email.ts` | Email abstraction layer and helper functions |
-| `components/emails/` | React Email templates |
-| `components/emails/components/EmailLayout.tsx` | Shared layout wrapper |
+| `src/lib/email/send-email.ts` | Low-level email dispatcher |
+| `src/lib/email/types.ts` | `EmailMessage` and `EmailResult` discriminated unions |
+| `src/lib/email/resend-client.ts` | Resend client factory |
+| `src/lib/auth/email-hooks.ts` | BetterAuth email callbacks that adapt auth events to `EmailMessage` |
+| `src/components/emails/` | React Email templates |
+| `src/components/emails/components/EmailLayout.tsx` | Shared layout wrapper |
 
-## The sendEmail Abstraction
-
-The core abstraction in `lib/email.ts` handles all email sending logic:
-
-```ts
-interface SendEmailOptions {
-  to: string;
-  subject: string;
-  template: React.ReactElement;
-  debugInfo?: Record<string, string>;
-}
-
-async function sendEmail({ to, subject, template, debugInfo }: SendEmailOptions) {
-  // Development: logs to console
-  // Production: sends via Resend
-}
-```
-
-### How It Works
-
-**In development**, emails are logged to the console instead of being sent:
-
-```
-=== EMAIL ===
-To: user@example.com
-Subject: Your verification code
-OTP: 123456
----
-Your verification code is 123456...
-=============
-```
-
-**In production**, emails are sent via the configured provider (Resend by default):
+## The sendEmail Dispatcher
 
 ```ts
-const { error } = await resend.emails.send({
-  from: env.email.fromAddress,
-  to,
+import { sendEmail } from "@/lib/email/send-email";
+import type { EmailMessage, EmailResult } from "@/lib/email/types";
+
+const message: EmailMessage = {
+  type: "verification",
+  to: "user@example.com",
+  data: {
+    token: "token-value",
+    url: "https://app.example.com/verify?token=token-value",
+  },
+};
+
+const result: EmailResult = await sendEmail(message);
+
+if (!result.success) {
+  // Decide at the boundary whether to throw, retry, or surface the error.
+}
+```
+
+### Message Types
+
+```ts
+export type EmailMessage =
+  | { type: "otp"; to: string; data: { otp: string } }
+  | { type: "verification"; to: string; data: { url: string; token: string } }
+  | { type: "password-reset"; to: string; data: { url: string; token: string } }
+  | { type: "delete-account"; to: string; data: { url: string; token: string } };
+
+export type EmailResult =
+  | { success: true }
+  | { success: false; error: { code: "send_failed"; message: string } };
+```
+
+## How It Works
+
+In development, emails are rendered to plain text and logged:
+
+```ts
+logger.info("email.dev", {
+  to: msg.to,
+  type: msg.type,
   subject,
-  react: template,
+  ...debugInfo,
+  body: text,
 });
 ```
 
-## Built-in Email Functions
-
-The system includes helper functions for common email types:
+In production, emails are sent via Resend:
 
 ```ts
-// One-time password verification
-await sendOtpEmail(email, otp);
+const { error } = await getResend().emails.send({
+  from: env.email.fromAddress,
+  to: msg.to,
+  subject,
+  react: template,
+});
 
-// Email address verification
-await sendVerificationEmail(email, token, url);
-
-// Password reset link
-await sendPasswordResetEmail(email, token, url);
-
-// Account deletion confirmation
-await sendDeleteAccountEmail(email, token, url);
+return error
+  ? { success: false, error: { code: "send_failed", message: error.message } }
+  : { success: true };
 ```
 
-### Using Anywhere in Your App
+## BetterAuth Integration
 
-Send emails from any server-side code:
+BetterAuth callbacks live in `src/lib/auth/email-hooks.ts`. They convert auth events into typed email messages:
 
 ```ts
-// In a server action
+import { sendEmail } from "@/lib/email/send-email";
+
+type UserEmailType = "password-reset" | "verification" | "delete-account";
+
+async function sendUserEmail(
+  type: UserEmailType,
+  { user, url, token }: UserUrlToken
+) {
+  await sendEmail({ type, to: user.email, data: { url, token } });
+}
+
+export const sendResetPassword = (p: UserUrlToken) =>
+  sendUserEmail("password-reset", p);
+
+export const sendVerificationEmail = (p: UserUrlToken) =>
+  sendUserEmail("verification", p);
+
+export async function sendOtp({ email, otp }: { email: string; otp: string }) {
+  await sendEmail({ type: "otp", to: email, data: { otp } });
+}
+```
+
+## Using sendEmail in Application Code
+
+For custom emails, extend the `EmailMessage` union and `renderMessage` switch in `src/lib/email/send-email.ts`, then call `sendEmail` from server-side code.
+
+```ts
 "use server";
 
-import { sendEmail } from "@/lib/email";
-import { WelcomeEmail } from "@/components/emails";
+import { sendEmail } from "@/lib/email/send-email";
 
-export async function sendWelcomeEmail(userEmail: string, userName: string) {
-  await sendEmail({
-    to: userEmail,
-    subject: "Welcome to our platform!",
-    template: WelcomeEmail({ name: userName }),
-  });
-}
-```
-
-```ts
-// In an API route
-import { sendEmail } from "@/lib/email";
-import { OrderConfirmationEmail } from "@/components/emails";
-
-export async function POST(request: Request) {
-  const { email, orderId } = await request.json();
-
-  await sendEmail({
+export async function sendVerificationReminder(email: string, token: string, url: string) {
+  const result = await sendEmail({
+    type: "verification",
     to: email,
-    subject: `Order #${orderId} confirmed`,
-    template: OrderConfirmationEmail({ orderId }),
+    data: { token, url },
   });
 
-  return Response.json({ success: true });
+  if (!result.success) {
+    return { success: false, error: result.error.message };
+  }
+
+  return { success: true };
 }
-```
-
-### BetterAuth Integration
-
-The built-in functions are pre-configured with BetterAuth:
-
-```ts
-// lib/auth.ts
-emailAndPassword: {
-  sendResetPassword: async ({ user, url, token }) => {
-    await sendPasswordResetEmail(user.email, token, url);
-  },
-},
-emailVerification: {
-  sendVerificationEmail: async ({ user, url, token }) => {
-    await sendVerificationEmail(user.email, token, url);
-  },
-},
 ```
 
 ## React Email Templates
@@ -147,7 +149,6 @@ Templates are React components using `@react-email/components` for email-client 
 All templates use a shared layout for consistency:
 
 ```tsx
-// components/emails/components/EmailLayout.tsx
 interface EmailLayoutProps {
   preview: string;
   brandLogoUrl?: string;
@@ -163,9 +164,6 @@ export function EmailLayout({ preview, brandLogoUrl, children }: EmailLayoutProp
         <Container style={container}>
           {brandLogoUrl && <Img src={brandLogoUrl} alt="Logo" />}
           {children}
-          <Text style={footer}>
-            This email was sent by Eniem...
-          </Text>
         </Container>
       </Body>
     </Html>
@@ -176,10 +174,6 @@ export function EmailLayout({ preview, brandLogoUrl, children }: EmailLayoutProp
 ### Template Example
 
 ```tsx
-// components/emails/OtpEmail.tsx
-import { Section, Text } from "@react-email/components";
-import { EmailLayout } from "./components/EmailLayout";
-
 interface OtpEmailProps {
   otp: string;
   expiresInSeconds: number;
@@ -192,135 +186,39 @@ export function OtpEmail({ otp, expiresInSeconds, brandLogoUrl }: OtpEmailProps)
       preview={`Your verification code is ${otp}`}
       brandLogoUrl={brandLogoUrl}
     >
-      <Text style={heading}>Your verification code</Text>
-      <Section style={codeContainer}>
-        <Text style={code}>{otp}</Text>
+      <Text>Your verification code</Text>
+      <Section>
+        <Text>{otp}</Text>
       </Section>
-      <Text style={paragraph}>
-        This code expires in {formatExpiryTime(expiresInSeconds)}.
-      </Text>
+      <Text>This code expires in {formatExpiryTime(expiresInSeconds)}.</Text>
     </EmailLayout>
   );
 }
-
-// Inline styles for email client compatibility
-const heading = {
-  fontSize: "24px",
-  fontWeight: "600",
-  color: "#1a1a1a",
-  textAlign: "center" as const,
-};
 ```
 
 ## Creating Custom Templates
 
-### 1. Create the Template Component
-
-```tsx
-// components/emails/WelcomeEmail.tsx
-import { Text, Button } from "@react-email/components";
-import { EmailLayout } from "./components/EmailLayout";
-
-interface WelcomeEmailProps {
-  name: string;
-  dashboardUrl?: string;
-  brandLogoUrl?: string;
-}
-
-export function WelcomeEmail({
-  name,
-  dashboardUrl = "https://app.example.com",
-  brandLogoUrl
-}: WelcomeEmailProps) {
-  return (
-    <EmailLayout
-      preview={`Welcome ${name}!`}
-      brandLogoUrl={brandLogoUrl}
-    >
-      <Text style={heading}>Welcome, {name}!</Text>
-      <Text style={paragraph}>
-        We're excited to have you on board.
-      </Text>
-      <Button href={dashboardUrl} style={button}>
-        Go to Dashboard
-      </Button>
-    </EmailLayout>
-  );
-}
-
-const heading = { fontSize: "24px", color: "#1a1a1a" };
-const paragraph = { fontSize: "14px", color: "#525f7f" };
-const button = { backgroundColor: "#18181b", color: "#fff", padding: "12px 24px" };
-```
-
-### 2. Export from Index
-
-```ts
-// components/emails/index.ts
-export { OtpEmail } from "./OtpEmail";
-export { VerificationEmail } from "./VerificationEmail";
-export { PasswordResetEmail } from "./PasswordResetEmail";
-export { DeleteAccountEmail } from "./DeleteAccountEmail";
-export { WelcomeEmail } from "./WelcomeEmail"; // Add your new template
-export { EmailLayout } from "./components/EmailLayout";
-```
-
-### 3. Create a Helper Function (Optional)
-
-```ts
-// lib/email.ts
-export async function sendWelcomeEmail(email: string, name: string) {
-  return sendEmail({
-    to: email,
-    subject: "Welcome to Eniem!",
-    template: WelcomeEmail({
-      name,
-      brandLogoUrl: env.email.brandLogoUrl,
-    }),
-  });
-}
-```
+1. Create the React Email component in `src/components/emails/`
+2. Export it from `src/components/emails/index.ts`
+3. Add a new variant to `EmailMessage` in `src/lib/email/types.ts`
+4. Add a matching case to `renderMessage()` in `src/lib/email/send-email.ts`
+5. Call `sendEmail` from your server action, route, background job, or service
 
 ## Swapping Email Providers
 
-The abstraction makes provider switching straightforward. Only modify `sendEmail` in `lib/email.ts`:
-
-```ts
-// Example: Switch to SendGrid
-import sgMail from "@sendgrid/mail";
-import { render } from "@react-email/render";
-
-sgMail.setApiKey(env.email.sendgridApiKey);
-
-async function sendEmail({ to, subject, template, debugInfo }: SendEmailOptions) {
-  if (env.isDevelopment) {
-    // Dev logging unchanged...
-  }
-
-  // Render React template to HTML (Resend does this automatically)
-  const html = await render(template);
-
-  await sgMail.send({ to, from: env.email.fromAddress, subject, html });
-  return { success: true };
-}
-```
-
-Templates, helper functions, and integration points remain untouched.
+The dispatcher keeps provider-specific code isolated. To switch providers, update the production branch of `sendEmail` in `src/lib/email/send-email.ts`. The message union, templates, and auth hooks stay the same.
 
 ## Configuration
 
 Set these environment variables:
 
 ```bash
-# Required
 RESEND_API_KEY=re_xxxxxxxxxxxxx
-
-# Optional
 EMAIL_FROM_ADDRESS=no-reply@yourdomain.com
 EMAIL_BRAND_LOGO_URL=https://yourdomain.com/logo.png
 ```
 
-Configuration is centralized in `config/env.ts`:
+Configuration is centralized in `src/config/env.ts`:
 
 ```ts
 email: {
@@ -330,40 +228,13 @@ email: {
 }
 ```
 
-## Development Mode
-
-In development (`NODE_ENV=development`), emails are not sent. Instead, they're logged to the console with all relevant information:
-
-```
-=== EMAIL ===
-To: user@example.com
-Subject: Reset your password
-Token: abc123xyz
-Reset Link: http://localhost:3000/auth/reset-password?token=abc123xyz
----
-[Plain text version of the email]
-=============
-```
-
-The `debugInfo` parameter lets you log sensitive data (tokens, OTPs) that shouldn't appear in the email body but are useful for testing.
-
 ## Best Practices
 
-1. **Use helper functions** - Create dedicated functions like `sendWelcomeEmail` rather than calling `sendEmail` directly throughout your codebase
-
-2. **Leverage debugInfo** - Pass tokens and sensitive data via `debugInfo` for development logging:
-   ```ts
-   await sendEmail({
-     to: email,
-     subject: "Verify your email",
-     template: VerificationEmail({ url }),
-     debugInfo: { Token: token, URL: url },
-   });
-   ```
-
-3. **Keep styles inline** - Email clients have limited CSS support. Always use inline styles defined as TypeScript objects
-
-4. **Test in development first** - The console output shows exactly what will be sent, making it easy to verify content before testing with real emails
+1. Keep `sendEmail` as the low-level dispatcher.
+2. Put boundary behavior in the caller: auth hooks, actions, routes, or jobs decide how to handle `{ success: false }`.
+3. Do not leak tokens/OTPs in production logs.
+4. Keep email styles inline for broad email client support.
+5. Test in development first; `sendEmail` logs the rendered plain-text body and debug fields.
 
 ## Template Development
 

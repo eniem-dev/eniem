@@ -7,7 +7,7 @@ description: "OTP-based authentication that allows users to sign in without a pa
 
 ## Configuration
 
-Passwordless authentication uses the `emailOTP` plugin configured in `lib/auth.ts`. The plugin handles OTP generation, storage, and validation. Key settings include the code length, expiration time, and maximum allowed attempts to prevent brute-force attacks.
+Passwordless authentication uses the `emailOtpPlugin` configured in `src/lib/auth/plugins/email-otp.ts` and included from `src/lib/auth/config.ts`. The plugin handles OTP generation, storage, and validation. Key settings include the code length, expiration time, and maximum allowed attempts to prevent brute-force attacks.
 
 ```typescript
 import { emailOTP } from "better-auth/plugins";
@@ -22,7 +22,7 @@ export const auth = betterAuth({
   plugins: [
     emailOTP({
       async sendVerificationOTP({ email, otp }) {
-        await sendOtpEmail(email, otp);
+        await sendOtp({ email, otp });
       },
       otpLength: AUTH_CONSTANTS.OTP_LENGTH,
       expiresIn: AUTH_CONSTANTS.OTP_EXPIRES_IN_SECONDS,
@@ -201,20 +201,15 @@ export function OtpEmail({ otp, expiresInSeconds }: OtpEmailProps) {
 }
 ```
 
-The email is sent through the centralized email service in `lib/email.ts`, which handles both production (Resend) and development (console logging) environments:
+The email is sent through `sendOtp` in `src/lib/auth/email-hooks.ts`, which dispatches a typed email message to the centralized sender in `src/lib/email/send-email.ts`:
 
 ```typescript
-export async function sendOtpEmail(email: string, otp: string) {
-  return sendEmail({
-    to: email,
-    subject: "Your verification code",
-    template: OtpEmail({
-      otp,
-      expiresInSeconds: AUTH_CONSTANTS.OTP_EXPIRES_IN_SECONDS,
-    }),
-  });
+export async function sendOtp({ email, otp }: { email: string; otp: string }) {
+  await sendEmail({ type: "otp", to: email, data: { otp } });
 }
 ```
+
+`sendEmail` handles both production delivery (Resend) and development logging.
 
 ## Security
 

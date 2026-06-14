@@ -11,7 +11,7 @@ Auth.js (formerly NextAuth) is the historical default in the Next.js ecosystem a
 
 ## Decision
 
-Use BetterAuth. Server config in `src/lib/auth.ts`, client in `src/lib/auth-client.ts`. Session checks are funnelled through `auth.api.getSession`, `authed.query`, and `authed.route` — never reconstructed inline.
+Use BetterAuth. Server config is composed in `src/lib/auth/config.ts` with providers, hooks, and plugins under `src/lib/auth/`; client config lives in `src/lib/auth-client.ts`. Session checks are funnelled through `auth.api.getSession`, `authed.query`, and `authed.route` — never reconstructed inline.
 
 ## Consequences
 

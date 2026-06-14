@@ -14,7 +14,7 @@ The application comes pre-configured with GitHub and Twitter/X OAuth providers. 
 
 ## Configuration
 
-OAuth providers are configured in `lib/auth.ts` using the `socialProviders` option. BetterAuth handles the OAuth flow automatically, including token exchange and user profile fetching.
+OAuth providers are configured in `src/lib/auth/oauth.ts` and passed to BetterAuth from `src/lib/auth/config.ts` using the `socialProviders` option. BetterAuth handles the OAuth flow automatically, including token exchange and user profile fetching.
 
 ```typescript
 export const auth = betterAuth({
@@ -94,7 +94,7 @@ OAuth buttons only appear when their respective environment variables are config
 
 BetterAuth supports many OAuth providers out of the box including Google, Discord, Apple, Facebook, and more. Adding a new provider requires three steps: configuring the server, setting environment variables, and updating the UI.
 
-1. Add the provider configuration in `lib/auth.ts`:
+1. Add the provider configuration in `src/lib/auth/oauth.ts`:
 
 ```typescript
 socialProviders: {
