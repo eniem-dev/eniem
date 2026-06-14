@@ -1,4 +1,6 @@
 import { sendEmail } from "@/lib/email/send-email";
+import type { EmailMessage } from "@/lib/email/types";
+import { ServerError } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 
 export type UserUrlToken = {
@@ -9,11 +11,27 @@ export type UserUrlToken = {
 
 type UserEmailType = "password-reset" | "verification" | "delete-account";
 
+async function sendRequiredAuthEmail(msg: EmailMessage): Promise<void> {
+  const result = await sendEmail(msg);
+
+  if (result.success) {
+    return;
+  }
+
+  logger.error("auth.email.delivery_failed", {
+    type: msg.type,
+    to: msg.to,
+    error: result.error,
+  });
+
+  throw new ServerError(`Failed to send ${msg.type} email`);
+}
+
 async function sendUserEmail(
   type: UserEmailType,
   { user, url, token }: UserUrlToken
 ) {
-  await sendEmail({ type, to: user.email, data: { url, token } });
+  await sendRequiredAuthEmail({ type, to: user.email, data: { url, token } });
 }
 
 export const sendResetPassword = (p: UserUrlToken) =>
@@ -46,5 +64,5 @@ export async function sendOtp({
   email: string;
   otp: string;
 }) {
-  await sendEmail({ type: "otp", to: email, data: { otp } });
+  await sendRequiredAuthEmail({ type: "otp", to: email, data: { otp } });
 }
