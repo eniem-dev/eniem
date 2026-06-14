@@ -101,8 +101,8 @@ Run the type generator to create type-safe product references:
 pnpm generate:products
 ```
 
-This creates `src/features/subscription/products.generated.ts` with:
-- Type definitions for product slugs
+This creates `src/features/billing/generated/products.generated.ts` with:
+- Type definitions for generated products
 - Helper functions for accessing product data
 
 ### 4. Configure Auth
@@ -110,14 +110,15 @@ This creates `src/features/subscription/products.generated.ts` with:
 Update `/lib/auth.ts` with your products:
 
 ```typescript
-import { getCheckoutProducts } from "@/features/subscription/products.generated";
+import { env } from "@/config";
+import { getCheckoutProducts } from "@/features/billing/generated/products.generated";
 
 polar({
   client: polarClient,
   createCustomerOnSignUp: true,
   use: [
     checkout({
-      products: getCheckoutProducts(),
+      products: getCheckoutProducts(env.payment.polarServer),
       successUrl: "/success?checkout_id={CHECKOUT_ID}",
       authenticatedUsersOnly: true,
     }),
