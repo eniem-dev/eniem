@@ -349,10 +349,10 @@ export interface GenerateResult {
 
 /**
  * Generates products.generated.ts from sandbox and production JSON files.
- * Output is written to src/features/subscription/products.generated.ts
+ * Output is written to src/features/billing/generated/products.generated.ts
  */
 export async function generateProductsTs(projectDir: string): Promise<GenerateResult> {
-  const outputPath = join(projectDir, "src/features/subscription/products.generated.ts");
+  const outputPath = join(projectDir, "src/features/billing/generated/products.generated.ts");
 
   // Read both environment files
   const sandboxResult = await readProductsFile(projectDir, "sandbox");
@@ -377,7 +377,7 @@ export async function generateProductsTs(projectDir: string): Promise<GenerateRe
   try {
     // Ensure directory exists
     const { mkdir } = await import("fs/promises");
-    const dir = join(projectDir, "src/features/subscription");
+    const dir = join(projectDir, "src/features/billing/generated");
     await mkdir(dir, { recursive: true });
 
     await writeFile(outputPath, content, "utf-8");
