@@ -8,7 +8,7 @@ The `eni products` command provides an interactive terminal interface for creati
 ## Prerequisites
 
 - Completed the [Installation](/getting-started/installation) guide
-- Running inside an **eniem project directory** (where `products.sandbox.json` or `products.production.json` exists)
+- Running inside an **eniem project directory** (where `polar/products.sandbox.json` or `polar/products.production.json` exists)
 - A [Polar.sh](https://polar.sh) account (sandbox and/or production)
 - Familiarity with [Setting Up Subscriptions](/guides/setup-subscriptions) for API token creation
 
@@ -216,7 +216,7 @@ The Regenerate operation rebuilds TypeScript types from your product configurati
 
 **When to Use:**
 
-- After manually editing `products.sandbox.json` or `products.production.json`
+- After manually editing `polar/products.sandbox.json` or `polar/products.production.json`
 - When type imports show errors after product changes
 - To refresh types after pulling changes from git
 
@@ -282,7 +282,7 @@ The Clean up operation imports and reconciles products from Polar into your loca
 
 The CLI generates JSON files to store your product definitions:
 
-**`products.sandbox.json`** - Sandbox environment products
+**`polar/products.sandbox.json`** - Sandbox environment products
 
 ```json
 {
@@ -312,7 +312,7 @@ The CLI generates JSON files to store your product definitions:
 }
 ```
 
-**`products.production.json`** - Production environment products
+**`polar/products.production.json`** - Production environment products
 
 Same structure as sandbox. Typically mirrors sandbox after testing.
 
@@ -353,7 +353,7 @@ function PricingCard({ product }: { product: GeneratedProduct }) {
 }
 ```
 
-> **Migration note:** Older Eniem projects generated `src/features/subscription/products.generated.ts`. Regenerate with the current CLI, update product imports to `@/features/billing` or `@/features/billing/generated/products.generated`, then delete the stale subscription generated file.
+> **Migration note:** Older Eniem projects may have a stale generated products file under the former subscription feature. Regenerate with the current CLI, update product imports to `@/features/billing` or `@/features/billing/generated/products.generated`, then delete the stale file.
 
 ## End-to-End Workflow
 
@@ -566,11 +566,11 @@ You can, but it's not recommended. Sandbox lets you test checkout flows with tes
 
 **How do I update an existing product?**
 
-Edit the product in `products.sandbox.json` (or `.production.json`), then run Sync. The CLI updates the product on Polar with your changes.
+Edit the product in `polar/products.sandbox.json` (or `polar/products.production.json`), then run Sync. The CLI updates the product on Polar with your changes.
 
 **Where are products stored locally?**
 
-Products are stored in `products.sandbox.json` and `products.production.json` in your project root. These files are safe to commit to git.
+Products are stored in `polar/products.sandbox.json` and `polar/products.production.json`. These files are safe to commit to git.
 
 **What happens if I delete a product from Polar directly?**
 

@@ -36,22 +36,25 @@ Pages are located in `app/(auth)/`:
 
 ## Configuration
 
-Email/password authentication is configured in `lib/auth.ts`. The configuration enables email verification (users must verify their email before signing in) and sets up the password reset flow with a 1-hour token expiry. Email sending is handled by custom functions that use React Email templates.
+Email/password authentication is configured in `src/lib/auth/config.ts`. The configuration enables email verification (users must verify their email before signing in) and sets up the password reset flow with a 1-hour token expiry. Email sending is delegated to `src/lib/auth/email-hooks.ts`, which dispatches typed messages through `sendEmail`.
 
 ```typescript
+import {
+  onPasswordReset,
+  sendResetPassword,
+  sendVerificationEmail,
+} from "@/lib/auth/email-hooks";
+
 export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
-    sendResetPassword: async ({ user, url, token }) => {
-      await sendPasswordResetEmail(user.email, token, url);
-    },
-    resetPasswordTokenExpiresIn: 3600, // 1 hour
+    sendResetPassword,
+    onPasswordReset,
+    resetPasswordTokenExpiresIn: AUTH_CONSTANTS.PASSWORD_RESET_EXPIRES_IN_SECONDS,
   },
   emailVerification: {
-    sendVerificationEmail: async ({ user, url, token }) => {
-      await sendVerificationEmail(user.email, token, url);
-    },
+    sendVerificationEmail,
     autoSignInAfterVerification: true,
   },
 });
@@ -269,19 +272,18 @@ await authClient.changeEmail({
 });
 ```
 
-**Configuration** in `lib/auth.ts`:
+**Configuration** in `src/lib/auth/user-hooks.ts`:
 
 ```typescript
-user: {
+export const userConfig = {
   changeEmail: {
     enabled: true,
-    sendChangeEmailVerification: async ({ user, url, token }) => {
-      // Verification sent to CURRENT email for security
-      await sendVerificationEmail(user.email, token, url);
-    },
+    sendChangeEmailVerification,
   },
-},
+};
 ```
+
+`sendChangeEmailVerification` lives in `src/lib/auth/email-hooks.ts` and sends a `{ type: "verification" }` email to the current address.
 
 > **Security Note:** The verification email is sent to the current email address, not the new one. This ensures the account owner approves the change.
 
@@ -316,7 +318,7 @@ await authClient.changePassword({
 
 ## Email Templates
 
-All authentication emails are built with React Email for type-safe, component-based email templates. They are sent via Resend in production, and logged to the console in development for easy debugging.
+All authentication emails are built with React Email for type-safe, component-based email templates. They are sent via Resend in production, and logged through `logger.info("email.dev", ...)` in development for easy debugging.
 
 | Template             | Purpose                         | Location             |
 | -------------------- | ------------------------------- | -------------------- |

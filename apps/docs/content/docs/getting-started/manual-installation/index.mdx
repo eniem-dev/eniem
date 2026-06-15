@@ -61,7 +61,7 @@ When not using the CLI, you'll need to create products directly in Polar and con
 
 ### 2. Create Product Configuration Files
 
-Create `products.sandbox.json` in your project root:
+Create `polar/products.sandbox.json` in your project:
 
 ```json
 {
@@ -91,14 +91,14 @@ Create `products.sandbox.json` in your project root:
 }
 ```
 
-For production, create a matching `products.production.json` with production Product IDs.
+For production, create a matching `polar/products.production.json` with production Product IDs.
 
 ### 3. Generate TypeScript Types
 
-Run the type generator to create type-safe product references:
+Run the CLI and select **Regenerate** (or sync products) to create type-safe product references:
 
 ```bash
-pnpm generate:products
+eni products
 ```
 
 This creates `src/features/billing/generated/products.generated.ts` with:
@@ -107,7 +107,7 @@ This creates `src/features/billing/generated/products.generated.ts` with:
 
 ### 4. Configure Auth
 
-Update `/lib/auth.ts` with your products:
+The generated checkout products are consumed from `src/lib/auth/plugins/polar.ts`:
 
 ```typescript
 import { env } from "@/config";
@@ -137,7 +137,7 @@ polar({
 - `pnpm db:start` — Start PostgreSQL container
 - `pnpm db:stop` — Stop PostgreSQL container
 - `pnpm db:studio` — Open Prisma Studio
-- `pnpm generate:products` — Regenerate product TypeScript types
+- `eni products` — Manage Polar products and regenerate TypeScript product exports
 
 ## Next Steps
 

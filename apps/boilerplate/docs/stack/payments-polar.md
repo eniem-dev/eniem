@@ -1,113 +1,121 @@
-
 # Payments & Polar Integration
 
 ## Overview
 
-Polar handles subscriptions, one-time purchases, and credit metering. Integrated via `@polar-sh/better-auth` plugin. Customer created on signup, synced via webhooks.
+Polar handles subscriptions, one-time purchases, customer benefits, and credit metering. It is integrated through the `@polar-sh/better-auth` plugin. The app creates Polar customers on signup, syncs subscription state from webhooks and the post-checkout success page, and accesses the Polar SDK through a narrow `PolarGateway` abstraction.
 
 ## Key Files
 
-- `src/lib/polar.ts` — Polar SDK client (sandbox/production)
-- `src/lib/auth.ts` — Polar plugin config (checkout, portal, usage, webhooks)
+- `src/lib/polar/client.ts` — Polar SDK client for sandbox/production
+- `src/lib/polar/polar-gateway.ts` — `PolarGateway` interface and SDK adapter
+- `src/lib/polar/index.ts` — exports `polarClient`, `polar`, and gateway types
+- `src/lib/auth/config.ts` — BetterAuth config composition
+- `src/lib/auth/plugins/polar.ts` — Polar checkout, portal, usage, and webhook plugin wiring
+- `src/lib/auth/side-effects.ts` — auth lifecycle/webhook bridge to billing, SIWE, and Polar cleanup
 - `src/features/billing/server-api.ts` — narrow server-side billing surface used by auth side-effects (checkout products + subscription sync)
-- `src/features/subscription/` — Subscription state management
-- `src/features/billing/` — Order history, customer lookup, generated product definitions
-- `src/features/credits/` — Credit meters, balance checks, usage ingestion
-- `src/app/(protected)/success/page.tsx` — Post-checkout sync
-- `src/middleware.ts` — Access gating (subscription check)
+- `src/features/billing/` — subscription state, generated products/meters, credits, order history UI
+- `src/features/benefits/` — one-time purchase benefits, downloadables, GitHub repository access
+- `src/app/(protected)/success/page.tsx` — post-checkout subscription sync
+- `src/middleware.ts` — access gating
 
 ## Architecture
 
 ```
-Polar SDK ← polarClient (src/lib/polar.ts)
-    ↕
-BetterAuth Plugin (src/lib/auth.ts)
-    ├── checkout() — creates checkout sessions
-    ├── portal() — customer portal
-    ├── usage() — credit metering
-    └── webhooks() — event handlers
-    ↕
+Polar SDK client (src/lib/polar/client.ts)
+    ↓
+PolarGateway (src/lib/polar/polar-gateway.ts)
+    ↓
 Features
-    ├── subscription/ — sync & query subscription state
-    ├── billing/ — customer ID lookup, order history, generated products
-    └── credits/ — balance checks, usage ingestion
+    ├── billing/  — subscriptions, generated products/meters, credits, order history
+    └── benefits/ — downloadables and GitHub benefits for one-time purchases
+
+BetterAuth config (src/lib/auth/config.ts)
+    └── Polar plugin (src/lib/auth/plugins/polar.ts)
+        ├── checkout() — products from billing generated file
+        ├── portal()   — customer portal
+        ├── usage()    — credit metering
+        └── webhooks() — subscription/order event handlers
 ```
 
-Auth lifecycle/webhook side-effects must import billing through `src/features/billing/server-api.ts`, not the `@/features/billing` barrel. The barrel also exposes UI, hooks, and queries; importing it from auth can pull route-handler/auth config dependencies back into auth initialization.
+Auth lifecycle/webhook side-effects are centralized in `src/lib/auth/side-effects.ts`, which delegates subscription sync and checkout product lookup to the billing feature through `src/features/billing/server-api.ts`. Use that narrow server API instead of the `@/features/billing` barrel; the barrel also exposes UI, hooks, and queries that can pull route-handler/auth config dependencies back into auth initialization.
 
 ## Checkout Flow
 
-1. BetterAuth checkout plugin creates session with products from `products.generated.ts`
+1. BetterAuth checkout plugin creates a checkout session with products from `src/features/billing/generated/products.generated.ts`
 2. Success URL: `/success?checkout_id={CHECKOUT_ID}`
-3. Success page calls `syncSubscriptionFromPolar(userId)` — fetches customer state from Polar API
-4. Subscription upserted to local DB via `syncSubscription()`
-5. User redirected to dashboard
+3. Success page calls `syncSubscriptionFromPolar(userId)` from `@/features/billing`
+4. Billing service fetches active subscriptions through `polar.fetchActiveSubscriptions(userId)`
+5. Subscription is upserted to the local DB via `syncSubscription()`
+6. User is redirected to the dashboard
 
 ## Webhook Flow
 
-Webhooks handled by BetterAuth Polar plugin (secret verified automatically):
+Webhooks are handled by the BetterAuth Polar plugin in `src/lib/auth/plugins/polar.ts` and verified by the plugin:
 
-- **`onCustomerStateChanged`** — calls `syncSubscription(externalId, activeSubscriptions)` → upserts subscription to DB
-- **`onOrderPaid`** — logs order info (extend for custom logic)
-- **`onPayload`** — generic handler, logs all webhooks
+- **`onCustomerStateChanged`** — delegates to `onPolarCustomerStateChanged(externalId, activeSubscriptions)`, then billing syncs the local subscription row
+- **`onOrderPaid`** — logs order info (extend here for custom order side-effects)
+- **`onPayload`** — logs all webhooks for observability
 
 ## Subscription Service
 
-`src/features/subscription/services/subscription.service.ts`:
+`src/features/billing/services/subscription.service.ts`:
 
 ```typescript
 getUserSubscription(userId)        // Get local subscription record
 hasActiveSubscription(userId)      // Check if status === "active"
-syncSubscription(userId, subs)     // Upsert from Polar webhook data
-syncSubscriptionFromPolar(userId)  // Fetch from Polar API + sync (for success page)
+syncSubscription(userId, subs)     // Upsert from Polar webhook/customer state
 deleteSubscription(userId)         // Remove local record
+syncSubscriptionFromPolar(userId)  // Fetch through PolarGateway + sync (success page)
 ```
 
 ## Products
 
-`src/features/billing/generated/products.generated.ts` (auto-generated by CLI):
+`src/features/billing/generated/products.generated.ts` is auto-generated by the CLI:
+
 - `getProducts(env)` — all products for sandbox/production
-- `getCheckoutProducts(env)` — products with polarProductId (for checkout plugin)
-- `getDisplayProducts(env)` — products with features (for pricing page)
+- `getCheckoutProducts(env)` — products with Polar product IDs for the checkout plugin
+- `getDisplayProducts(env)` — products with display features for pricing pages
 
-## Billing Service
+## Billing Overview and Orders
 
-`src/features/billing/services/billing.service.ts`:
+Billing pages use `getBillingOverviewQuery()` from `@/features/billing`. The query calls billing services and the Polar gateway instead of reaching into the Polar SDK directly:
 
 ```typescript
-getCustomerId(userId)       // Resolve Polar customer ID from app user ID
-getCustomerOrders(customerId)  // Fetch order history from Polar API
+const [subscription, orders] = await Promise.all([
+  getUserSubscription(user.id),
+  polar.listUserOrders(user.id),
+]);
 ```
 
 ## Credit Metering
 
-`src/features/credits/services/credits.service.ts`:
+Credit services live under `src/features/billing/services/`.
 
 ### Check Credits
+
 ```typescript
-getCreditsBalance(userId, meterId)              // Get balance from Polar
-hasCredits(userId, meterId, requiredAmount)      // Boolean check
-assertHasCredits(userId, meterId, requiredAmount) // Throws if insufficient (use in actions)
+getCreditsBalance(userId, meterId)                // Get balance from PolarGateway
+hasCredits(userId, meterId, requiredAmount)       // Boolean check
+assertHasCredits(userId, meterId, requiredAmount) // Throws UnauthorizedError if insufficient
 ```
 
 ### Consume Credits
+
 ```typescript
-ingestUsage(userId, { name: "use-credit", metadata: { ... } })
-// Fire-and-forget: logs errors but doesn't throw (action already completed)
+ingestUsage(userId, { name: "use-credit", metadata: { ... } });
+// Fire-and-forget: gateway logs errors but the completed action is not rolled back.
 ```
 
 ### Pattern for Credit-Consuming Actions
+
 ```typescript
 export const myAction = authed
   .input(mySchema)
   .action(async ({ input, user }) => {
-    // 1. Guard: check credits BEFORE doing work
     await assertHasCredits(user.id, METER_ID, 1);
 
-    // 2. Do the work
     const result = await doExpensiveOperation(input);
 
-    // 3. Record usage AFTER success (fire-and-forget)
     ingestUsage(user.id, { name: "use-credit", metadata: { ... } });
 
     return result;
@@ -116,24 +124,34 @@ export const myAction = authed
 
 ### Meters
 
-`src/features/credits/meters.generated.ts` (auto-generated by CLI):
+`src/features/billing/generated/meters.generated.ts` is auto-generated by the CLI:
+
 - `getMeters(env)` / `getMeter(env, slug)` — meter config per environment
 - `resolveEventDisplayName(env, eventName)` — human-readable meter name
-- Each meter has: `slug`, `name`, `polarMeterId`, `eventNames`
+- Each meter has `slug`, `name`, `polarMeterId`, and `eventNames`
 
 ### Client Hook
 
-`useCredits(meterId)` — React Query hook with 30s stale time, refetch on focus:
+`useCredits(meterId)` — React Query hook with 30s stale time and refetch on focus:
+
 ```typescript
 const { balance, hasCustomer, isLoading, error, refetch } = useCredits("meter_123");
 ```
 
+## Benefits and One-Time Purchases
+
+One-time purchase benefits live in `src/features/benefits/` and read from the Polar customer portal through `PolarGateway`:
+
+- `hasActiveOrder(userId)` — checks for any active benefit grant
+- `getDownloadables(userId)` — lists downloadable files
+- `getGitHubBenefits(userId)` — lists GitHub repository grants
+
 ## Customer Lifecycle
 
-1. **Signup** → `createCustomerOnSignUp: true` (Polar plugin)
-2. **Checkout** → customer state synced via webhook
-3. **Active use** → credits checked/consumed via meter
-4. **Deletion** → auth `onUserDeleted(userId)` attempts Polar customer cleanup after local user deletion. Missing customers are idempotent; other Polar cleanup failures are logged and do not block the confirmed account deletion.
+1. **Signup** → `createCustomerOnSignUp: true` in the Polar plugin
+2. **Checkout** → customer state synced via webhook and success-page sync
+3. **Active use** → credits checked/consumed via billing services and the Polar gateway
+4. **Deletion** → auth `onUserDeleted(userId)` attempts Polar customer cleanup after local user deletion. Missing customers are idempotent in the gateway; other cleanup failures are logged and do not block the confirmed account deletion.
 
 ## Environment Variables
 
@@ -146,12 +164,17 @@ POLAR_ORGANIZATION_ID — organization identifier
 
 ## Adding a New Product
 
-Products are managed through the `eniem-cli`. Run the CLI to add, configure, and sync products — it handles `products.generated.ts` updates automatically.
+Products are managed through the `eni` CLI. Run `eni products` to add, configure, sync, and regenerate `src/features/billing/generated/products.generated.ts`.
 
 ## Access Gating
 
-Middleware checks subscription status for protected routes:
+Middleware checks access through feature services:
+
 ```typescript
+import { hasActiveSubscription } from "@/features/billing";
+import { hasActiveOrder } from "@/features/benefits";
+
 const hasUserAccess = await hasActiveSubscription(userId);
+// const hasUserAccess = await hasActiveOrder(userId);
+// const hasUserAccess = await hasActiveSubscription(userId) || await hasActiveOrder(userId);
 ```
-Configure in `src/middleware.ts` — choose subscription, one-time purchase, or hybrid model.

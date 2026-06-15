@@ -5,34 +5,29 @@ description: "Unified request-boundary builder for queries, server actions, and 
 
 ## Why Server Utilities?
 
-Direct database calls and authentication checks scattered throughout your codebase lead to:
+Direct database calls and authentication checks scattered throughout your codebase lead to inconsistent errors, repeated auth boilerplate, weaker type safety, and noisy debugging. Eniem centralizes request-boundary behavior in `src/lib/handler.ts`.
 
-- **Inconsistent error handling** across different endpoints
-- **Repeated authentication boilerplate** in every protected route
-- **Type safety gaps** between client and server responses
-- **Difficult debugging** without standardized logging
-
-Server utilities solve this with a single builder that provides:
+Server utilities provide:
 
 - Automatic session management and type inference
 - Consistent response formats (`Result<T>` and `ApiResponse<T>`)
 - Centralized error classification with proper HTTP status codes
-- Built-in logging at the right level (warn for 4xx, error for 5xx)
+- Built-in logging at the right level (warn for expected 4xx, error for 5xx)
 
 ## Overview
 
-A single builder lives in `lib/handler.ts` and exposes two roots and three terminals:
+`src/lib/handler.ts` exposes two roots and three terminals:
 
-| Root       | Ctx                                  |
-| ---------- | ------------------------------------ |
-| `authed`   | `{ user, session }` guaranteed non-null |
+| Root       | Ctx                                      |
+| ---------- | ---------------------------------------- |
+| `authed`   | `{ user, session }` guaranteed non-null  |
 | `publicly` | `{ user: null, session: Session \| null }` |
 
-| Terminal    | Returns                                |
-| ----------- | -------------------------------------- |
-| `.query()`  | `() => Promise<Result<T>>` for RSC     |
-| `.action()` | A next-safe-action client              |
-| `.route()`  | A Next.js route handler                |
+| Terminal    | Returns                            |
+| ----------- | ---------------------------------- |
+| `.query()`  | `Promise<Result<T>>` for RSC       |
+| `.action()` | a next-safe-action server action   |
+| `.route()`  | a Next.js route handler            |
 
 Chain `.input(schema)` to parse Zod input into `ctx.input`.
 
@@ -58,19 +53,18 @@ type ApiResponse<T> =
 
 Queries are for **server-side data fetching** in React Server Components. They return a `Result<T>`.
 
-### Public query
+Queries must call service functions. Services own persistence and external API access.
 
-For public data that doesn't require authentication:
+### Public query
 
 ```ts
 // features/posts/queries/posts.query.ts
 import { publicly } from "@/lib/handler";
+import { listPublishedPosts } from "../services/posts.service";
 
 export const getPublicPosts = () =>
   publicly.query(async ({ session }) => {
-    const posts = await prisma.post.findMany({
-      where: { published: true },
-    });
+    const posts = await listPublishedPosts();
 
     return {
       posts,
@@ -88,8 +82,8 @@ import { getPublicPosts } from "@/features/posts";
 export default async function PostsPage() {
   const { data, error } = await getPublicPosts();
 
-  if (error) {
-    return <ErrorMessage message={error} />;
+  if (error || !data) {
+    return <ErrorMessage message={error ?? "Unable to load posts"} />;
   }
 
   return <PostList posts={data.posts} />;
@@ -98,20 +92,14 @@ export default async function PostsPage() {
 
 ### Authenticated query
 
-For protected data where authentication is required:
-
 ```ts
 // features/user/queries/user.query.ts
 import { authed } from "@/lib/handler";
+import { getUserProfile } from "../services/user.service";
 
 export const getCurrentUser = () =>
   authed.query(async ({ user }) => {
-    const profile = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { preferences: true },
-    });
-
-    return profile;
+    return getUserProfile(user.id);
   });
 ```
 
@@ -125,8 +113,8 @@ import { redirect } from "next/navigation";
 export default async function DashboardPage() {
   const { data, error } = await getCurrentUser();
 
-  if (error) {
-    redirect("/auth/signin");
+  if (error || !data) {
+    redirect("/login");
   }
 
   return <Dashboard user={data} />;
@@ -144,17 +132,14 @@ Server actions are for **mutations and form submissions**. Chain `.input(schema)
 "use server";
 
 import { publicly } from "@/lib/handler";
-import { z } from "zod";
 import { locales } from "@/locales";
-
-const subscribeSchema = z.object({
-  email: z.string().email(locales.errors.invalidEmail),
-});
+import { subscribeToNewsletter } from "../services/newsletter.service";
+import { subscribeSchema } from "../schemas/newsletter.schema";
 
 export const subscribeAction = publicly
   .input(subscribeSchema)
   .action(async ({ input }) => {
-    await prisma.subscriber.create({ data: { email: input.email } });
+    await subscribeToNewsletter(input.email);
     return { message: locales.success.subscribed };
   });
 ```
@@ -165,20 +150,18 @@ export const subscribeAction = publicly
 // features/user/actions/update-profile.action.ts
 "use server";
 
-import { authed } from "@/lib/handler";
-import { updateProfileSchema } from "../schemas/profile.schema";
-import { logger } from "@/lib/logger";
 import { revalidatePath } from "next/cache";
+import { authed } from "@/lib/handler";
+import { logger } from "@/lib/logger";
+import { updateProfile } from "../services/profile.service";
+import { updateProfileSchema } from "../schemas/profile.schema";
 
 export const updateProfileAction = authed
   .input(updateProfileSchema)
   .action(async ({ input, user }) => {
     logger.info("Updating user profile", { userId: user.id });
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { name: input.name, bio: input.bio },
-    });
+    await updateProfile(user.id, input);
 
     revalidatePath("/dashboard/profile");
     return { success: true };
@@ -187,15 +170,13 @@ export const updateProfileAction = authed
 
 ### Using Actions in Components
 
-Use the `useAction` hook from `next-safe-action`:
-
 ```tsx
 "use client";
 
 import { useAction } from "next-safe-action/hooks";
+import { toast } from "sonner";
 import { updateProfileAction } from "@/features/user";
 import { isActionSuccessful } from "@/lib/safe-action";
-import { toast } from "sonner";
 
 export function ProfileForm() {
   const { execute, isPending } = useAction(updateProfileAction, {
@@ -209,15 +190,15 @@ export function ProfileForm() {
     },
   });
 
-  const handleSubmit = (formData: FormData) => {
-    execute({
-      name: formData.get("name") as string,
-      bio: formData.get("bio") as string,
-    });
-  };
-
   return (
-    <form action={handleSubmit}>
+    <form onSubmit={(event) => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      execute({
+        name: String(formData.get("name") ?? ""),
+        bio: String(formData.get("bio") ?? ""),
+      });
+    }}>
       {/* form fields */}
       <button type="submit" disabled={isPending}>
         {isPending ? "Saving..." : "Save"}
@@ -229,28 +210,28 @@ export function ProfileForm() {
 
 ## API Routes
 
-API routes are for **REST endpoints** consumed by external clients.
+API routes are for REST endpoints consumed by external clients. Route handlers also call services.
 
 ### Public route
 
 ```ts
 // app/api/posts/route.ts
 import { publicly } from "@/lib/handler";
+import { listPublishedPosts } from "@/features/posts/services/posts.service";
 
 export const GET = publicly.route(async () => {
-  const posts = await prisma.post.findMany({ where: { published: true } });
+  const posts = await listPublishedPosts();
   return { posts, count: posts.length };
 });
 ```
 
 ### Authenticated route
 
-Returns 401 automatically if the user is not authenticated. Chain `.input(schema)` to parse the JSON body (for non-GET) or query string (for GET) into `ctx.input`.
-
 ```ts
 // app/api/posts/route.ts
-import { authed } from "@/lib/handler";
 import { z } from "zod";
+import { authed } from "@/lib/handler";
+import { createPost } from "@/features/posts/services/posts.service";
 
 const createPostSchema = z.object({
   title: z.string().min(1),
@@ -260,44 +241,27 @@ const createPostSchema = z.object({
 export const POST = authed
   .input(createPostSchema)
   .route(async ({ user, input }) => {
-    const post = await prisma.post.create({
-      data: { ...input, authorId: user.id },
-    });
+    const post = await createPost(user.id, input);
     return { post };
   });
-```
-
-### Response Format
-
-All API routes return a consistent JSON structure:
-
-```json
-// Success
-{ "success": true, "data": { "posts": [...] } }
-
-// Error
-{ "success": false, "error": "Unauthorized" }
 ```
 
 ## Utility Functions
 
 ### isActionSuccessful
 
-Use with `next-safe-action` results. Returns `true` only if there's no `serverError` and no `validationErrors`.
-
 ```ts
+import { logger } from "@/lib/logger";
 import { isActionSuccessful } from "@/lib/safe-action";
 
 const result = await subscribeAction({ email: "user@example.com" });
 
 if (isActionSuccessful(result)) {
-  console.log(result.data);
+  logger.info("Subscription action completed", { id: result.data?.id });
 }
 ```
 
 ### resolveActionResult
-
-Converts an action result into a standard Promise that resolves with data or rejects with the error message.
 
 ```ts
 import { resolveActionResult } from "@/lib/safe-action";
@@ -306,6 +270,7 @@ try {
   const data = await resolveActionResult(
     subscribeAction({ email: "user@example.com" })
   );
+  // Use data
 } catch (error) {
   // error is the serverError message
 }
@@ -315,32 +280,34 @@ try {
 
 ### 1. Choose the Right Terminal
 
-| Need               | Use                  |
-| ------------------ | -------------------- |
-| Fetch data in RSC  | `.query()`           |
-| Form submission    | `.action()`          |
-| External API       | `.route()`           |
+| Need               | Use        |
+| ------------------ | ---------- |
+| Fetch data in RSC  | `.query()` |
+| Form submission    | `.action()` |
+| External API       | `.route()` |
 
 ### 2. Always Use `authed` for Protected Data
 
-Avoid manual auth checks inside handlers. `authed.*` guarantees `user` is non-null with proper TypeScript types.
-
 ```ts
-// ❌ Bad - manual auth check
+// ❌ Bad - manual auth check inside a public handler
 export const getProfile = () =>
   publicly.query(async ({ session }) => {
     if (!session?.user) throw new UnauthorizedError();
-    // ...
+    return getUserProfile(session.user.id);
   });
 
 // ✅ Good - use authed
 export const getProfile = () =>
   authed.query(async ({ user }) => {
-    // user is guaranteed non-null
+    return getUserProfile(user.id);
   });
 ```
 
-### 3. Use Locales for Error Messages
+### 3. Keep DB Access in Services
+
+Queries, actions, and routes are request boundaries. They should validate/authenticate, then call services. Services own Prisma and external API calls.
+
+### 4. Use Locales for Error Messages
 
 ```ts
 import { locales } from "@/locales";
@@ -348,26 +315,26 @@ import { locales } from "@/locales";
 throw new ValidationError(locales.errors.emailAlreadyExists);
 ```
 
-### 4. Log Important Operations
+### 5. Log Important Operations
 
 ```ts
 import { logger } from "@/lib/logger";
 
 export const deleteAccount = authed.action(async ({ user }) => {
   logger.info("Deleting user account", { userId: user.id });
-  // ...
+  // ...call service
 });
 ```
 
-### 5. Revalidate After Mutations
+### 6. Revalidate After Mutations
 
 ```ts
 import { revalidatePath, revalidateTag } from "next/cache";
 
 export const updatePost = authed
   .input(updatePostSchema)
-  .action(async ({ input }) => {
-    await prisma.post.update({ /* ... */ });
+  .action(async ({ input, user }) => {
+    await updatePostForUser(user.id, input);
 
     revalidatePath("/posts");
     revalidateTag("posts");

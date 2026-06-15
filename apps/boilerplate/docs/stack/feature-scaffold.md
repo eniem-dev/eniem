@@ -112,6 +112,7 @@ Rules:
 // src/features/my-feature/actions/my-feature.action.ts
 "use server";
 
+import { ServerError } from "@/lib/errors";
 import { authed } from "@/lib/handler";
 import { createMyFeatureSchema } from "../schemas/my-feature.schema";
 import { createMyFeature } from "../services/my-feature.service";
@@ -130,7 +131,7 @@ export const createMyFeatureAction = authed
         userId: user.id,
         error: error instanceof Error ? error.message : String(error),
       });
-      throw new Error(locales.errors.serverError);
+      throw new ServerError(locales.errors.serverError);
     }
   });
 ```
@@ -140,7 +141,7 @@ Rules:
 - Use `publicly` (public) or `authed` (requires auth) root from `@/lib/handler`
 - Chain `.input(schema).action(handler)`
 - Log before and after key operations
-- Throw errors with `locales.errors.*` messages
+- Throw typed errors with `locales.errors.*` messages
 
 ### 6. Create the Component
 

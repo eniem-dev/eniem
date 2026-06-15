@@ -13,7 +13,7 @@ Rate limits are applied per IP address and stored in the database for persistenc
 
 ## Configuration
 
-Rate limiting is configured in `lib/auth.ts`:
+Rate limiting is configured in `src/lib/auth/rate-limit.ts` and passed into BetterAuth from `src/lib/auth/config.ts`:
 
 ```typescript
 export const auth = betterAuth({

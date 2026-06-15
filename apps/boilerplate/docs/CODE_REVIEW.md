@@ -123,12 +123,12 @@ Apply these in addition to the general doctrine above when reviewing changes in 
 ### BetterAuth flows
 
 - Session checks go through `auth.api.getSession` or `authed.*` wrappers — flag any inline cookie/header parsing.
-- New providers, rate-limit rules, and email callbacks live in `src/lib/auth.ts`, not in routes or middleware.
+- New providers, rate-limit rules, and email callbacks live in `src/lib/auth/*` (`oauth.ts`, `rate-limit.ts`, `email-hooks.ts`, plugin modules), not in routes or middleware.
 - Reference: `docs/stack/auth-guide.md`.
 
 ### Next.js boundaries
 
 - Action files start with `"use server"`. Query factories are not invoked from client modules.
-- Server-only deps (`prisma`, `auth`, Polar SDK, `@/lib/email`) never reach a `"use client"` component.
+- Server-only deps (`prisma`, `auth`, Polar SDK, `@/lib/email/send-email`) never reach a `"use client"` component.
 - Routes use `authed.route` / `publicly.route`; pages use `auth.api.getSession` + `redirect` or `authed.query`. Flag inline session reconstruction.
 - Reference: `docs/stack/route-guard.md`, `docs/stack/feature-scaffold.md`.
