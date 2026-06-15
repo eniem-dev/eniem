@@ -9,6 +9,7 @@ Polar handles subscriptions, one-time purchases, and credit metering. Integrated
 
 - `src/lib/polar.ts` — Polar SDK client (sandbox/production)
 - `src/lib/auth.ts` — Polar plugin config (checkout, portal, usage, webhooks)
+- `src/features/billing/server-api.ts` — narrow server-side billing surface used by auth side-effects (checkout products + subscription sync)
 - `src/features/subscription/` — Subscription state management
 - `src/features/billing/` — Order history, customer lookup, generated product definitions
 - `src/features/credits/` — Credit meters, balance checks, usage ingestion
@@ -31,6 +32,8 @@ Features
     ├── billing/ — customer ID lookup, order history, generated products
     └── credits/ — balance checks, usage ingestion
 ```
+
+Auth lifecycle/webhook side-effects must import billing through `src/features/billing/server-api.ts`, not the `@/features/billing` barrel. The barrel also exposes UI, hooks, and queries; importing it from auth can pull route-handler/auth config dependencies back into auth initialization.
 
 ## Checkout Flow
 
