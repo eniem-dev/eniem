@@ -708,8 +708,13 @@ describe("products", () => {
       const result = await generateProductsTs("/project");
 
       expect(result.success).toBe(true);
-      expect(result.path).toBe("/project/src/features/subscription/products.generated.ts");
-      expect(mockMkdir).toHaveBeenCalledWith("/project/src/features/subscription", { recursive: true });
+      expect(result.path).toBe("/project/src/features/billing/generated/products.generated.ts");
+      expect(mockMkdir).toHaveBeenCalledWith("/project/src/features/billing/generated", { recursive: true });
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        "/project/src/features/billing/generated/products.generated.ts",
+        expect.any(String),
+        "utf-8"
+      );
     });
 
     it("includes interfaces in generated file", async () => {

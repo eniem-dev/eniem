@@ -318,23 +318,42 @@ Same structure as sandbox. Typically mirrors sandbox after testing.
 
 ### TypeScript Types
 
-The CLI generates type definitions for type-safe product references at `src/features/subscription/products.generated.ts`:
+The CLI generates typed product exports at `src/features/billing/generated/products.generated.ts`:
 
 ```typescript
-// src/features/subscription/products.generated.ts
-export type ProductSlug = "pro-monthly" | "pro-yearly" | "starter";
+// src/features/billing/generated/products.generated.ts
+export interface ProductDisplay {
+  title: string;
+  subtitle?: string;
+  price: string;
+  period?: string;
+  badge: string | null;
+  features: string[];
+  highlighted: boolean;
+  cta: string;
+}
+
+export interface GeneratedProduct {
+  slug: string;
+  productId: string | null;
+  name: string;
+  type: "subscription" | "one_time" | "free";
+  display: ProductDisplay;
+}
 ```
 
 **Using in Application Code:**
 
 ```tsx
 import { BuyButton } from "@/components/buy-button";
-import type { ProductSlug } from "@/features/subscription/products.generated";
+import type { GeneratedProduct } from "@/features/billing/generated/products.generated";
 
-function PricingCard({ slug }: { slug: ProductSlug }) {
-  return <BuyButton slug={slug} label="Subscribe" />;
+function PricingCard({ product }: { product: GeneratedProduct }) {
+  return <BuyButton slug={product.slug} label={product.display.cta} />;
 }
 ```
+
+> **Migration note:** Older Eniem projects generated `src/features/subscription/products.generated.ts`. Regenerate with the current CLI, update product imports to `@/features/billing` or `@/features/billing/generated/products.generated`, then delete the stale subscription generated file.
 
 ## End-to-End Workflow
 

@@ -5,7 +5,7 @@ description: "How auto-generated product data flows from CLI sync to pricing tab
 
 ## Overview
 
-`products.generated.ts` is your single source of truth for product pricing data. The Eniem CLI generates this file by syncing products from your Polar dashboard, ensuring your UI always displays accurate pricing, features, and product identifiers.
+`products.generated.ts` is your single source of truth for product pricing data. The Eniem CLI generates this file at `src/features/billing/generated/products.generated.ts` by syncing products from your Polar dashboard, ensuring your UI always displays accurate pricing, features, and product identifiers.
 
 This file is **auto-generated**—you should never edit it manually. When you update products in Polar, run the CLI sync command to regenerate this file.
 
@@ -58,7 +58,7 @@ export function getProducts(env: "sandbox" | "production"): GeneratedProduct[] {
 Pass `env.payment.polarServer` from your app config:
 
 ```typescript
-import { getDisplayProducts } from "@/features/subscription";
+import { getDisplayProducts } from "@/features/billing";
 import { env } from "@/config";
 
 const products = getDisplayProducts(env.payment.polarServer);
@@ -99,6 +99,12 @@ Sandbox products have real Polar `productId` values for testing checkout flows. 
     ┌─────────────┐
     │  BuyButton   │  ← slug-based checkout
     └─────────────┘
+```
+
+When you need the generated module directly, import it from the billing generated path:
+
+```typescript
+import { getCheckoutProducts } from "@/features/billing/generated/products.generated";
 ```
 
 **Two consumption paths:**
