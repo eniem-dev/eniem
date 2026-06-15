@@ -112,6 +112,52 @@ describe("PolarGateway", () => {
       expect(client.orders.list).not.toHaveBeenCalled();
     });
 
+    it("returns orders after a missing customer lookup later resolves", async () => {
+      client.customers.getExternal
+        .mockRejectedValueOnce(makeNotFound())
+        .mockResolvedValueOnce({ id: "cust_1" });
+      client.orders.list.mockResolvedValue({
+        result: { items: [baseOrder] },
+      });
+      const gateway = makeGateway(client);
+
+      expect(await gateway.listUserOrders("user_1")).toEqual([]);
+      const result = await gateway.listUserOrders("user_1");
+
+      expect(result).toEqual([
+        {
+          id: "order_1",
+          createdAt: baseOrder.createdAt,
+          status: "paid",
+          totalAmount: 1000,
+          currency: "USD",
+          productName: "Pro Plan",
+          description: "A plan",
+        },
+      ]);
+      expect(client.customers.getExternal).toHaveBeenCalledTimes(2);
+      expect(client.orders.list).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries customer ID resolution on a later call after transient failures", async () => {
+      const err = Object.assign(new Error("customer lookup failed"), { status: 503 });
+      client.customers.getExternal
+        .mockRejectedValueOnce(err)
+        .mockRejectedValueOnce(err)
+        .mockResolvedValueOnce({ id: "cust_1" });
+      client.orders.list.mockResolvedValue({ result: { items: [] } });
+      const gateway = makeGateway(client);
+
+      await expect(gateway.listUserOrders("user_1")).rejects.toThrow(
+        "customer lookup failed"
+      );
+      const result = await gateway.listUserOrders("user_1");
+
+      expect(result).toEqual([]);
+      expect(client.customers.getExternal).toHaveBeenCalledTimes(3);
+      expect(client.orders.list).toHaveBeenCalledTimes(1);
+    });
+
     it("retries on 5xx once then succeeds", async () => {
       client.customers.getExternal.mockResolvedValue({ id: "cust_1" });
       const err = Object.assign(new Error("bad gateway"), { status: 502 });
@@ -267,6 +313,47 @@ describe("PolarGateway", () => {
       expect(result.events).toEqual([]);
       expect(result.pagination.totalCount).toBe(0);
       expect(result.pagination.currentPage).toBe(1);
+    });
+
+    it("returns usage after a missing customer lookup later resolves", async () => {
+      const timestamp = new Date("2026-02-01");
+      client.customers.getExternal
+        .mockRejectedValueOnce(makeNotFound())
+        .mockResolvedValueOnce({ id: "cust_1" });
+      client.events.list.mockResolvedValue({
+        result: {
+          items: [
+            {
+              id: "evt_1",
+              name: "use-credit",
+              timestamp,
+              metadata: { tokens: 5 },
+            },
+          ],
+          pagination: { totalCount: 1, maxPage: 1 },
+        },
+      });
+      const gateway = makeGateway(client);
+
+      expect(await gateway.listUsageHistory("user_1")).toEqual({
+        events: [],
+        pagination: { totalCount: 0, maxPage: 1, currentPage: 1 },
+      });
+      const result = await gateway.listUsageHistory("user_1");
+
+      expect(result).toEqual({
+        events: [
+          {
+            id: "evt_1",
+            name: "use-credit",
+            timestamp,
+            metadata: { tokens: 5 },
+          },
+        ],
+        pagination: { totalCount: 1, maxPage: 1, currentPage: 1 },
+      });
+      expect(client.customers.getExternal).toHaveBeenCalledTimes(2);
+      expect(client.events.list).toHaveBeenCalledTimes(1);
     });
   });
 
