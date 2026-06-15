@@ -133,7 +133,7 @@ const { balance, hasCustomer, isLoading, error, refetch } = useCredits("meter_12
 1. **Signup** → `createCustomerOnSignUp: true` (Polar plugin)
 2. **Checkout** → customer state synced via webhook
 3. **Active use** → credits checked/consumed via meter
-4. **Deletion** → `polarClient.customers.deleteExternal({ externalId: user.id })` in auth hook
+4. **Deletion** → auth `onUserDeleted(userId)` attempts Polar customer cleanup after local user deletion. Missing customers are idempotent; other Polar cleanup failures are logged and do not block the confirmed account deletion.
 
 ## Environment Variables
 

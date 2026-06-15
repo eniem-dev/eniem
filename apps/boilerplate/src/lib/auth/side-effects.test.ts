@@ -32,6 +32,22 @@ vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
+vi.mock("@/lib/auth/config", () => ({
+  auth: { api: { getSession: vi.fn() } },
+}));
+
+vi.mock("@/config", () => ({
+  env: {
+    payment: { polarServer: "sandbox", polarWebhookSecret: "whsec_test" },
+    projectUrl: "https://example.com",
+    oauth: {
+      github: { clientId: undefined, clientSecret: undefined },
+      twitter: { clientId: undefined, clientSecret: undefined },
+    },
+  },
+}));
+
+const { logger } = await import("@/lib/logger");
 const {
   getPurchasableProducts,
   onUserDeleted,
@@ -73,6 +89,7 @@ describe("getPurchasableProducts", () => {
 
 describe("onUserDeleted (integration with real PolarGateway fake)", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     fakeGateway = createFakePolarGateway();
     upsertMock.mockReset();
     deleteManyMock.mockReset();
@@ -86,12 +103,23 @@ describe("onUserDeleted (integration with real PolarGateway fake)", () => {
     expect(await fakeGateway.getUserCustomerState("u1")).toBeNull();
   });
 
-  it("propagates errors from the Polar gateway", async () => {
+  it("logs and returns when Polar customer cleanup fails", async () => {
     fakeGateway.deleteUserCustomer = vi
       .fn()
       .mockRejectedValue(new Error("polar down"));
 
-    await expect(onUserDeleted("u1")).rejects.toThrow("polar down");
+    await expect(onUserDeleted("u1")).resolves.toBeUndefined();
+
+    expect(logger.error).toHaveBeenCalledWith(
+      "Polar customer cleanup failed after user deletion",
+      { userId: "u1", error: "polar down" }
+    );
+  });
+
+  it("does not log an error when Polar customer cleanup is already complete", async () => {
+    await onUserDeleted("u1");
+
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });
 

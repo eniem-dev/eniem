@@ -17,5 +17,19 @@
   "devDependencies": {
     "turbo": "^2"
   },
+  "pnpm": {
+    "packageExtensions": {
+      "@hookform/resolvers@*": {
+        "peerDependencies": {
+          "zod": "^3.25.0 || ^4.0.0"
+        },
+        "peerDependenciesMeta": {
+          "zod": {
+            "optional": true
+          }
+        }
+      }
+    }
+  },
   "packageManager": "pnpm@9.15.4"
 }
