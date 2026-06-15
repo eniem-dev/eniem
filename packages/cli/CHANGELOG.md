@@ -1,3 +1,11 @@
+# [eniem-cli-v2.0.1](https://github.com/eniem-dev/eniem/compare/eniem-cli-v2.0.0...eniem-cli-v2.0.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* **cli:** generate products into billing path ([d0676ef](https://github.com/eniem-dev/eniem/commit/d0676ef9ef7ef9aae24050912ec2dfbddd459316))
+* **cli:** generate products under billing ([3458650](https://github.com/eniem-dev/eniem/commit/34586507c439ad72fd68647658c921e2c3ffe734))
+
 # [eniem-cli-v2.0.0](https://github.com/eniem-dev/eniem/compare/eniem-cli-v1.10.0...eniem-cli-v2.0.0) (2026-04-23)
 
 
