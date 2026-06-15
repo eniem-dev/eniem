@@ -11,18 +11,20 @@ User clicks BuyButton → Polar checkout → Payment → /success → Benefits a
 
 ## Configuration
 
-Add products in `lib/auth.ts`:
+Add one-time products with the CLI. The generated products live in `src/features/billing/generated/products.generated.ts` and are loaded by the Polar checkout plugin in `src/lib/auth/plugins/polar.ts`:
 
 ```typescript
+import { env } from "@/config";
+import { getCheckoutProducts } from "@/features/billing/generated/products.generated";
+
 checkout({
-  products: [
-    { productId: "xxx", slug: "starter-pack" },
-    { productId: "yyy", slug: "pro-pack-github" },
-  ],
+  products: getCheckoutProducts(env.payment.polarServer),
   successUrl: "/success?checkout_id={CHECKOUT_ID}",
   authenticatedUsersOnly: true,
-})
+});
 ```
+
+Use `eni products` to add products with `type: "one_time"` and sync them to Polar.
 
 ## BuyButton
 
@@ -79,11 +81,11 @@ export interface Downloadable {
 **Query** (`queries/downloadables.query.ts`):
 
 ```typescript
-import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
 import { getDownloadables } from "../services/downloadables.service";
 
 export async function getDownloadablesQuery() {
-  return createAuthenticatedQuery(async ({ user }) => {
+  return authed.query(async ({ user }) => {
     const files = await getDownloadables(user.id);
     return { files };
   });

@@ -6,7 +6,7 @@ import { locales } from "@/locales";
 import { cn } from "@/lib/utils";
 import { GitHubIcon, TwitterIcon } from "./icons";
 import { SiweButton } from "./siwe-button";
-import type { OAuthProvider } from "@/lib/auth";
+import type { OAuthProvider } from "@/lib/auth/oauth";
 
 interface SocialAuthButtonsProps {
   mode: "signin" | "signup";

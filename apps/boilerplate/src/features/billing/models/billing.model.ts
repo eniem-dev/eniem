@@ -1,14 +1,8 @@
-import type { SubscriptionResult } from "@/features/subscription";
+import type { BillingOrder } from "@/lib/polar/polar-domain";
 
-export interface BillingOrder {
-  id: string;
-  createdAt: Date;
-  status: string;
-  totalAmount: number;
-  currency: string;
-  productName: string | null;
-  description: string;
-}
+import type { SubscriptionResult } from "./subscription.model";
+
+export type { BillingOrder };
 
 export interface BillingData {
   subscription: SubscriptionResult | null;

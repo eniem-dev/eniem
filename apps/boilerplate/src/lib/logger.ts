@@ -56,4 +56,9 @@ export const logger = {
       console.log(`[LOG] ${message}`, data);
     }
   },
+  debug: (message: string, data?: unknown) => {
+    if (env.isDevelopment) {
+      console.debug(`[DEBUG] ${message}`, data);
+    }
+  },
 };

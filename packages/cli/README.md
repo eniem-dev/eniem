@@ -75,7 +75,15 @@ eni products --prod
 eni products --prod --token=polar_xxx
 ```
 
-Products are stored in `products.sandbox.json` and `products.production.json`, with TypeScript exports generated in `src/features/subscription/products.generated.ts`.
+Products are stored in `polar/products.sandbox.json` and `polar/products.production.json`, with TypeScript exports generated in `src/features/billing/generated/products.generated.ts`.
+
+Import generated helpers from the billing generated module:
+
+```typescript
+import { getCheckoutProducts } from "@/features/billing/generated/products.generated";
+```
+
+> **Migration note:** Older Eniem projects may have a stale generated products file under the former subscription feature. Regenerate with the current CLI, update imports to `@/features/billing` or `@/features/billing/generated/products.generated`, then remove the stale file.
 
 ## License
 

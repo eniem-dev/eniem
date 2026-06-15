@@ -1,11 +1,6 @@
-export interface Downloadable {
-  id: string;
-  name: string;
-  size: number;
-  sizeReadable: string;
-  downloadUrl: string;
-  expiresAt: Date;
-}
+import type { Downloadable } from "@/lib/polar/polar-domain";
+
+export type { Downloadable };
 
 export interface DownloadablesResult {
   files: Downloadable[];

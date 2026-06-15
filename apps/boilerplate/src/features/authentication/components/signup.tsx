@@ -19,7 +19,7 @@ import {
   hasPlanSelection,
   appendPlanSelectionToUrl,
 } from "@/lib/plan-selection";
-import type { OAuthProvider } from "@/lib/auth";
+import type { OAuthProvider } from "@/lib/auth/oauth";
 
 interface SignUpProps {
   availableProviders?: OAuthProvider[];

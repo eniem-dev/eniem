@@ -9,37 +9,45 @@ import { env, routes } from "@/config";
 env.database.url;
 env.email.resendApiKey;
 env.email.fromAddress;
-env.polar.accessToken;
+env.payment.polarServer;
 
 // Type-safe routes
-routes.auth.login; // "/auth/login"
-routes.dashboard.home; // "/dashboard"
+routes.auth.login; // "/login"
+routes.dashboard; // "/dashboard"
 ```
 
 ## Database
 
 ```typescript
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 
 // Schema location: prisma/schema.prisma
-// Always use prisma client from lib, never instantiate directly
-const user = await prisma.user.findUnique({ where: { id } });
+// Always use prisma client from lib/db, never instantiate directly.
+// Put DB access in services; queries/actions/routes call services.
+export async function getUserProfile(userId: string) {
+  return prisma.user.findUnique({ where: { id: userId } });
+}
 ```
 
 ## Import Table
 
-| Pattern              | Import                                                                |
-| -------------------- | --------------------------------------------------------------------- |
-| Prisma client        | `prisma` from `@/lib/prisma`                                          |
-| Environment          | `env` from `@/config`                                                 |
-| Routes               | `routes` from `@/config`                                              |
-| Auth session         | `auth.api.getSession({ headers: await headers() })`                   |
-| Authenticated action | `authenticatedActionClient` from `@/lib/safe-action.server`           |
-| Public query         | `createQuery` from `@/lib/server-handler`                             |
-| Auth query           | `createAuthenticatedQuery` from `@/lib/server-handler`                |
-| Errors               | `ServerError, UnauthorizedError, ValidationError` from `@/lib/errors` |
-| Email                | `sendOtpEmail, sendVerificationEmail...` from `@/lib/email`           |
-| Logger               | `logger` from `@/lib/logger`                                          |
-| Analytics            | `captureEvent` from `@/lib/tracking`                                  |
-| Locales              | `locales` from `@/locales`                                            |
-| Metadata             | `createMetadata, getDefaultMetadata` from `@/lib/metadata`            |
+| Pattern              | Import                                                                                  |
+| -------------------- | --------------------------------------------------------------------------------------- |
+| Prisma client        | `prisma` from `@/lib/db` (services only)                                                 |
+| Environment          | `env` from `@/config`                                                                   |
+| Routes               | `routes` from `@/config`                                                                |
+| Auth config          | `auth` from `@/lib/auth/config`                                                         |
+| Auth client          | `authClient`, `signIn`, `signUp`, `signOut`, `useSession` from `@/lib/auth-client`      |
+| Authenticated action | `authed.action(...)` from `@/lib/handler`                                               |
+| Public query         | `publicly.query(...)` from `@/lib/handler`                                              |
+| Auth query           | `authed.query(...)` from `@/lib/handler`                                                |
+| API route handlers   | `authed.route(...)` / `publicly.route(...)` from `@/lib/handler`                        |
+| Errors               | `ServerError, UnauthorizedError, ValidationError` from `@/lib/errors`                   |
+| Email dispatcher     | `sendEmail` from `@/lib/email/send-email`                                               |
+| Email types          | `EmailMessage, EmailResult` from `@/lib/email/types`                                    |
+| Logger               | `logger` from `@/lib/logger`                                                            |
+| Analytics            | `captureEvent` from `@/lib/tracking`                                                    |
+| Billing products     | `getCheckoutProducts, getDisplayProducts` from `@/features/billing`                     |
+| Polar gateway        | `polar` / `type PolarGateway` from `@/lib/polar`                                        |
+| Locales              | `locales` from `@/locales`                                                              |
+| Metadata             | `createMetadata, getDefaultMetadata` from `@/lib/metadata`                              |

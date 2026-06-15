@@ -54,7 +54,7 @@ The service layer (`features/newsletter/services/newsletter.service.ts`) provide
 
 ```ts
 import { prisma } from "@/lib/db";
-import { addContact } from "@/lib/email";
+import { getResend } from "@/lib/email/resend-client";
 import { logger } from "@/lib/logger";
 
 // Method 1: Save to database
@@ -64,9 +64,18 @@ export async function saveEmailToDatabase(email: string): Promise<void> {
 }
 
 // Method 2: Save to email provider (Resend)
-export async function saveEmailToProvider(email: string): Promise<void> {
-  await addContact(email);
+export async function saveEmailToProvider(
+  email: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const { error } = await getResend().contacts.create({ email });
+
+  if (error) {
+    logger.error("Failed to add contact to email provider", { email, error: error.message });
+    return { success: false, error: error.message };
+  }
+
   logger.info("Email saved to email provider", { email });
+  return { success: true };
 }
 ```
 
@@ -91,7 +100,7 @@ This is useful when you want to:
 
 ### Method 2: Email Provider (Resend)
 
-The second method sends emails directly to your email provider (Resend) using the `addContact` function from `lib/email.ts`.
+The second method sends contacts directly to your email provider (Resend) using `getResend()` from `src/lib/email/resend-client.ts`.
 
 This is useful when you want to:
 - Automatically add subscribers to your Resend audience
@@ -103,9 +112,9 @@ This is useful when you want to:
 Edit the action file at `features/newsletter/actions/newsletter.action.ts`:
 
 ```ts
-export const subscribeToNewsletterAction = actionClient
-  .inputSchema(newsletterSchema)
-  .action(async ({ parsedInput: { email } }) => {
+export const subscribeToNewsletterAction = publicly
+  .input(newsletterSchema)
+  .action(async ({ input: { email } }) => {
     try {
       logger.info("Collecting email for newsletter", { email });
 

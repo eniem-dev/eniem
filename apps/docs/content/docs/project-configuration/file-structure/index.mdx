@@ -141,13 +141,13 @@ features/billing/
 ├── models/            # Type definitions
 │   └── billing.model.ts
 ├── queries/           # Data fetching
-│   └── billing.query.ts
+│   └── billing-overview.query.ts
 ├── services/          # Business logic
-│   └── billing.service.ts
-├── actions/           # Server actions
-│   └── billing.action.ts
-└── schemas/           # Zod validation
-    └── billing.schema.ts
+│   ├── subscription.service.ts
+│   └── credits.service.ts
+└── generated/         # CLI-generated Polar config
+    ├── products.generated.ts
+    └── meters.generated.ts
 ```
 
 ### Public API Pattern
@@ -156,16 +156,16 @@ Each feature exports a clean API through `index.ts`:
 
 ```ts
 // features/billing/index.ts
-export { BillingOverview, SubscriptionStatusCard } from "./components";
-export { getBillingData } from "./queries";
-export { type BillingModel } from "./models";
+export { BillingOverview } from "./components/billing-overview";
+export { getBillingOverviewQuery } from "./queries/billing-overview.query";
+export type { BillingOrder } from "./models/billing.model";
 ```
 
 This allows clean imports:
 
 ```ts
 // In a page or component
-import { BillingOverview, getBillingData } from "@/features/billing";
+import { BillingOverview, getBillingOverviewQuery } from "@/features/billing";
 ```
 
 ## File Naming Conventions
@@ -177,7 +177,7 @@ All files use **kebab-case** with typed suffixes to indicate their purpose.
 | `.action.ts`  | Server actions              | `features/*/actions/`   | `subscribe.action.ts`        |
 | `.query.ts`   | Data fetching (server)      | `features/*/queries/`   | `billing.query.ts`           |
 | `.schema.ts`  | Zod validation schemas      | `features/*/schemas/`   | `auth.schema.ts`             |
-| `.model.ts`   | TypeScript type definitions | `features/*/models/`    | `subscription.model.ts`      |
+| `.model.ts`   | TypeScript type definitions | `features/*/models/`    | `billing.model.ts`           |
 | `.service.ts` | Business logic services     | `features/*/services/`  | `github-benefits.service.ts` |
 | `.util.ts`    | Utility functions           | `features/*/` or `lib/` | `billing.util.ts`            |
 | `.tsx`        | React components            | `components/`           | `pricing-card.tsx`           |
@@ -194,8 +194,8 @@ features/billing/queries/billing.query.ts
 # Zod schema for authentication
 features/authentication/schemas/auth.schema.ts
 
-# Type definitions for subscription
-features/subscription/models/subscription.model.ts
+# Type definitions for billing
+features/billing/models/billing.model.ts
 ```
 
 ## When to Use Folders vs Flat Files
@@ -255,14 +255,14 @@ features/settings/
 
 ```
 lib/
-├── auth.ts              # BetterAuth configuration
+├── auth/                # BetterAuth config, plugins, hooks, side-effects
 ├── auth-client.ts       # Client-side auth utilities
 ├── db.ts                # Prisma client instance
 ├── logger.ts            # Logging abstraction
 ├── tracking.ts          # Analytics abstraction
-├── email.ts             # Email sending utilities
-├── safe-action.ts       # Server action utilities
-└── server-handler.ts    # Server handler utilities
+├── email/               # Email dispatcher, types, provider client
+├── safe-action.ts       # next-safe-action client helpers
+└── handler.ts           # Unified request-boundary builder (authed/publicly × query/action/route)
 ```
 
 ### Use `features/` for
@@ -275,10 +275,10 @@ lib/
 ```
 features/
 ├── authentication/      # Login, signup, password reset
-├── billing/             # Subscription management, invoices
+├── billing/             # Subscriptions, products, credits, invoices
 ├── benefits/            # Downloadables, GitHub benefits
-├── settings/            # User profile, account settings
-└── subscription/        # Subscription status, plans
+├── newsletter/          # Landing/newsletter capture
+└── settings/            # User profile, account settings
 ```
 
 ### Decision Rule

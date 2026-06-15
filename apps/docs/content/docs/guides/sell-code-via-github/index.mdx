@@ -29,7 +29,7 @@ You are simplifying authentication in this codebase to use ONLY GitHub OAuth.
 
 Explore and identify ALL auth-related files:
 
-1. Main auth config (lib/auth.ts or similar)
+1. Main auth config (`src/lib/auth/config.ts`) and auth plugin modules (`src/lib/auth/plugins/*`)
 2. Auth client config (lib/auth-client.ts)
 3. Current auth methods: OAuth providers, email/password, OTP, SIWE/Web3
 4. Auth components: login, signup, forgot-password, reset-password, OTP verification, social buttons, SIWE button
@@ -61,7 +61,7 @@ Execute in this order:
 7. Remove Web3 providers from app providers (WagmiProvider, RainbowKitProvider)
 8. Delete Web3 config files (wagmi.ts, rainbowkit-theme.ts)
 9. Delete unused email templates (OtpEmail, PasswordResetEmail)
-10. Update email.ts - remove sendOtpEmail and sendPasswordResetEmail functions
+10. Update `src/lib/auth/email-hooks.ts` and `src/lib/email/send-email.ts` - remove unused OTP/password-reset message wiring if you remove those flows
 11. Update middleware - remove forgot-password and reset-password from public routes
 12. Update locales - remove unused auth strings (OTP, password reset, Twitter, Ethereum)
 13. Clean package.json - remove: @rainbow-me/rainbowkit, wagmi, viem, siwe, input-otp

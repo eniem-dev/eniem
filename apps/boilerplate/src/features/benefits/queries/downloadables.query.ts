@@ -1,8 +1,8 @@
-import { createAuthenticatedQuery } from "@/lib/server-handler";
+import { authed } from "@/lib/handler";
 import { getDownloadables } from "../services/downloadables.service";
 
 export async function getDownloadablesQuery() {
-  return createAuthenticatedQuery(async ({ user }) => {
+  return authed.query(async ({ user }) => {
     const files = await getDownloadables(user.id);
     return { files };
   });

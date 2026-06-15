@@ -13,38 +13,28 @@ When an account is deleted:
 
 - User profile and authentication data are removed
 - All active sessions are invalidated
-- Associated Polar customer data is cleaned up
-- Subscriptions and benefits are terminated
+- Associated Polar customer cleanup is attempted through the Polar gateway
+- Missing Polar customers are treated as already cleaned up
+- Polar cleanup failures are logged and do not block confirmed account deletion
 
 This action is irreversible.
 
 ## Configuration
 
-Account deletion is configured in `lib/auth.ts` under the `user.deleteUser` settings. The configuration enables email verification before deletion and sets up cleanup hooks for associated services.
+Account deletion is configured in the auth user hooks under the `user.deleteUser` settings. The configuration enables email verification before deletion and delegates associated-service cleanup to the auth side-effect boundary.
 
 ```typescript
-export const auth = betterAuth({
-  user: {
-    deleteUser: {
-      enabled: true,
-      sendDeleteAccountVerification: async ({ user, url, token }) => {
-        await sendDeleteAccountEmail(user.email, token, url);
-      },
-      afterDelete: async (user) => {
-        logger.info("User deleted, cleaning up Polar customer", { userId: user.id });
-        try {
-          await polarClient.customers.deleteExternal({ externalId: user.id });
-          logger.info("Polar customer deleted successfully", { userId: user.id });
-        } catch (error) {
-          logger.error("Failed to delete Polar customer", {
-            userId: user.id,
-            error: error instanceof Error ? error.message : error,
-          });
-        }
-      },
+import { onUserDeleted } from "@/lib/auth/side-effects";
+
+export const userConfig = {
+  deleteUser: {
+    enabled: true,
+    sendDeleteAccountVerification,
+    afterDelete: async (user: { id: string }) => {
+      await onUserDeleted(user.id);
     },
   },
-});
+};
 ```
 
 ### Configuration Options
@@ -69,8 +59,11 @@ components/emails/
 └── DeleteAccountEmail.tsx          # Confirmation email template
 
 lib/
-├── auth.ts                         # BetterAuth configuration
-└── email.ts                        # sendDeleteAccountEmail function
+├── auth/config.ts                  # BetterAuth configuration
+├── auth/user-hooks.ts              # delete-user hook wiring
+├── auth/side-effects.ts            # Polar cleanup boundary
+├── auth/email-hooks.ts             # sendDeleteAccountVerification callback
+└── email/send-email.ts             # typed email dispatcher
 ```
 
 The deletion form is displayed on the account settings page:
@@ -87,8 +80,8 @@ The deletion form is displayed on the account settings page:
 2. Clicks "Delete My Account" button
 3. Confirmation email sent to user's email address
 4. User clicks confirmation link in email
-5. Account and all associated data permanently deleted
-6. Polar customer record cleaned up
+5. Account and all associated local data permanently deleted
+6. Polar customer cleanup is attempted through the auth side-effect boundary; failures are logged without failing deletion
 7. User logged out automatically
 
 ## Implementation
@@ -155,44 +148,40 @@ export function DeleteAccountEmail({ url }: DeleteAccountEmailProps) {
 }
 ```
 
-The email is sent via the centralized email service:
+The email is sent via `sendDeleteAccountVerification` in `src/lib/auth/email-hooks.ts`, which dispatches a typed message to the centralized email service:
 
 ```typescript
-// lib/email.ts
-export async function sendDeleteAccountEmail(email: string, token: string, url: string) {
-  return sendEmail({
-    to: email,
-    subject: "Confirm account deletion",
-    template: DeleteAccountEmail({ url, brandLogoUrl: env.email.brandLogoUrl }),
-    debugInfo: { Token: token, "Confirmation Link": url },
-  });
+export const sendDeleteAccountVerification = (p: UserUrlToken) =>
+  sendUserEmail("delete-account", p);
+
+async function sendUserEmail(
+  type: "password-reset" | "verification" | "delete-account",
+  { user, url, token }: UserUrlToken
+) {
+  await sendEmail({ type, to: user.email, data: { url, token } });
 }
 ```
 
+`sendEmail` renders `DeleteAccountEmail` for `{ type: "delete-account" }`.
+
 ### After Deletion (Cleanup)
 
-When the user confirms deletion, the `afterDelete` hook is executed to clean up associated services:
+When the user confirms deletion, the `afterDelete` hook calls `onUserDeleted` to clean up associated services:
 
 ```typescript
-afterDelete: async (user) => {
-  logger.info("User deleted, cleaning up Polar customer", { userId: user.id });
-  try {
-    await polarClient.customers.deleteExternal({ externalId: user.id });
-    logger.info("Polar customer deleted successfully", { userId: user.id });
-  } catch (error) {
-    logger.error("Failed to delete Polar customer", {
-      userId: user.id,
-      error: error instanceof Error ? error.message : error,
-    });
-  }
+afterDelete: async (user: { id: string }) => {
+  await onUserDeleted(user.id);
 },
 ```
 
+`onUserDeleted` attempts Polar customer deletion through the Polar gateway. Missing Polar customers are treated as already cleaned up by the gateway. Other SDK or network failures are logged with the user ID and a safe error message, then swallowed so the confirmed BetterAuth deletion is not blocked by a third-party API failure.
+
 This ensures that:
 
-- Polar customer records are removed
-- Subscriptions are properly terminated
-- All cleanup actions are logged for audit purposes
+- Polar customer records are removed when cleanup succeeds
+- Missing Polar customers are treated as an idempotent no-op
+- Cleanup is centralized in one auth side-effect boundary
+- Cleanup failures are visible in logs without rolling back account deletion
 
 ## Security
 

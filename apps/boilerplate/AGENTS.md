@@ -20,13 +20,14 @@ Build/test/lint/typecheck scripts are wrapped in `./scripts/run_silent` internal
 
 ## Hard Rules
 
-- Read `docs/coding-standard.md` before writing any code.
+- Read `CODING_STANDARDS.md` before writing any code.
 - NEVER use `console.log` — use `logger` from `@/lib/logger`.
 - NEVER use PostHog directly — use `captureEvent` from `@/lib/tracking`.
 - No `any`. No `as Type` assertions. Use type guards and narrowing.
 - Never `throw new Error(string)`. Use typed errors / Result pattern (`{ success, data } | { success, error }`).
 - No barrel files (`index.ts` re-exports) outside a feature's public API.
 - Never mock your own code. Tests use public interfaces only.
+- A feature imports zero other features. If a file needs data/UI from ≥2 features, it belongs inside the most relevant one or a dedicated orchestrator feature — cross-feature imports are a design smell, not a shortcut.
 
 ## Conventions
 
@@ -45,6 +46,22 @@ Build/test/lint/typecheck scripts are wrapped in `./scripts/run_silent` internal
 - Read `docs/feature-architecture.md` for feature structure, components, locales, metadata
 - Read `docs/server-patterns.md` for queries, actions, API routes, error handling, email
 - Read `docs/quick-reference.md` for import table, config, and database access
+
+## Doctrine and ADRs
+
+- `CODING_STANDARDS.md` — TDD doctrine plus eniem-specific Prisma/Polar/BetterAuth/Next.js rules. Read before writing code.
+- `docs/CODE_REVIEW.md` — reviewer checklist (used by `/code-review`).
+- `docs/CONTEXT.md` — domain glossary (maintained via `/grill-with-docs`).
+- `docs/adr/` — architectural decisions; template at `docs/adr/0000-template.md`.
+
+## Stack docs
+
+Long-form integration references for stack pieces. Read the relevant one before touching that area.
+
+- `docs/stack/auth-guide.md` — BetterAuth: providers, OAuth, Email OTP, SIWE, rate limits, email callbacks
+- `docs/stack/payments-polar.md` — Polar: checkout, subscriptions, credits, webhooks, customer lifecycle
+- `docs/stack/route-guard.md` — Request-time route protection (`authed.query`, `authed.route`, middleware)
+- `docs/stack/feature-scaffold.md` — Conventions for adding a new feature module
 
 ## Plan Mode
 

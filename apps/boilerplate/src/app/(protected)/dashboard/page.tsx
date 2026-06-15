@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/config";
 import { createMetadata, getDefaultMetadata } from "@/lib/metadata";
 import { locales } from "@/locales";
 import { SuccessBanner } from "@/components/success-banner";
